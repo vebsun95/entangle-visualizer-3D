@@ -24,6 +24,7 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "three-spritetext": "^1.6.3"
   }
 }
