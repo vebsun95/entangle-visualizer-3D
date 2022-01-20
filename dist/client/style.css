@@ -1,0 +1,20 @@
+body {
+    overflow: hidden;
+    margin: 0px;
+}
+
+.btn-overlay {
+    z-index: 10;
+    position: absolute;
+    color: red;
+}
+
+#btn-lattice {
+    top: 5;
+    left: 5;
+}
+
+#btn-2d {
+    top: 20;
+    right: 20;
+}

@@ -14,8 +14,14 @@ var colors = {
   lightgrey: "EBE7E3",
   darkgrey: "6D7891"
 };
+/** @type {HTMLIFrameElement | null | undefined} */
+
 var iframeContainerElement;
+/** @type {HTMLDivElement | null | undefined} */
+
 var containerElement;
+/** @type {Array<(element: HTMLDivElement) => void>} */
+
 var onLoadQueue = [];
 ansiHTML.setColors(colors);
 
@@ -34,7 +40,11 @@ function createContainer() {
   iframeContainerElement.style.zIndex = 9999999999;
 
   iframeContainerElement.onload = function () {
-    containerElement = iframeContainerElement.contentDocument.createElement("div");
+    containerElement =
+    /** @type {Document} */
+
+    /** @type {HTMLIFrameElement} */
+    iframeContainerElement.contentDocument.createElement("div");
     containerElement.id = "webpack-dev-server-client-overlay-div";
     containerElement.style.position = "fixed";
     containerElement.style.boxSizing = "border-box";
@@ -62,7 +72,8 @@ function createContainer() {
     closeButtonElement.style.fontWeight = "bold";
     closeButtonElement.style.color = "white";
     closeButtonElement.style.cursor = "pointer";
-    closeButtonElement.style.cssFloat = "right";
+    closeButtonElement.style.cssFloat = "right"; // @ts-ignore
+
     closeButtonElement.style.styleFloat = "right";
     closeButtonElement.addEventListener("click", function () {
       hide();
@@ -71,16 +82,27 @@ function createContainer() {
     containerElement.appendChild(closeButtonElement);
     containerElement.appendChild(document.createElement("br"));
     containerElement.appendChild(document.createElement("br"));
+    /** @type {Document} */
+
+    /** @type {HTMLIFrameElement} */
     iframeContainerElement.contentDocument.body.appendChild(containerElement);
     onLoadQueue.forEach(function (onLoad) {
-      onLoad(containerElement);
+      onLoad(
+      /** @type {HTMLDivElement} */
+      containerElement);
     });
     onLoadQueue = [];
+    /** @type {HTMLIFrameElement} */
+
     iframeContainerElement.onload = null;
   };
 
   document.body.appendChild(iframeContainerElement);
 }
+/**
+ * @param {(element: HTMLDivElement) => void} callback
+ */
+
 
 function ensureOverlayExists(callback) {
   if (containerElement) {
@@ -109,6 +131,12 @@ function hide() {
   iframeContainerElement = null;
   containerElement = null;
 }
+/**
+ * @param {string} type
+ * @param {string  | { file?: string, moduleName?: string, loc?: string, message?: string }} item
+ * @returns {{ header: string, body: string }}
+ */
+
 
 function formatProblem(type, item) {
   var header = type === "warning" ? "WARNING" : "ERROR";
@@ -130,6 +158,11 @@ function formatProblem(type, item) {
     body: body
   };
 } // Compilation with errors (e.g. syntax error or missing modules).
+
+/**
+ * @param {string} type
+ * @param {Array<string  | { file?: string, moduleName?: string, loc?: string, message?: string }>} messages
+ */
 
 
 function show(type, messages) {
@@ -154,6 +187,8 @@ function show(type, messages) {
       entryElement.appendChild(messageTextNode);
       entryElement.appendChild(document.createElement("br"));
       entryElement.appendChild(document.createElement("br"));
+      /** @type {HTMLDivElement} */
+
       containerElement.appendChild(entryElement);
     });
   });
