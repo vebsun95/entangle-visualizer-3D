@@ -49,7 +49,7 @@ const mergeAssetInfo = (a, b) => {
 				case "immutable":
 				case "development":
 				case "hotModuleReplacement":
-				case "javascriptModule	":
+				case "javascriptModule":
 					result[key] = a[key] || b[key];
 					break;
 				case "related":
@@ -191,6 +191,8 @@ class AssetGenerator extends Generator {
 							encoding ? `;${encoding}` : ""
 						},${encodedContent}`;
 					}
+					const data = getData();
+					data.set("url", encodedSource);
 					return new RawSource(
 						`${RuntimeGlobals.module}.exports = ${JSON.stringify(
 							encodedSource
@@ -228,7 +230,7 @@ class AssetGenerator extends Generator {
 								contentHash
 							}
 						);
-					let publicPath;
+					let assetPath;
 					if (this.publicPath !== undefined) {
 						const { path, info } =
 							runtimeTemplate.compilation.getAssetPathWithInfo(
@@ -241,11 +243,14 @@ class AssetGenerator extends Generator {
 									contentHash
 								}
 							);
-						publicPath = JSON.stringify(path);
 						assetInfo = mergeAssetInfo(assetInfo, info);
+						assetPath = JSON.stringify(path + filename);
 					} else {
-						publicPath = RuntimeGlobals.publicPath;
 						runtimeRequirements.add(RuntimeGlobals.publicPath); // add __webpack_require__.p
+						assetPath = runtimeTemplate.concatenation(
+							{ expr: RuntimeGlobals.publicPath },
+							filename
+						);
 					}
 					assetInfo = {
 						sourceFilename,
@@ -264,9 +269,7 @@ class AssetGenerator extends Generator {
 					}
 
 					return new RawSource(
-						`${
-							RuntimeGlobals.module
-						}.exports = ${publicPath} + ${JSON.stringify(filename)};`
+						`${RuntimeGlobals.module}.exports = ${assetPath};`
 					);
 				}
 			}
