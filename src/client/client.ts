@@ -420,33 +420,76 @@ function createTexture(text: string, radius: number) {
 function createTorus() {
     const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
 
-    var piParts = (2 * Math.PI) / (nrOfVertecties / s)
-    const scale = 20;
+    var deltaPi = (2 * Math.PI) / (nrOfVertecties / s)
     var counter;
-    const points: Vector3[] = [];
+    const R = 3 * 5;
+    const r = 2 * 2;
 
-
-    for (let i = 0; i <= 2 * Math.PI; i += piParts) {
-        var offsetX = scale * Math.sin(i);
-        var offsetY = scale * Math.cos(i);
-        counter = i;
-
-        points.push(new THREE.Vector3(offsetX, offsetY, 0));
-        const points1: Vector3[] = [];
-
-        for (let j = 0; j <= 2 * Math.PI; j += piParts) {
-            points1.push( new THREE.Vector3(offsetX + Math.sin(j), offsetY + Math.cos(j), 0 ) )
-            const geometry1 = new THREE.BufferGeometry().setFromPoints(points1);
-            const line1 = new THREE.Line(geometry1, material);
-            line1.lookAt( new THREE.Vector3(0, 0, 0));
-            scene.add(line1)
+    for (let i = 0, c = 0; i <= 2 * Math.PI; i += deltaPi, c++) {
+        counter = c
+        for (let j = 0; j <= 2 * Math.PI; j += deltaPi) {
+            var obj = scene.getObjectByName(counter.toString())
+            if (typeof obj != undefined) {
+                obj?.position.set(
+                    ((R + r * Math.cos(j)) * Math.cos(i)),
+                    ((R + r * Math.cos(j)) * Math.sin(i)),
+                    (r * Math.sin(j))
+                );
+                counter += s
+            }
+            else { console.log(counter) }
         }
     }
 
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.Line(geometry, material);
-    scene.add(line)
+    const parities: BlockEntery[] = readFile().Parities;
+    parities.forEach(parity => {
+        let line = scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
+        let vertixTo = scene.getObjectByName(parity.LeftPos.toString());
+        let vertixFrom = scene.getObjectByName(parity.RightPos.toString());
+        if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
+            switch (parity.Strand) {
+                case horizontal: {
 
+                    //@ts-ignore
+                    let array = line.geometry.attributes.position
+                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+
+                    // Tegner kun de to første 3d-punktene i listen.
+                    //@ts-ignore
+                    line.geometry.setDrawRange(0, 2);
+                    //@ts-ignore
+                    line.geometry.attributes.position.needsUpdate = true;
+                }
+                case LHStrand: {
+                    //@ts-ignore
+                    let array = line.geometry.attributes.position
+                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+
+                    // Tegner kun de to første 3d-punktene i listen.
+                    //@ts-ignore
+                    line.geometry.setDrawRange(0, 2);
+                    //@ts-ignore
+                    line.geometry.attributes.position.needsUpdate = true;
+
+                }
+                case RHStrand: {
+                    //@ts-ignore
+                    let array = line.geometry.attributes.position
+                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+
+                    // Tegner kun de to første 3d-punktene i listen.
+                    //@ts-ignore
+                    line.geometry.setDrawRange(0, 2);
+                    //@ts-ignore
+                    line.geometry.attributes.position.needsUpdate = true;
+
+                }
+            }
+        }
+    });
 }
 
 function animate() {
@@ -465,17 +508,18 @@ document.getElementById("btn-2d")?.addEventListener("click", createDoubleD);
 document.getElementById("btn-lattice")?.addEventListener("click", createLattice);
 document.getElementById("btn-torus")?.addEventListener("click", createTorus);
 
-const axesHelper = new THREE.AxesHelper( 5 );
-scene.add( axesHelper );
+const axesHelper = new THREE.AxesHelper(5);
+scene.add(axesHelper);
 
 const size = 10;
 const divisions = 10;
 
-const gridHelper = new THREE.GridHelper( size, divisions );
-scene.add( gridHelper );
+const gridHelper = new THREE.GridHelper(size, divisions);
+scene.add(gridHelper);
 
 
 initObjects();
+
 createTorus();
 
 animate();
