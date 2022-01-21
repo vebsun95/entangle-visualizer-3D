@@ -6,7 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 const scene = new THREE.Scene()
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-camera.position.z = 50;
+camera.position.z = 53;
 
 var strandMapping: { [id: string]: number } = {}
 
@@ -24,14 +24,16 @@ function onWindowResize() {
     render()
 }
 
-const nrOfVertecties = 25;
+const nrOfVertecties = 50;
 const alpha = 3;
 const p = 5;
-const s = 5;
+const s = 7;
 
 const horizontal = 1;
 const LHStrand = 2;
 const RHStrand = 3;
+
+var group = new THREE.Group()
 
 interface BlockEntery {
     IsParity: boolean,
@@ -214,7 +216,6 @@ function readFile() {
     return { Vertecies: vertecies, Parities: parities }
 }
 
-var curve: THREE.QuadraticBezierCurve3;
 
 function initObjects() {
     const radius = 1;
@@ -234,11 +235,13 @@ function initObjects() {
             });
             obj = new THREE.Mesh(geometry, material);
             obj.name = counter.toString();
-            scene.add(obj)
+            group.add(obj);
 
             counter += s;
         }
     }
+
+    scene.add(group);
 
     var name: string;
     const parities: BlockEntery[] = readFile().Parities;
@@ -264,12 +267,12 @@ function initObjects() {
 function createLattice() {
 
     var counter: number;
-    var piParts: number = (2 * Math.PI) / (nrOfVertecties / s);
+    var piParts: number = (2 * Math.PI) / Math.ceil(nrOfVertecties / s);
     const scale: number = 10;
 
     for (let i = 1; i <= s; i++) {
         counter = i
-        for (let pos = 1; pos <= 2 * Math.PI; pos += piParts) {
+        for (let pos = 0; pos < 2 * Math.PI; pos += piParts) {
             var obj = scene.getObjectByName(counter.toString())
             if (typeof obj != undefined) {
                 obj?.position.set(
@@ -289,8 +292,6 @@ function createLattice() {
         if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
             switch (parity.Strand) {
                 case horizontal: {
-                    console.log(line);
-
                     //@ts-ignore
                     let array = line.geometry.attributes.position
                     array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
@@ -329,20 +330,23 @@ function createLattice() {
 
                 }
             }
-        }
+        } else {console.log(parity.LeftPos + "_" + parity.RightPos)}
     });
 }
 
 function createDoubleD() {
 
     const scale = 10;
+    var counter
 
-    for (let row = 0; row < s; row++) {
+    for (let row = 1; row <= s; row++) {
+        counter = row
         for (let col = 1; col <= (nrOfVertecties / s); col++) {
-            var obj = scene.getObjectByName(((row * s) + col).toString())
+            var obj = scene.getObjectByName(counter.toString())
             if (typeof obj != undefined) {
-                obj?.position.set(scale * row, scale * col, 0)
+                obj?.position.set(scale * col, scale * row, 100)
             }
+            counter += s
         }
     }
 
@@ -354,7 +358,6 @@ function createDoubleD() {
         if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
             switch (parity.Strand) {
                 case horizontal: {
-                    console.log(line);
 
                     //@ts-ignore
                     let array = line.geometry.attributes.position
@@ -418,14 +421,14 @@ function createTexture(text: string, radius: number) {
 }
 
 function createTorus() {
-    const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
 
     var deltaPi = (2 * Math.PI) / (nrOfVertecties / s)
+    var deltaPi1 = (2 * Math.PI) / s
     var counter;
-    const R = 3 * 5;
-    const r = 2 * 2;
+    const R = 3 * 10;
+    const r = 2 * 5;
 
-    for (let i = 0, c = 0; i <= 2 * Math.PI; i += deltaPi, c++) {
+    for (let i = 0, c = 1; i <= 2 * Math.PI; i += deltaPi1, c++) {
         counter = c
         for (let j = 0; j <= 2 * Math.PI; j += deltaPi) {
             var obj = scene.getObjectByName(counter.toString())
@@ -437,7 +440,7 @@ function createTorus() {
                 );
                 counter += s
             }
-            else { console.log(counter) }
+            else { console.log(counter)}
         }
     }
 
@@ -488,7 +491,7 @@ function createTorus() {
 
                 }
             }
-        }
+        } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
     });
 }
 
@@ -496,6 +499,7 @@ function animate() {
     requestAnimationFrame(animate)
 
     controls.update()
+
 
     render()
 }
