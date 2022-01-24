@@ -15,7 +15,7 @@ module.exports = {
         alias: {
             three: path.resolve('./node_modules/three')
         },
-        extensions: ['.tsx', '.ts', '.js'],
+        extensions: ['.tsx', '.ts', '.js', '.css'],
     },
     output: {
         filename: 'bundle.js',
