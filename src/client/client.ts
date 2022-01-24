@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { Vector3 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-
+import { RendererObject } from './renderObject'
+import { BlockEntery } from './interfaces';
 
 const scene = new THREE.Scene()
 
@@ -24,10 +25,10 @@ function onWindowResize() {
     render()
 }
 
-const nrOfVertecties = 50;
+const nrOfVertecties = 25;
 const alpha = 3;
 const p = 5;
-const s = 7;
+const s = 5;
 
 const horizontal = 1;
 const LHStrand = 2;
@@ -35,13 +36,7 @@ const RHStrand = 3;
 
 var group = new THREE.Group()
 
-interface BlockEntery {
-    IsParity: boolean,
-    Position: number,
-    LeftPos: number,
-    RightPos: number,
-    Strand: number,
-}
+
 
 function readFile() {
     var vertecies: BlockEntery[] = []
@@ -221,7 +216,6 @@ function initObjects() {
     const radius = 1;
 
     const geometry = new THREE.SphereGeometry(radius);
-
     var counter: number;
     var obj: THREE.Mesh;
     var material: THREE.MeshBasicMaterial;
@@ -235,6 +229,7 @@ function initObjects() {
             });
             obj = new THREE.Mesh(geometry, material);
             obj.name = counter.toString();
+            
             group.add(obj);
 
             counter += s;
@@ -302,6 +297,7 @@ function createLattice() {
                     line.geometry.setDrawRange(0, 2);
                     //@ts-ignore
                     line.geometry.attributes.position.needsUpdate = true;
+
                 }
                 case LHStrand: {
                     //@ts-ignore
@@ -330,21 +326,26 @@ function createLattice() {
 
                 }
             }
-        } else {console.log(parity.LeftPos + "_" + parity.RightPos)}
+        } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
     });
 }
 
 function createDoubleD() {
 
     const scale = 10;
+    const scaleSmall = scale * (Math.sqrt(2) / 2)
     var counter
+    const offSetX = (scale + scale * (nrOfVertecties / s)) / 2;
+    const offSetY = (scale + scale * s) / 2;
 
     for (let row = 1; row <= s; row++) {
         counter = row
         for (let col = 1; col <= (nrOfVertecties / s); col++) {
             var obj = scene.getObjectByName(counter.toString())
             if (typeof obj != undefined) {
-                obj?.position.set(scale * col, scale * row, 100)
+                obj?.position.set(scale * col - offSetX, scale * (s - row) - offSetY, 0)
+                obj!.visible = true;
+                obj?.rotateY(col)
             }
             counter += s
         }
@@ -353,68 +354,84 @@ function createDoubleD() {
     const parities: BlockEntery[] = readFile().Parities;
     parities.forEach(parity => {
         let line = scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-        let vertixTo = scene.getObjectByName(parity.LeftPos.toString());
-        let vertixFrom = scene.getObjectByName(parity.RightPos.toString());
+        let vertixFrom = scene.getObjectByName(parity.LeftPos.toString());
+        let vertixTo = scene.getObjectByName(parity.RightPos.toString());
         if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
+            //@ts-ignore
+            let array = line.geometry.attributes.position
             switch (parity.Strand) {
                 case horizontal: {
-
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
+                    if (vertixFrom?.position.x! > vertixTo?.position.x!) {
+                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                        array.setXYZ(1, vertixFrom?.position.x! + scale, vertixFrom?.position.y, vertixFrom?.position.z)
+                    } else {
+                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+                    }
                     // Tegner kun de to første 3d-punktene i listen.
                     //@ts-ignore
                     line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
+
+
+                    break;
                 }
                 case LHStrand: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
+                    if (vertixFrom?.position.y! < vertixTo?.position.y! && vertixFrom?.position.x! > vertixTo?.position.x!) {
+                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                        array.setXYZ(1, vertixFrom?.position.x! + scale, vertixFrom?.position.y! + scale, vertixFrom?.position.z)
+                    }
+                    else if (vertixFrom?.position.y! > vertixTo?.position.y!) {
+                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                        array.setXYZ(1, vertixFrom?.position.x! + scale, vertixFrom?.position.y! + scale, vertixFrom?.position.z)
+                    } else {
+                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+                    }
                     //@ts-ignore
                     line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
 
+                    break;
                 }
                 case RHStrand: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+                    if (vertixFrom?.position.x! > vertixTo?.position.x! && vertixFrom?.position.y! > vertixTo?.position.y!) {
+                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                        array.setXYZ(1, vertixFrom?.position.x! + scale, vertixFrom?.position.y! - scale, vertixFrom?.position.z)
+                    }
+                    else if (vertixFrom?.position.y! < vertixTo?.position.y!) {
+                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                        array.setXYZ(1, vertixFrom?.position.x! + scale, vertixFrom?.position.y! - scale, vertixFrom?.position.z)
+                    } else {
+                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+                    }
 
-                    // Tegner kun de to første 3d-punktene i listen.
                     //@ts-ignore
                     line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-
+                    break;
                 }
             }
+            //@ts-ignore
+            line.geometry.attributes.position.needsUpdate = true;
         }
     });
 
 }
-
 function createTexture(text: string, radius: number) {
     let c = document.createElement("canvas");
     c.width = 2 * Math.PI * radius;
     c.height = 2 * radius;
-    let step = c.width / 3
+    let step = c.width / 4;
     let ctx = c.getContext("2d");
+    ctx!.fillStyle = "#000000";
+    ctx!.fillRect(0, 0, 5, c.height);
     ctx!.fillStyle = "#00ff00";
     ctx!.fillRect(0, 0, c.width, c.height);
-    ctx!.font = "4em black";
+    ctx!.font = (radius * 0.8) + "px black";
     ctx!.fillStyle = "black";
     ctx!.textBaseline = "middle";
-    for (let i = 0; i < 3; i++) {
-        ctx!.fillText(text, step * i, step * 0.5);
+    ctx!.textAlign = "center";
+    for (let i = 0; i < 4; i++) {
+        ctx!.fillText(text,step * i, (step + (radius * 0.5)) * 0.5);
     }
 
     return new THREE.CanvasTexture(c);
@@ -440,7 +457,7 @@ function createTorus() {
                 );
                 counter += s
             }
-            else { console.log(counter)}
+            else { console.log(counter) }
         }
     }
 
@@ -495,6 +512,17 @@ function createTorus() {
     });
 }
 
+function createLabelTest() {
+    camera.position.z = 5;
+    var obj = scene.getObjectByName("1");
+    obj?.position.set(0,0,0)
+    for (let i=2; i <= nrOfVertecties; i++) {
+        var obj = scene.getObjectByName(i.toString());
+        obj!.visible = false;
+    }
+
+}
+
 function animate() {
     requestAnimationFrame(animate)
 
@@ -511,19 +539,47 @@ function render() {
 document.getElementById("btn-2d")?.addEventListener("click", createDoubleD);
 document.getElementById("btn-lattice")?.addEventListener("click", createLattice);
 document.getElementById("btn-torus")?.addEventListener("click", createTorus);
+document.getElementById("btn-label-test")?.addEventListener("click", createLabelTest);
 
 const axesHelper = new THREE.AxesHelper(5);
 scene.add(axesHelper);
 
-const size = 10;
-const divisions = 10;
 
-const gridHelper = new THREE.GridHelper(size, divisions);
-scene.add(gridHelper);
+function bitMap()
+{
+    var svg=document.getElementById("bitmap");
+    const height = 168;
+    const width = 168;
+    svg?.setAttribute("height", height.toString());
+    svg?.setAttribute("width", width.toString());
+    for (let row = 0; row < width * 4; row ++) {
+        for (let col = 0; col < height * 4; col++) {
+            let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttributeNS(null, "x", (row * 4).toString());
+            rect.setAttributeNS(null, "y", (col * 4).toString());
+            rect.setAttributeNS(null, "width", "4");
+            rect.setAttributeNS(null, "height", "4");
+            rect.setAttributeNS(null, "style", GetRandomColor());
+    
+            svg?.appendChild(rect);
+        }
+    }
+}
+
+function GetRandomColor() : string {
+    var dice = Math.random();
+    if (dice < 0.5)
+        return "fill:rgb(0,255,0);stroke-width:3;stroke:rgb(0,255,0)";
+    if (dice < 0.75)
+        return "fill:rgb(255,0,0);stroke-width:3;stroke:rgb(255,0,0)";
+    return "fill:rgb(0,0,255);stroke-width:3;stroke:rgb(0,0,255)";
+}
 
 
 initObjects();
 
-createTorus();
+bitMap();
+
+createLabelTest();
 
 animate();
