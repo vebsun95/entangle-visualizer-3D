@@ -1,7 +1,10 @@
-export interface BlockEntery {
-    IsParity: boolean,
-    Position: number,
+export interface Parities {
     LeftPos: number,
     RightPos: number,
     Strand: number,
+    Color: number,
+}
+
+export interface Vertices {
+    Color: number
 }

@@ -5,8 +5,8 @@ export const STRANDS = {
 }
 
 export const COLORS = {
-    GREEN: '0x0000FF',
-    BLUE: '0x00FF00',
-    RED: '0xFF0000',
-    GREY: '0x808080'
+    GREEN: 0x00ff00,
+    BLUE: 0x0000ff,
+    RED: 0xff0000,
+    GREY: 0x808080
 }

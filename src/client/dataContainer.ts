@@ -1,19 +1,19 @@
-import { BlockEntery } from "./interfaces";
+import { Parities, Vertices } from "./interfaces";
 
 export class DataContainer {
     alpha: number;
     s: number;
     p: number;
-    nrOfVertecies: number;
-    parities: BlockEntery[];
-    vertecies: BlockEntery[];
+    nrOfVertices: number;
+    parities: Parities[];
+    vertices: Vertices[];
 
-    constructor(alpha: number, s: number, p: number, parities: BlockEntery[], vertecies: BlockEntery[]) {
+    constructor(alpha: number, s: number, p: number, parities: Parities[], vertices: Vertices[]) {
         this.alpha = alpha;
         this.s = s;
         this.p = p;
         this.parities = parities;
-        this.vertecies = vertecies;
-        this.nrOfVertecies = vertecies.length;
+        this.vertices = vertices;
+        this.nrOfVertices = vertices.length;
     }
 }

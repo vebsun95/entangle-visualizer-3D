@@ -1,52 +1,46 @@
 import { RendererObject } from './renderObject'
-import { BlockEntery } from './interfaces';
+import { Vertices, Parities } from './interfaces';
 import { COLORS, STRANDS } from './constants';
 
-const nrOfVertecties = 25;
+const nrOfVertices = 10000;
 const alpha = 3;
 const p = 5;
 const s = 5;
 
 function readFile() {
-    var vertecies: BlockEntery[] = []
-    var parities: BlockEntery[] = []
-    for (let i = 1; i < nrOfVertecties; i++) {
-        vertecies.push(
+    var vertices: Vertices[] = []
+    var parities: Parities[] = []
+    for (let i = 1; i < nrOfVertices + 1; i++) {
+        vertices.push(
             {
-                IsParity: false,
-                Position: i,
-                LeftPos: -1,
-                RightPos: -1,
-                Strand: 0
+                Color: GetRandomColorString()
             }
         )
     }
 
-    for (let i = 1; i < nrOfVertecties + 1; i++) {
+    for (let i = 1; i < nrOfVertices + 1; i++) {
         let parityTo = i + s;
 
         // -- H Strand --
-        if (parityTo <= nrOfVertecties) {
+        if (parityTo <= nrOfVertices) {
             // horizontal
             parities.push(
                 {
-                    IsParity: true,
-                    Position: -1,
                     LeftPos: i,
                     RightPos: i + s,
-                    Strand: STRANDS.HStrand
+                    Strand: STRANDS.HStrand,
+                    Color: COLORS.BLUE,
                 }
             )
         }
-        else if (parityTo > nrOfVertecties) {
-            var right_temp = (i + s) % nrOfVertecties
+        else if (parityTo > nrOfVertices) {
+            var right_temp = (i + s) % nrOfVertices
             parities.push(
                 {
-                    IsParity: true,
-                    Position: -1,
                     LeftPos: i,
                     RightPos: right_temp,
-                    Strand: STRANDS.HStrand
+                    Strand: STRANDS.HStrand,
+                    Color: COLORS.BLUE,
                 }
             )
         }
@@ -56,29 +50,27 @@ function readFile() {
         // RH Top & middle
         if (helper >= 1) {
             parityTo = i + s + 1
-            if (parityTo <= nrOfVertecties) {
+            if (parityTo <= nrOfVertices) {
                 parities.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: parityTo,
-                        Strand: STRANDS.HStrand
+                        Strand: STRANDS.HStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
             }
-            else if (parityTo > nrOfVertecties) {
-                var right_temp = parityTo % nrOfVertecties
+            else if (parityTo > nrOfVertices) {
+                var right_temp = parityTo % nrOfVertices
                 if (right_temp == 0) {
                     right_temp = 1
                 }
                 parities.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: right_temp,
-                        Strand: STRANDS.RHStrand
+                        Strand: STRANDS.RHStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
 
@@ -87,29 +79,27 @@ function readFile() {
         // RH Bottom
         else if (helper == 0) {
             parityTo = i + (s * p) - ((s * s) - 1)
-            if (parityTo <= nrOfVertecties) {
+            if (parityTo <= nrOfVertices) {
                 parities.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: parityTo,
-                        Strand: STRANDS.RHStrand
+                        Strand: STRANDS.RHStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
             }
-            else if (parityTo > nrOfVertecties) {
-                var right_temp = parityTo % nrOfVertecties
+            else if (parityTo > nrOfVertices) {
+                var right_temp = parityTo % nrOfVertices
                 if (right_temp == 0) {
                     right_temp = 1
                 }
                 parities.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: right_temp,
-                        Strand: STRANDS.RHStrand
+                        Strand: STRANDS.RHStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
             }
@@ -118,29 +108,27 @@ function readFile() {
         if (helper == 1) {
             // top
             parityTo = i + s * p - Math.pow((s - 1), 2)
-            if (parityTo <= nrOfVertecties) {
+            if (parityTo <= nrOfVertices) {
                 parities.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: parityTo,
-                        Strand: STRANDS.LHStrand
+                        Strand: STRANDS.LHStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
             }
-            else if (parityTo > nrOfVertecties) {
-                var right_temp = parityTo % nrOfVertecties
+            else if (parityTo > nrOfVertices) {
+                var right_temp = parityTo % nrOfVertices
                 if (right_temp == 0) {
                     right_temp = 1
                 }
                 parities.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: right_temp,
-                        Strand: STRANDS.LHStrand
+                        Strand: STRANDS.LHStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
             }
@@ -148,36 +136,35 @@ function readFile() {
         else if (helper == 0 || helper > 1) {
             // central && bottom
             parityTo = i + s - 1
-            if (parityTo <= nrOfVertecties) {
+            if (parityTo <= nrOfVertices) {
                 parities.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: parityTo,
-                        Strand: STRANDS.LHStrand
+                        Strand: STRANDS.LHStrand,
+                        Color: COLORS.BLUE,
+
                     }
                 )
             }
-            else if (parityTo > nrOfVertecties) {
-                var right_temp = parityTo % nrOfVertecties
+            else if (parityTo > nrOfVertices) {
+                var right_temp = parityTo % nrOfVertices
                 if (right_temp == 0) {
                     right_temp = 1
                 }
                 parities.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: right_temp,
-                        Strand: STRANDS.LHStrand
+                        Strand: STRANDS.LHStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
             }
         }
 
     }
-    return { Vertecies: vertecies, Parities: parities }
+    return { Vertices: vertices, Parities: parities }
 }
 
 function bitMap() {
@@ -221,14 +208,25 @@ function GetRandomColor(): number {
     return 3
 }
 
+function GetRandomColorString(): number {
+    var dice = Math.random();
+    if (dice < 0.7)
+        return COLORS.GREEN
+    if (dice < 0.8)
+        return COLORS.RED
+    if (dice < 0.9)
+        return COLORS.GREY
+    return COLORS.BLUE
+}
+
 function init() {
     let data = readFile();
-    const renderer = new RendererObject(3, 5, 5, data.Parities, data.Vertecies, 4);
+    const renderer = new RendererObject(3, 5, 5, data.Parities, data.Vertices, 4);
     renderer.initObjects(1);
     renderer.createTwoDimView();
     renderer.animate();
 
-    window.addEventListener('resize', () => renderer.onWindowRezise(), false);
+    window.addEventListener('resize', () => renderer.onWindowResize(), false);
 
     document.getElementById("btn-2d")?.addEventListener("click", () => renderer.createTwoDimView());
     document.getElementById("btn-lattice")?.addEventListener("click", () => renderer.createLattice());
