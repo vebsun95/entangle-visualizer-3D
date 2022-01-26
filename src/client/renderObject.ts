@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { FlyControls } from 'three/examples/jsm/controls/FlyControls';
 import { Parities, Vertices } from './interfaces'
 import { STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
@@ -14,7 +13,12 @@ export class RendererObject extends DataContainer{
     camera: THREE.PerspectiveCamera;
     controls: OrbitControls;
     pointsPerLine: number;
-    limit: number = 500;
+    limit: number = 30;
+    drawFrom: number = 9990;
+    mainGroup: THREE.Group = new THREE.Group();
+    verticesGroup: THREE.Group = new THREE.Group();
+    paritiesGroup: THREE.Group = new THREE.Group();
+    scale: number = 10;
 
     constructor(alpha: number, s: number, p: number, parities: Parities[], vertices: Vertices[], ppp: number) {
         super(alpha, s, p, parities, vertices);
@@ -27,6 +31,8 @@ export class RendererObject extends DataContainer{
         this.renderer.setSize(window.innerWidth, window.innerHeight)
         document.body.appendChild(this.renderer.domElement)
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.mainGroup.add( this.verticesGroup );
+        this.mainGroup.add( this.paritiesGroup );
     }
 
     initObjects(radius: number) {
@@ -44,13 +50,13 @@ export class RendererObject extends DataContainer{
         for (let index = 1; index <= this.limit; index++) {
             material = new THREE.MeshBasicMaterial({
                 color: this.vertices[ index - 1].Color,
-                map: this.createTexture(index.toString(), radius * 50),
             });
             obj = new THREE.Mesh(geometry, material);
             obj.name = index.toString();
             obj.rotateY(Math.PI / 4);
 
             this.scene.add(obj);
+            this.verticesGroup.add(obj);
 
             // Hver linje har 4 punkter, som tar 3 plasser(x, y, z)
             positions = new Float32Array(this.pointsPerLine * 3);
@@ -61,9 +67,11 @@ export class RendererObject extends DataContainer{
             curveObject = new THREE.Line(lineGeometry, lineMaterial);
             name = this.parities[index-1].LeftPos + "_" + this.parities[index-1].RightPos;
             curveObject.name = name;
-            this.scene.add(curveObject);
             curveObject.geometry.attributes.position.needsUpdate;
+            this.paritiesGroup.add(curveObject);
         }
+        this.scene.add(this.mainGroup);
+
 
         // const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf0ff0 });
 
@@ -88,16 +96,29 @@ export class RendererObject extends DataContainer{
     }
 
     createTwoDimView() {
-        const scale = 10;
-        var counter;
-        for (let row = 1; row <= this.s ; row++) {
-            counter = row
-            for (let col = 1; col <= (this.nrOfVertices / this.s); col++) {
-                var obj = this.scene.getObjectByName(counter.toString())
-                if (typeof obj != undefined) {
-                    obj?.position.set(scale * col, scale * (this.s - row), 0);
-                }
-                counter += this.s
+
+        var vertex: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | undefined;
+
+        for (let index = this.drawFrom, column = 0, row = 0, drawn = 1;
+            drawn <=  this.limit;
+            index = (index + 1) % this.nrOfVertices, row = (row + 1) % this.s, drawn++) {
+            vertex = this.scene.getObjectByName(drawn.toString()) as THREE.Mesh <THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+            if (typeof vertex != undefined)
+            {
+                console.log(index, column, row);
+                vertex?.position.set(
+                    this.scale * column,
+                    this.scale * row,
+                    0,
+                );
+                // @ts-ignore
+                vertex?.material.map = this.createTexture(index.toString(), 50);
+
+            }
+
+            if (row == this.s - 1)
+            {
+                column++;
             }
         }
     }
