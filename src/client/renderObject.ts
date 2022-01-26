@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Parities, Vertices } from './interfaces'
 import { STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
+import { MyControls } from './MyControls';
 
 
 
@@ -11,9 +12,9 @@ export class RendererObject extends DataContainer{
     renderer: THREE.Renderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
-    controls: OrbitControls;
+    controls: MyControls;
     pointsPerLine: number;
-    limit: number = 30;
+    limit: number = 250;
     drawFrom: number = 9990;
     mainGroup: THREE.Group = new THREE.Group();
     verticesGroup: THREE.Group = new THREE.Group();
@@ -30,7 +31,7 @@ export class RendererObject extends DataContainer{
         this.renderer = new THREE.WebGL1Renderer();
         this.renderer.setSize(window.innerWidth, window.innerHeight)
         document.body.appendChild(this.renderer.domElement)
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls = new MyControls(this.camera, this.renderer.domElement);
         this.mainGroup.add( this.verticesGroup );
         this.mainGroup.add( this.paritiesGroup );
     }
@@ -41,7 +42,6 @@ export class RendererObject extends DataContainer{
 
         var obj: THREE.Mesh;
         var material: THREE.MeshBasicMaterial;
-
         var name: string;
         var positions: Float32Array;
         var lineGeometry: THREE.BufferGeometry;
@@ -105,15 +105,12 @@ export class RendererObject extends DataContainer{
             vertex = this.scene.getObjectByName(drawn.toString()) as THREE.Mesh <THREE.BufferGeometry, THREE.MeshBasicMaterial>;
             if (typeof vertex != undefined)
             {
-                console.log(index, column, row);
                 vertex?.position.set(
                     this.scale * column,
                     this.scale * row,
                     0,
                 );
-                // @ts-ignore
-                vertex?.material.map = this.createTexture(index.toString(), 50);
-
+                vertex.material.map = this.createTexture(index.toString(), 50);
             }
 
             if (row == this.s - 1)
