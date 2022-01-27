@@ -31,6 +31,7 @@ export class RendererObject extends DataContainer{
         this.renderer = new THREE.WebGL1Renderer();
         this.renderer.setSize(window.innerWidth, window.innerHeight)
         document.body.appendChild(this.renderer.domElement)
+        this.renderer.domElement.setAttribute("tabindex", "1");
         this.controls = new MyControls(this.camera, this.renderer.domElement);
         this.mainGroup.add( this.verticesGroup );
         this.mainGroup.add( this.paritiesGroup );

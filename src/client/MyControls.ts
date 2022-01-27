@@ -127,7 +127,7 @@ class MyControls extends EventDispatcher {
 		this.enablePan = true;
 		this.panSpeed = 1.0;
 		this.screenSpacePanning = true; // if false, pan orthogonal to world-space direction camera.up
-		this.keyPanSpeed = 7.0;	// pixels moved per arrow key push
+		this.keyPanSpeed = 25.0;	// pixels moved per arrow key push
 
 		// Set to true to automatically rotate around the target
 		// If auto-rotate is enabled, you must call controls.update() in your animation loop
@@ -194,6 +194,10 @@ class MyControls extends EventDispatcher {
 		this.domElement.addEventListener('pointercancel', this.onPointerCancel.bind(this));
 		this.domElement.addEventListener('wheel', this.onMouseWheel.bind(this), { passive: false });
 
+		//this.listenToKeyEvents(this.domElement);
+		this.domElement.addEventListener('keydown', this.handleKeyDown.bind(this), false);
+
+
 		// force an update at start
 
 		this.update();
@@ -219,7 +223,6 @@ class MyControls extends EventDispatcher {
 	};
 
 	listenToKeyEvents(domElement: HTMLCanvasElement) {
-
 		domElement.addEventListener('keydown', this.onKeyDown.bind(this));
 		this._domElementKeyEvents = domElement;
 
@@ -378,11 +381,10 @@ class MyControls extends EventDispatcher {
 			lastQuaternion.copy(this.camera.quaternion);
 			this.zoomChanged = false;
 
-			return true;
 
 		}
 
-		return false;
+		return this.camera.position.x;
 
 };
 
@@ -619,6 +621,7 @@ handleMouseWheel(event : WheelEvent) {
 handleKeyDown(event : KeyboardEvent) {
 
 	let needsUpdate = false;
+
 
 	switch (event.code) {
 
@@ -1050,6 +1053,8 @@ onMouseWheel(event : WheelEvent) {
 }
 
 onKeyDown(event : KeyboardEvent) {
+
+	console.log("onKeyDown")
 
 	if (this.enabled === false || this.enablePan === false) return;
 
