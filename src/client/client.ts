@@ -1,529 +1,247 @@
-import * as THREE from 'three'
-import { Vector3 } from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { RendererObject } from './renderObject'
+import { Vertices, Parities } from './interfaces';
+import { COLORS, STRANDS } from './constants';
+import { BitMap } from './bitmap';
 
-
-const scene = new THREE.Scene()
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-camera.position.z = 53;
-
-var strandMapping: { [id: string]: number } = {}
-
-const renderer = new THREE.WebGLRenderer()
-renderer.setSize(window.innerWidth, window.innerHeight)
-document.body.appendChild(renderer.domElement)
-
-const controls = new OrbitControls(camera, renderer.domElement)
-
-window.addEventListener('resize', onWindowResize, false)
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    render()
-}
-
-const nrOfVertecties = 50;
+const nrOfVertices = 25000;
 const alpha = 3;
 const p = 5;
-const s = 7;
-
-const horizontal = 1;
-const LHStrand = 2;
-const RHStrand = 3;
-
-var group = new THREE.Group()
-
-interface BlockEntery {
-    IsParity: boolean,
-    Position: number,
-    LeftPos: number,
-    RightPos: number,
-    Strand: number,
-}
+const s = 5;
 
 function readFile() {
-    var vertecies: BlockEntery[] = []
-    var parities: BlockEntery[] = []
-    for (let i = 1; i < nrOfVertecties; i++) {
-        vertecies.push(
+    var vertices: Vertices[] = [];
+    
+    for (let i = 1; i < nrOfVertices + 1; i++) {
+        vertices.push(
             {
-                IsParity: false,
-                Position: i,
-                LeftPos: -1,
-                RightPos: -1,
-                Strand: 0
+                Label: i.toString(),
+                Color: GetRandomColorString(),
+                Outputs: [],
             }
         )
-    }
-
-    for (let i = 1; i < nrOfVertecties + 1; i++) {
-        let parityTo = i + s;
-
-        // -- H Strand --
-        if (parityTo <= nrOfVertecties) {
-            // horizontal
-            parities.push(
-                {
-                    IsParity: true,
-                    Position: -1,
-                    LeftPos: i,
-                    RightPos: i + s,
-                    Strand: horizontal
-                }
-            )
-        }
-        else if (parityTo > nrOfVertecties) {
-            var right_temp = (i + s) % nrOfVertecties
-            parities.push(
-                {
-                    IsParity: true,
-                    Position: -1,
-                    LeftPos: i,
-                    RightPos: right_temp,
-                    Strand: horizontal
-                }
-            )
-        }
-
-        // -- RH Strand --
-        let helper = i % s;
-        // RH Top & middle
-        if (helper >= 1) {
-            parityTo = i + s + 1
-            if (parityTo <= nrOfVertecties) {
-                parities.push(
+        for (let j = 1; j < 2; j++) {
+            let parityTo = i + s;
+    
+            // -- H Strand --
+            if (parityTo <= nrOfVertices) {
+                // horizontal
+                vertices[vertices.length - 1].Outputs.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
-                        RightPos: parityTo,
-                        Strand: RHStrand
+                        RightPos: i + s,
+                        Strand: STRANDS.HStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
             }
-            else if (parityTo > nrOfVertecties) {
-                var right_temp = parityTo % nrOfVertecties
-                if (right_temp == 0) {
-                    right_temp = 1
-                }
-                parities.push(
+            else if (parityTo > nrOfVertices) {
+                var right_temp = (i + s) % nrOfVertices
+                vertices[vertices.length - 1].Outputs.push(
                     {
-                        IsParity: true,
-                        Position: -1,
                         LeftPos: i,
                         RightPos: right_temp,
-                        Strand: RHStrand
-                    }
-                )
-
-            }
-        }
-        // RH Bottom
-        else if (helper == 0) {
-            parityTo = i + (s * p) - ((s * s) - 1)
-            if (parityTo <= nrOfVertecties) {
-                parities.push(
-                    {
-                        IsParity: true,
-                        Position: -1,
-                        LeftPos: i,
-                        RightPos: parityTo,
-                        Strand: RHStrand
+                        Strand: STRANDS.HStrand,
+                        Color: COLORS.BLUE,
                     }
                 )
             }
-            else if (parityTo > nrOfVertecties) {
-                var right_temp = parityTo % nrOfVertecties
-                if (right_temp == 0) {
-                    right_temp = 1
+    
+            // -- RH Strand --
+            let helper = i % s;
+            // RH Top & middle
+            if (helper >= 1) {
+                parityTo = i + s + 1
+                if (parityTo <= nrOfVertices) {
+                    vertices[vertices.length - 1].Outputs.push(
+                        {
+                            LeftPos: i,
+                            RightPos: parityTo,
+                            Strand: STRANDS.HStrand,
+                            Color: COLORS.BLUE,
+                        }
+                    )
                 }
-                parities.push(
-                    {
-                        IsParity: true,
-                        Position: -1,
-                        LeftPos: i,
-                        RightPos: right_temp,
-                        Strand: RHStrand
+                else if (parityTo > nrOfVertices) {
+                    var right_temp = parityTo % nrOfVertices
+                    if (right_temp == 0) {
+                        right_temp = 1
                     }
-                )
-            }
-        }
-        // -- LH Strand --
-        if (helper == 1) {
-            // top
-            parityTo = i + s * p - Math.pow((s - 1), 2)
-            if (parityTo <= nrOfVertecties) {
-                parities.push(
-                    {
-                        IsParity: true,
-                        Position: -1,
-                        LeftPos: i,
-                        RightPos: parityTo,
-                        Strand: LHStrand
-                    }
-                )
-            }
-            else if (parityTo > nrOfVertecties) {
-                var right_temp = parityTo % nrOfVertecties
-                if (right_temp == 0) {
-                    right_temp = 1
+                    vertices[vertices.length - 1].Outputs.push(
+                        {
+                            LeftPos: i,
+                            RightPos: right_temp,
+                            Strand: STRANDS.RHStrand,
+                            Color: COLORS.BLUE,
+                        }
+                    )
+    
                 }
-                parities.push(
-                    {
-                        IsParity: true,
-                        Position: -1,
-                        LeftPos: i,
-                        RightPos: right_temp,
-                        Strand: LHStrand
-                    }
-                )
             }
-        }
-        else if (helper == 0 || helper > 1) {
-            // central && bottom
-            parityTo = i + s - 1
-            if (parityTo <= nrOfVertecties) {
-                parities.push(
-                    {
-                        IsParity: true,
-                        Position: -1,
-                        LeftPos: i,
-                        RightPos: parityTo,
-                        Strand: LHStrand
-                    }
-                )
-            }
-            else if (parityTo > nrOfVertecties) {
-                var right_temp = parityTo % nrOfVertecties
-                if (right_temp == 0) {
-                    right_temp = 1
+            // RH Bottom
+            else if (helper == 0) {
+                parityTo = i + (s * p) - ((s * s) - 1)
+                if (parityTo <= nrOfVertices) {
+                    vertices[vertices.length - 1].Outputs.push(
+                        {
+                            LeftPos: i,
+                            RightPos: parityTo,
+                            Strand: STRANDS.RHStrand,
+                            Color: COLORS.BLUE,
+                        }
+                    )
                 }
-                parities.push(
-                    {
-                        IsParity: true,
-                        Position: -1,
-                        LeftPos: i,
-                        RightPos: right_temp,
-                        Strand: LHStrand
+                else if (parityTo > nrOfVertices) {
+                    var right_temp = parityTo % nrOfVertices
+                    if (right_temp == 0) {
+                        right_temp = 1
                     }
-                )
+                    vertices[vertices.length - 1].Outputs.push(
+                        {
+                            LeftPos: i,
+                            RightPos: right_temp,
+                            Strand: STRANDS.RHStrand,
+                            Color: COLORS.BLUE,
+                        }
+                    )
+                }
             }
-        }
-
-    }
-    return { Vertecies: vertecies, Parities: parities }
-}
-
-
-function initObjects() {
-    const radius = 1;
-
-    const geometry = new THREE.SphereGeometry(radius);
-
-    var counter: number;
-    var obj: THREE.Mesh;
-    var material: THREE.MeshBasicMaterial;
-
-    for (let i = 1; i <= s; i++) {
-        counter = i
-        for (let pos = 1; pos <= (nrOfVertecties / s); pos++) {
-
-            material = new THREE.MeshBasicMaterial({
-                map: createTexture(counter.toString(), radius * 50),
-            });
-            obj = new THREE.Mesh(geometry, material);
-            obj.name = counter.toString();
-            group.add(obj);
-
-            counter += s;
-        }
-    }
-
-    scene.add(group);
-
-    var name: string;
-    const parities: BlockEntery[] = readFile().Parities;
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf0ff0 });
-
-    parities.forEach(parity => {
-
-        // Hver linje har 4 punkter, som tar 3 plasser(x, y, z)
-        var positions = new Float32Array(4 * 3);
-
-        const lineGeometry = new THREE.BufferGeometry();
-        lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-        const curveObject = new THREE.Line(lineGeometry, lineMaterial);
-        name = parity.LeftPos + "_" + parity.RightPos;
-        curveObject.name = name;
-        strandMapping.name = parity.Strand;
-        scene.add(curveObject);
-        curveObject.geometry.attributes.position.needsUpdate;
-    });
-}
-
-function createLattice() {
-
-    var counter: number;
-    var piParts: number = (2 * Math.PI) / Math.ceil(nrOfVertecties / s);
-    const scale: number = 10;
-
-    for (let i = 1; i <= s; i++) {
-        counter = i
-        for (let pos = 0; pos < 2 * Math.PI; pos += piParts) {
-            var obj = scene.getObjectByName(counter.toString())
-            if (typeof obj != undefined) {
-                obj?.position.set(
-                    scale * Math.cos(pos),
-                    scale * Math.sin(pos),
-                    scale * i)
+            // -- LH Strand --
+            if (helper == 1) {
+                // top
+                parityTo = i + s * p - Math.pow((s - 1), 2)
+                if (parityTo <= nrOfVertices) {
+                    vertices[vertices.length - 1].Outputs.push(
+                        {
+                            LeftPos: i,
+                            RightPos: parityTo,
+                            Strand: STRANDS.LHStrand,
+                            Color: COLORS.BLUE,
+                        }
+                    )
+                }
+                else if (parityTo > nrOfVertices) {
+                    var right_temp = parityTo % nrOfVertices
+                    if (right_temp == 0) {
+                        right_temp = 1
+                    }
+                    vertices[vertices.length - 1].Outputs.push(
+                        {
+                            LeftPos: i,
+                            RightPos: right_temp,
+                            Strand: STRANDS.LHStrand,
+                            Color: COLORS.BLUE,
+                        }
+                    )
+                }
             }
-            counter += s
+            else if (helper == 0 || helper > 1) {
+                // central && bottom
+                parityTo = i + s - 1
+                if (parityTo <= nrOfVertices) {
+                    vertices[vertices.length - 1].Outputs.push(
+                        {
+                            LeftPos: i,
+                            RightPos: parityTo,
+                            Strand: STRANDS.LHStrand,
+                            Color: COLORS.BLUE,
+    
+                        }
+                    )
+                }
+                else if (parityTo > nrOfVertices) {
+                    var right_temp = parityTo % nrOfVertices
+                    if (right_temp == 0) {
+                        right_temp = 1
+                    }
+                    vertices[vertices.length - 1].Outputs.push(
+                        {
+                            LeftPos: i,
+                            RightPos: right_temp,
+                            Strand: STRANDS.LHStrand,
+                            Color: COLORS.BLUE,
+                        }
+                    )
+                }
+            }
+    
         }
     }
 
-    const parities: BlockEntery[] = readFile().Parities;
-    parities.forEach(parity => {
-        let line = scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-        let vertixTo = scene.getObjectByName(parity.LeftPos.toString());
-        let vertixFrom = scene.getObjectByName(parity.RightPos.toString());
-        if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
-            switch (parity.Strand) {
-                case horizontal: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-                }
-                case LHStrand: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-
-                }
-                case RHStrand: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-
-                }
-            }
-        } else {console.log(parity.LeftPos + "_" + parity.RightPos)}
-    });
+    
+    return vertices;
 }
 
-function createDoubleD() {
+function bitMap() {
 
-    const scale = 10;
-    var counter
+    var bitMapCanvas = <HTMLCanvasElement> document.getElementById("bitmap");
+    console.log(bitMapCanvas.getAttribute("width"));
+    console.log(bitMapCanvas.getAttribute("height"));
 
-    for (let row = 1; row <= s; row++) {
-        counter = row
-        for (let col = 1; col <= (nrOfVertecties / s); col++) {
-            var obj = scene.getObjectByName(counter.toString())
-            if (typeof obj != undefined) {
-                obj?.position.set(scale * col, scale * row, 100)
-            }
-            counter += s
-        }
-    }
+    // const colors = [
+    //     [0,255,0],
+    //     [255,0,0],
+    //     [0,0,255],
+    //     [220,220,220]
+    // ]
 
-    const parities: BlockEntery[] = readFile().Parities;
-    parities.forEach(parity => {
-        let line = scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-        let vertixTo = scene.getObjectByName(parity.LeftPos.toString());
-        let vertixFrom = scene.getObjectByName(parity.RightPos.toString());
-        if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
-            switch (parity.Strand) {
-                case horizontal: {
+    // const width = 80;
+    // const height = 80;
+    // var bitMapCanvas = <HTMLCanvasElement> document.getElementById("bitmap");
+    // bitMapCanvas.setAttribute("height", height.toString());
+    // bitMapCanvas.setAttribute("width", width.toString());
+    // var ctx = bitMapCanvas.getContext('2d');
+    // var imageData = ctx?.createImageData(width, height);
+    // const data = imageData?.data;
 
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+    // var color 
 
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-                }
-                case LHStrand: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-
-                }
-                case RHStrand: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-
-                }
-            }
-        }
-    });
-
+    // for (var i = 0; i < data!.length; i += 4) {
+    //     color = colors[GetRandomColor()];
+    //     data![i]     = color[0];  // red
+    //     data![i + 1] = color[1];  // green
+    //     data![i + 2] = color[2];  // blue
+    //     data![i + 3] = 255;       // alpha
+    // }
+    // ctx!.putImageData(imageData!, 0, 0);
 }
 
-function createTexture(text: string, radius: number) {
-    let c = document.createElement("canvas");
-    c.width = 2 * Math.PI * radius;
-    c.height = 2 * radius;
-    let step = c.width / 3
-    let ctx = c.getContext("2d");
-    ctx!.fillStyle = "#00ff00";
-    ctx!.fillRect(0, 0, c.width, c.height);
-    ctx!.font = "4em black";
-    ctx!.fillStyle = "black";
-    ctx!.textBaseline = "middle";
-    for (let i = 0; i < 3; i++) {
-        ctx!.fillText(text, step * i, step * 0.5);
-    }
-
-    return new THREE.CanvasTexture(c);
+function GetRandomColor(): number {
+    var dice = Math.random();
+    if (dice < 0.7)
+        return 0
+    if (dice < 0.8)
+        return 1
+    if (dice < 0.9)
+        return 2
+    return 3
 }
 
-function createTorus() {
-
-    var deltaPi = (2 * Math.PI) / (nrOfVertecties / s)
-    var deltaPi1 = (2 * Math.PI) / s
-    var counter;
-    const R = 3 * 10;
-    const r = 2 * 5;
-
-    for (let i = 0, c = 1; i <= 2 * Math.PI; i += deltaPi1, c++) {
-        counter = c
-        for (let j = 0; j <= 2 * Math.PI; j += deltaPi) {
-            var obj = scene.getObjectByName(counter.toString())
-            if (typeof obj != undefined) {
-                obj?.position.set(
-                    ((R + r * Math.cos(j)) * Math.cos(i)),
-                    ((R + r * Math.cos(j)) * Math.sin(i)),
-                    (r * Math.sin(j))
-                );
-                counter += s
-            }
-            else { console.log(counter)}
-        }
-    }
-
-    const parities: BlockEntery[] = readFile().Parities;
-    parities.forEach(parity => {
-        let line = scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-        let vertixTo = scene.getObjectByName(parity.LeftPos.toString());
-        let vertixFrom = scene.getObjectByName(parity.RightPos.toString());
-        if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
-            switch (parity.Strand) {
-                case horizontal: {
-
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-                }
-                case LHStrand: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-
-                }
-                case RHStrand: {
-                    //@ts-ignore
-                    let array = line.geometry.attributes.position
-                    array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                    array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-                    // Tegner kun de to første 3d-punktene i listen.
-                    //@ts-ignore
-                    line.geometry.setDrawRange(0, 2);
-                    //@ts-ignore
-                    line.geometry.attributes.position.needsUpdate = true;
-
-                }
-            }
-        } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
-    });
+function GetRandomColorString(): number {
+    var dice = Math.random();
+    if (dice < 0.7)
+        return COLORS.GREEN
+    if (dice < 0.8)
+        return COLORS.RED
+    if (dice < 0.9)
+        return COLORS.GREY
+    return COLORS.BLUE
 }
 
-function animate() {
-    requestAnimationFrame(animate)
+function init() {
+    let data = readFile();
+    const renderer = new RendererObject(3, 5, 5, data, 4);
+    renderer.initObjects(1);
+    renderer.createTwoDimView();
+    renderer.animate();
 
-    controls.update()
+    const wqerqwe = new BitMap(3, 5, 5, data);
+    wqerqwe.Draw()
 
+    window.addEventListener('resize', () => renderer.onWindowResize(), false);
 
-    render()
+    document.getElementById("btn-2d")?.addEventListener("click", () => renderer.createTwoDimView());
+    document.getElementById("btn-lattice")?.addEventListener("click", () => renderer.createLattice());
+    document.getElementById("btn-torus")?.addEventListener("click", () => renderer.createTorus());
 }
 
-function render() {
-    renderer.render(scene, camera)
-}
-
-document.getElementById("btn-2d")?.addEventListener("click", createDoubleD);
-document.getElementById("btn-lattice")?.addEventListener("click", createLattice);
-document.getElementById("btn-torus")?.addEventListener("click", createTorus);
-
-const axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
-
-const size = 10;
-const divisions = 10;
-
-const gridHelper = new THREE.GridHelper(size, divisions);
-scene.add(gridHelper);
-
-
-initObjects();
-
-createTorus();
-
-animate();
+init();

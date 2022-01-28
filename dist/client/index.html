@@ -1,18 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Three.js TypeScript Tutorials by Sean Bradley</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
 
-    <body>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Three.js TypeScript Tutorials by Sean Bradley</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="overlay-layout">
+        <div id="bitmap-container">
+            <canvas id="bitmap">
+
+            </canvas>
+        </div>
         <div class="btn-overlay">
             <button id="btn-2d">Go 2D!</button>
             <button id="btn-lattice">Go Lattice!</button>
-            <button id="btn-torus" > Go Torus!</button>
+            <button id="btn-torus"> Go Torus!</button>
+            <button id="btn-label-test"> Go Torus!</button>
         </div>
-        <script type="module" src="bundle.js"></script>
-    </body>
+    
+    </div>
+    <script defer src="bundle.js"></script>
+</body>
+
 </html>

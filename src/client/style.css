@@ -3,10 +3,6 @@ body {
     margin: 0px;
 }
 
-.overlay-layout {
-    z-index: 10;
-}
-
 .btn-overlay {
     z-index: 10;
     position: absolute;
@@ -25,20 +21,9 @@ body {
 
 .side-bar {
     height: 80vh;
-    width: 20vw;
     z-index: 10;
     position: absolute;
-    background-color: gray;
-    top: 20px;
+    background-color: "0x808080";
+    top: 50;
     left: 5;
-}
-
-#bitmap-container {
-    width: 100vw;
-    height: 5vh;
-}
-
-#bitmap {
-    width: 100vw;
-    height: 5vh;
 }
