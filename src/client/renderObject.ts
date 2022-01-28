@@ -1,77 +1,73 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Parities, Vertices } from './interfaces'
-import { STRANDS } from './constants';
+import { DIRECTIONS, STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
 import { MyControls } from './MyControls';
 
 
 
-export class RendererObject extends DataContainer{
+export class RendererObject extends DataContainer {
 
     renderer: THREE.Renderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     controls: MyControls;
     pointsPerLine: number;
-    limit: number = 250;
-    drawFrom: number = 9990;
-    mainGroup: THREE.Group = new THREE.Group();
+    limit: number = 500;
+    drawFrom: number = 300;
     verticesGroup: THREE.Group = new THREE.Group();
     paritiesGroup: THREE.Group = new THREE.Group();
     scale: number = 10;
 
-    constructor(alpha: number, s: number, p: number, parities: Parities[], vertices: Vertices[], ppp: number) {
-        super(alpha, s, p, parities, vertices);
+    constructor(alpha: number, s: number, p: number, vertices: Vertices[], ppp: number) {
+        super(alpha, s, p, vertices);
         this.pointsPerLine = ppp;
 
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.z = 5;
+        this.camera.position.z = 50;
         this.renderer = new THREE.WebGL1Renderer();
         this.renderer.setSize(window.innerWidth, window.innerHeight)
         document.body.appendChild(this.renderer.domElement)
         this.renderer.domElement.setAttribute("tabindex", "1");
         this.controls = new MyControls(this.camera, this.renderer.domElement);
-        this.mainGroup.add( this.verticesGroup );
-        this.mainGroup.add( this.paritiesGroup );
     }
+
 
     initObjects(radius: number) {
         const geometry = new THREE.SphereGeometry(radius);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf0ff0 });
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf0ff0, linewidth: 2 });
 
         var obj: THREE.Mesh;
         var material: THREE.MeshBasicMaterial;
-        var name: string;
         var positions: Float32Array;
         var lineGeometry: THREE.BufferGeometry;
         var curveObject: THREE.Line;
 
-        for (let index = 1; index <= this.limit; index++) {
+        for (var index = 0; index < this.limit; index++) {
             material = new THREE.MeshBasicMaterial({
-                color: this.vertices[ index - 1].Color,
+                color: this.vertices[index].Color,
             });
             obj = new THREE.Mesh(geometry, material);
-            obj.name = index.toString();
-            obj.rotateY(Math.PI / 4);
-
-            this.scene.add(obj);
             this.verticesGroup.add(obj);
 
-            // Hver linje har 4 punkter, som tar 3 plasser(x, y, z)
-            positions = new Float32Array(this.pointsPerLine * 3);
+            for (let i = 0; i < this.alpha; i++) {
+                // Hver linje har 4 punkter, som tar 3 plasser(x, y, z)
+                positions = new Float32Array(this.pointsPerLine * 3);
 
-            lineGeometry = new THREE.BufferGeometry();
-            lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+                lineGeometry = new THREE.BufferGeometry();
+                lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
 
-            curveObject = new THREE.Line(lineGeometry, lineMaterial);
-            name = this.parities[index-1].LeftPos + "_" + this.parities[index-1].RightPos;
-            curveObject.name = name;
-            curveObject.geometry.attributes.position.needsUpdate;
-            this.paritiesGroup.add(curveObject);
+                curveObject = new THREE.Line(lineGeometry, lineMaterial);
+                curveObject.geometry.attributes.position.needsUpdate;
+                this.paritiesGroup.add(curveObject);
+            }
         }
-        this.scene.add(this.mainGroup);
+
+        this.scene.add(this.verticesGroup);
+        this.scene.add(this.paritiesGroup);
+
 
 
         // const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf0ff0 });
@@ -97,27 +93,56 @@ export class RendererObject extends DataContainer{
     }
 
     createTwoDimView() {
+        var column = - ((this.limit / 2) / this.s)
+        var startIndex = this.drawFrom;
+        var row = 0;
+        /* --- Flytter, enderer label og farge på data-blokkene ---*/
+        for (var v of this.verticesGroup.children) {
+            v.position.set(
+                this.scale * column,
+                this.scale * row,
+                0
+            )
+            v.name = this.vertices[startIndex].Label;
+            //@ts-ignore
+            v.material.map = this.createTexture(v.name, 50);
+            //@ts-ignore
+            v.material.color.setHex(this.vertices[startIndex].Color);
 
-        var vertex: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | undefined;
-
-        for (let index = this.drawFrom, column = 0, row = 0, drawn = 1;
-            drawn <=  this.limit;
-            index = (index + 1) % this.nrOfVertices, row = (row + 1) % this.s, drawn++) {
-            vertex = this.scene.getObjectByName(drawn.toString()) as THREE.Mesh <THREE.BufferGeometry, THREE.MeshBasicMaterial>;
-            if (typeof vertex != undefined)
-            {
-                vertex?.position.set(
-                    this.scale * column,
-                    this.scale * row,
-                    0,
-                );
-                vertex.material.map = this.createTexture(index.toString(), 50);
-            }
-
-            if (row == this.s - 1)
-            {
+            startIndex++;
+            row = (row + 1) % this.s;
+            if (row == 0 && startIndex > 0) {
                 column++;
             }
+
+        }
+        /* --- Flytter på parity blokkene --- */
+        startIndex = this.drawFrom;
+        for (let lineGeomIndex = 0; lineGeomIndex < this.paritiesGroup.children.length;) {
+
+            for (var output of this.vertices[startIndex].Outputs) {
+                let line = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
+                // if not er data-blokkene utenfor scenen.
+                if (output.LeftPos < this.drawFrom + this.limit && output.RightPos < this.drawFrom + this.limit) {
+                    let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
+                    let rightPos = this.scene.getObjectByName(output.RightPos.toString());
+
+                    if (typeof leftPos != undefined && typeof rightPos != undefined) {
+                        //@ts-ignore
+                        let array = line.geometry.attributes.position
+                        array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z)
+                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z)
+
+                        // Tegner kun de to første 3d-punktene i listen.
+                        //@ts-ignore
+                        line.geometry.setDrawRange(0, 2);
+                        //@ts-ignore
+                        line.geometry.attributes.position.needsUpdate = true;
+                    }
+                }
+                lineGeomIndex++
+            }
+            startIndex++;
         }
     }
 
@@ -137,60 +162,81 @@ export class RendererObject extends DataContainer{
                         scale * Math.sin(pos),
                         scale * i)
                     //@ts-ignore
-                    obj.material.color.setHex( 0xff0000 );
+                    obj.material.color.setHex(0xff0000);
                 }
                 counter += this.s
             }
         }
 
-        this.parities.forEach(parity => {
-            let line = this.scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-            let vertixTo = this.scene.getObjectByName(parity.LeftPos.toString());
-            let vertixFrom = this.scene.getObjectByName(parity.RightPos.toString());
-            if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
-                switch (parity.Strand) {
-                    case STRANDS.HStrand: {
-                        //@ts-ignore
-                        let array = line.geometry.attributes.position
-                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        // this.parities.forEach(parity => {
+        //     let line = this.scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
+        //     let vertixTo = this.scene.getObjectByName(parity.LeftPos.toString());
+        //     let vertixFrom = this.scene.getObjectByName(parity.RightPos.toString());
+        //     if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
+        //         switch (parity.Strand) {
+        //             case STRANDS.HStrand: {
+        //                 //@ts-ignore
+        //                 let array = line.geometry.attributes.position
+        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
 
-                        // Tegner kun de to første 3d-punktene i listen.
-                        //@ts-ignore
-                        line.geometry.setDrawRange(0, 2);
-                        //@ts-ignore
-                        line.geometry.attributes.position.needsUpdate = true;
-                    }
-                    case STRANDS.LHStrand: {
-                        //@ts-ignore
-                        let array = line.geometry.attributes.position
-                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 // Tegner kun de to første 3d-punktene i listen.
+        //                 //@ts-ignore
+        //                 line.geometry.setDrawRange(0, 2);
+        //                 //@ts-ignore
+        //                 line.geometry.attributes.position.needsUpdate = true;
+        //             }
+        //             case STRANDS.LHStrand: {
+        //                 //@ts-ignore
+        //                 let array = line.geometry.attributes.position
+        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
 
-                        // Tegner kun de to første 3d-punktene i listen.
-                        //@ts-ignore
-                        line.geometry.setDrawRange(0, 2);
-                        //@ts-ignore
-                        line.geometry.attributes.position.needsUpdate = true;
+        //                 // Tegner kun de to første 3d-punktene i listen.
+        //                 //@ts-ignore
+        //                 line.geometry.setDrawRange(0, 2);
+        //                 //@ts-ignore
+        //                 line.geometry.attributes.position.needsUpdate = true;
 
-                    }
-                    case STRANDS.RHStrand: {
-                        //@ts-ignore
-                        let array = line.geometry.attributes.position
-                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //             }
+        //             case STRANDS.RHStrand: {
+        //                 //@ts-ignore
+        //                 let array = line.geometry.attributes.position
+        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
 
-                        // Tegner kun de to første 3d-punktene i listen.
-                        //@ts-ignore
-                        line.geometry.setDrawRange(0, 2);
-                        //@ts-ignore
-                        line.geometry.attributes.position.needsUpdate = true;
+        //                 // Tegner kun de to første 3d-punktene i listen.
+        //                 //@ts-ignore
+        //                 line.geometry.setDrawRange(0, 2);
+        //                 //@ts-ignore
+        //                 line.geometry.attributes.position.needsUpdate = true;
 
-                    }
-                }
-            } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
-        });
+        //             }
+        //         }
+        //     } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
+        // });
     }
+
+    // moveGroups(direction: DIRECTIONS) {
+    //     console.log(this.firstColumn, this.lastcolumn)
+    //     if (direction === DIRECTIONS.LEFT) {
+    //         // let lastColumnGroup = this.columnGroups[this.lastcolumn];
+    //         // let firstColumnGroup = this.columnGroups[this.firstColumn];
+    //         // if (typeof lastColumnGroup != undefined || typeof firstColumnGroup != undefined) {
+    //         //     lastColumnGroup.position.set(firstColumnGroup.position.x + this.scale, firstColumnGroup.position.y, firstColumnGroup.position.z);
+    //         //     this.firstColumn--;
+    //         //     this.lastcolumn--;
+    //         // }
+    //     } else if (direction === DIRECTIONS.RIGHT) {
+    //         let lastColumnGroup = this.columnGroups[this.lastcolumn];
+    //         let firstColumnGroup = this.columnGroups[this.firstColumn];
+    //         if (typeof lastColumnGroup != undefined && typeof firstColumnGroup != undefined) {
+    //             firstColumnGroup.position.set(lastColumnGroup.position.x + this.scale, lastColumnGroup.position.y, lastColumnGroup.position.z);
+    //             this.lastcolumn = this.firstColumn;
+    //             this.firstColumn++;
+    //         } else {console.log("undefined")}
+    //     }
+    // }
 
     createTorus() {
 
@@ -216,54 +262,54 @@ export class RendererObject extends DataContainer{
             }
         }
 
-        this.parities.forEach(parity => {
-            let line = this.scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-            let vertixTo = this.scene.getObjectByName(parity.LeftPos.toString());
-            let vertixFrom = this.scene.getObjectByName(parity.RightPos.toString());
-            if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
-                switch (parity.Strand) {
-                    case STRANDS.HStrand: {
+        // this.parities.forEach(parity => {
+        //     let line = this.scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
+        //     let vertixTo = this.scene.getObjectByName(parity.LeftPos.toString());
+        //     let vertixFrom = this.scene.getObjectByName(parity.RightPos.toString());
+        //     if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
+        //         switch (parity.Strand) {
+        //             case STRANDS.HStrand: {
 
-                        //@ts-ignore
-                        let array = line.geometry.attributes.position
-                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 //@ts-ignore
+        //                 let array = line.geometry.attributes.position
+        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
 
-                        // Tegner kun de to første 3d-punktene i listen.
-                        //@ts-ignore
-                        line.geometry.setDrawRange(0, 2);
-                        //@ts-ignore
-                        line.geometry.attributes.position.needsUpdate = true;
-                    }
-                    case STRANDS.LHStrand: {
-                        //@ts-ignore
-                        let array = line.geometry.attributes.position
-                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 // Tegner kun de to første 3d-punktene i listen.
+        //                 //@ts-ignore
+        //                 line.geometry.setDrawRange(0, 2);
+        //                 //@ts-ignore
+        //                 line.geometry.attributes.position.needsUpdate = true;
+        //             }
+        //             case STRANDS.LHStrand: {
+        //                 //@ts-ignore
+        //                 let array = line.geometry.attributes.position
+        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
 
-                        // Tegner kun de to første 3d-punktene i listen.
-                        //@ts-ignore
-                        line.geometry.setDrawRange(0, 2);
-                        //@ts-ignore
-                        line.geometry.attributes.position.needsUpdate = true;
+        //                 // Tegner kun de to første 3d-punktene i listen.
+        //                 //@ts-ignore
+        //                 line.geometry.setDrawRange(0, 2);
+        //                 //@ts-ignore
+        //                 line.geometry.attributes.position.needsUpdate = true;
 
-                    }
-                    case STRANDS.RHStrand: {
-                        //@ts-ignore
-                        let array = line.geometry.attributes.position
-                        array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-                        array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //             }
+        //             case STRANDS.RHStrand: {
+        //                 //@ts-ignore
+        //                 let array = line.geometry.attributes.position
+        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
+        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
 
-                        // Tegner kun de to første 3d-punktene i listen.
-                        //@ts-ignore
-                        line.geometry.setDrawRange(0, 2);
-                        //@ts-ignore
-                        line.geometry.attributes.position.needsUpdate = true;
+        //                 // Tegner kun de to første 3d-punktene i listen.
+        //                 //@ts-ignore
+        //                 line.geometry.setDrawRange(0, 2);
+        //                 //@ts-ignore
+        //                 line.geometry.attributes.position.needsUpdate = true;
 
-                    }
-                }
-            } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
-        });
+        //             }
+        //         }
+        //     } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
+        // });
     }
 
     createTexture(text: string, radius: number) {
@@ -280,7 +326,7 @@ export class RendererObject extends DataContainer{
         for (let i = 0; i < 3; i++) {
             ctx!.fillText(text, step * i, step * 0.5);
         }
-    
+
         return new THREE.CanvasTexture(c);
     }
 
@@ -293,7 +339,7 @@ export class RendererObject extends DataContainer{
 
     animate() {
         requestAnimationFrame(this.animate.bind(this));
-        this.controls.update();
+        this.controls.update()
         this.render()
     }
 

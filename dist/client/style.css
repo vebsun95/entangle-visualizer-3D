@@ -3,6 +3,10 @@ body {
     margin: 0px;
 }
 
+.overlay-layout {
+    z-index: 10;
+}
+
 .btn-overlay {
     z-index: 10;
     position: absolute;
@@ -27,4 +31,14 @@ body {
     background-color: gray;
     top: 20px;
     left: 5;
+}
+
+#bitmap-container {
+    width: 100vw;
+    height: 5vh;
+}
+
+#bitmap {
+    width: 100vw;
+    height: 5vh;
 }

@@ -30,3 +30,9 @@ export enum MOUSE {
     DOLLY = 1,
     PAN = 2,
 }
+
+export enum DIRECTIONS {
+    LEFT,
+    RIGHT,
+
+}

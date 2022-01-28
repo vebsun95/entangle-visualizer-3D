@@ -127,7 +127,7 @@ class MyControls extends EventDispatcher {
 		this.enablePan = true;
 		this.panSpeed = 1.0;
 		this.screenSpacePanning = true; // if false, pan orthogonal to world-space direction camera.up
-		this.keyPanSpeed = 25.0;	// pixels moved per arrow key push
+		this.keyPanSpeed = 10.0;	// pixels moved per arrow key push
 
 		// Set to true to automatically rotate around the target
 		// If auto-rotate is enabled, you must call controls.update() in your animation loop

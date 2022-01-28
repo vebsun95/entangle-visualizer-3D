@@ -6,7 +6,9 @@ export interface Parities {
 }
 
 export interface Vertices {
-    Color: number
+    Label: string,
+    Color: number,
+    Outputs: Parities[],
 }
 
 export interface Keys {

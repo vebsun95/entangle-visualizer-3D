@@ -5,14 +5,12 @@ export class DataContainer {
     s: number;
     p: number;
     nrOfVertices: number;
-    parities: Parities[];
     vertices: Vertices[];
 
-    constructor(alpha: number, s: number, p: number, parities: Parities[], vertices: Vertices[]) {
+    constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
         this.alpha = alpha;
         this.s = s;
         this.p = p;
-        this.parities = parities;
         this.vertices = vertices;
         this.nrOfVertices = vertices.length;
     }
