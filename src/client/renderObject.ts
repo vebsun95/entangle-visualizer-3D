@@ -9,15 +9,17 @@ import { MyControls } from './MyControls';
 
 export class RendererObject extends DataContainer {
 
+
     renderer: THREE.Renderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     controls: MyControls;
     pointsPerLine: number;
-    limit: number = 500;
-    drawFrom: number = 300;
+    limit: number = 250;
+    drawFrom: number = 0;
     verticesGroup: THREE.Group = new THREE.Group();
     paritiesGroup: THREE.Group = new THREE.Group();
+    ghostGroup: THREE.Group = new THREE.Group();
     scale: number = 10;
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[], ppp: number) {
@@ -44,6 +46,11 @@ export class RendererObject extends DataContainer {
         var positions: Float32Array;
         var lineGeometry: THREE.BufferGeometry;
         var curveObject: THREE.Line;
+
+        // Hvis listen av vertcies er mindre enn limit verdien.
+        if (this.vertices.length < this.limit) {
+            this.limit = this.vertices.length
+        }
 
         for (var index = 0; index < this.limit; index++) {
             material = new THREE.MeshBasicMaterial({
@@ -93,14 +100,16 @@ export class RendererObject extends DataContainer {
     }
 
     createTwoDimView() {
+        this.ghostGroup.clear();
         var column = - ((this.limit / 2) / this.s)
         var startIndex = this.drawFrom;
         var row = 0;
+        var starty = (this.s * this.scale) / 2
         /* --- Flytter, enderer label og farge på data-blokkene ---*/
         for (var v of this.verticesGroup.children) {
             v.position.set(
                 this.scale * column,
-                this.scale * row,
+                starty - (this.scale * row),
                 0
             )
             v.name = this.vertices[startIndex].Label;
@@ -114,36 +123,125 @@ export class RendererObject extends DataContainer {
             if (row == 0 && startIndex > 0) {
                 column++;
             }
+        }
+        
+        // Lager ghostVertecies på siste kolonne + 1
+        let endx = 0
+        if (startIndex % this.s == 0) {
+            endx = this.scale * column;
+        }
+        else {
+            endx = this.scale * (column + 1)
+        }
+        if (this.nrOfVertices <= this.drawFrom + this.limit) {
+            startIndex = this.drawFrom
+        }
 
+        for (let i = 0; i < this.s; i++) {
+            let name = this.vertices[startIndex + i].Label
+            let color = this.vertices[startIndex + i].Color
+            var ghost = this.createGhostVertex(name, endx, starty - (this.scale * (i)), 0, color)
+            ghost.name = "ghost" + name
         }
         /* --- Flytter på parity blokkene --- */
         startIndex = this.drawFrom;
-        for (let lineGeomIndex = 0; lineGeomIndex < this.paritiesGroup.children.length;) {
+        let lineGeomIndex = 0;
+        for (let index = this.drawFrom; index < this.drawFrom + this.limit; index++) {
+            
+            for (var output of this.vertices[index].Outputs) {
+                let line  = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
+                let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
+                let rightPos = this.scene.getObjectByName(output.RightPos.toString());
 
-            for (var output of this.vertices[startIndex].Outputs) {
-                let line = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
-                // if not er data-blokkene utenfor scenen.
-                if (output.LeftPos < this.drawFrom + this.limit && output.RightPos < this.drawFrom + this.limit) {
-                    let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
-                    let rightPos = this.scene.getObjectByName(output.RightPos.toString());
-
-                    if (typeof leftPos != undefined && typeof rightPos != undefined) {
-                        //@ts-ignore
-                        let array = line.geometry.attributes.position
-                        array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z)
-                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z)
-
-                        // Tegner kun de to første 3d-punktene i listen.
-                        //@ts-ignore
-                        line.geometry.setDrawRange(0, 2);
-                        //@ts-ignore
-                        line.geometry.attributes.position.needsUpdate = true;
+                if (typeof leftPos != undefined && typeof rightPos != undefined) {
+                    let array = line.geometry.attributes.position;
+                    array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
+                    switch (output.Strand) {
+                        case STRANDS.HStrand: {
+                            if (output.RightPos <= this.s || output.RightPos > this.drawFrom + this.limit) {
+                                console.log(output.LeftPos, output.RightPos)
+                                var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
+                                array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                            }
+                            else {
+                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                            }
+                            break
+                        }
+                        case STRANDS.LHStrand: {
+                            if (output.RightPos % this.s == 0 || output.RightPos <= this.s) {
+                                //console.log(output.LeftPos, output.RightPos)
+                                let name = this.vertices[output.RightPos-1].Label;
+                                let color = this.vertices[output.RightPos-1].Color;
+                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                                array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                            
+                            }
+                            else if(output.RightPos <= this.drawFrom + this.limit) {
+                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                            }
+                            else if(output.RightPos > this.drawFrom + this.limit) {
+                                var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
+                                array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                            }
+                            break
+                        }
+                        case STRANDS.RHStrand: {
+                            if (output.RightPos % this.s == 1 || output.RightPos <= this.s) {
+                                //console.log(output.LeftPos, output.RightPos)
+                                let name = this.vertices[output.RightPos-1].Label;
+                                let color = this.vertices[output.RightPos-1].Color;
+                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
+                                array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                                
+                            }
+                            else if(output.RightPos <= this.drawFrom + this.limit) {
+                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                            }
+                            else if(output.RightPos > this.drawFrom + this.limit) {
+                                var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
+                                array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                            }
+                            break
+                        }
                     }
+                    line!.geometry.setDrawRange(0, 2);
+                    line!.geometry.attributes.position.needsUpdate = true;
+                    lineGeomIndex++;
                 }
-                lineGeomIndex++
             }
-            startIndex++;
         }
+
+    }
+        
+
+    createGhostVertex(index: string, x: number, y: number, z: number, color: number) {
+        const radius = 1;
+    
+        const geometry = new THREE.SphereGeometry(radius);
+    
+        var obj: THREE.Mesh;
+        var material: THREE.MeshBasicMaterial;
+        
+        // Lager alle vertex
+        material = new THREE.MeshBasicMaterial();
+        obj = new THREE.Mesh(geometry, material);
+        //@ts-ignore
+        obj.material.map = this.createTexture(index, 50);
+        //@ts-ignore
+        obj.material.color.setHex(color);
+        obj.position.x = x
+        obj.position.y = y
+        obj.position.z = z
+        //@ts-ignore
+        obj.material.opacity = 0.3
+        //@ts-ignore
+        obj.material.transparent = true;
+        this.ghostGroup.add(obj)
+    
+        this.scene.add(this.ghostGroup);
+
+        return obj
     }
 
     createLattice() {
@@ -170,15 +268,15 @@ export class RendererObject extends DataContainer {
 
         // this.parities.forEach(parity => {
         //     let line = this.scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-        //     let vertixTo = this.scene.getObjectByName(parity.LeftPos.toString());
-        //     let vertixFrom = this.scene.getObjectByName(parity.RightPos.toString());
-        //     if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
+        //     let rightPos = this.scene.getObjectByName(parity.LeftPos.toString());
+        //     let leftPos = this.scene.getObjectByName(parity.RightPos.toString());
+        //     if (typeof line != undefined && typeof rightPos != undefined && typeof leftPos != undefined) {
         //         switch (parity.Strand) {
         //             case STRANDS.HStrand: {
         //                 //@ts-ignore
         //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
+        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
 
         //                 // Tegner kun de to første 3d-punktene i listen.
         //                 //@ts-ignore
@@ -189,8 +287,8 @@ export class RendererObject extends DataContainer {
         //             case STRANDS.LHStrand: {
         //                 //@ts-ignore
         //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
+        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
 
         //                 // Tegner kun de to første 3d-punktene i listen.
         //                 //@ts-ignore
@@ -202,8 +300,8 @@ export class RendererObject extends DataContainer {
         //             case STRANDS.RHStrand: {
         //                 //@ts-ignore
         //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
+        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
 
         //                 // Tegner kun de to første 3d-punktene i listen.
         //                 //@ts-ignore
@@ -264,16 +362,16 @@ export class RendererObject extends DataContainer {
 
         // this.parities.forEach(parity => {
         //     let line = this.scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-        //     let vertixTo = this.scene.getObjectByName(parity.LeftPos.toString());
-        //     let vertixFrom = this.scene.getObjectByName(parity.RightPos.toString());
-        //     if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
+        //     let rightPos = this.scene.getObjectByName(parity.LeftPos.toString());
+        //     let leftPos = this.scene.getObjectByName(parity.RightPos.toString());
+        //     if (typeof line != undefined && typeof rightPos != undefined && typeof leftPos != undefined) {
         //         switch (parity.Strand) {
         //             case STRANDS.HStrand: {
 
         //                 //@ts-ignore
         //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
+        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
 
         //                 // Tegner kun de to første 3d-punktene i listen.
         //                 //@ts-ignore
@@ -284,8 +382,8 @@ export class RendererObject extends DataContainer {
         //             case STRANDS.LHStrand: {
         //                 //@ts-ignore
         //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
+        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
 
         //                 // Tegner kun de to første 3d-punktene i listen.
         //                 //@ts-ignore
@@ -297,8 +395,8 @@ export class RendererObject extends DataContainer {
         //             case STRANDS.RHStrand: {
         //                 //@ts-ignore
         //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
+        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
+        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
 
         //                 // Tegner kun de to første 3d-punktene i listen.
         //                 //@ts-ignore

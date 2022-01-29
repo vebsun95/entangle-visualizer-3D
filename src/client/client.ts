@@ -56,7 +56,7 @@ function readFile() {
                         {
                             LeftPos: i,
                             RightPos: parityTo,
-                            Strand: STRANDS.HStrand,
+                            Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
                         }
                     )
