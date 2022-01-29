@@ -4,7 +4,6 @@ import { Parities, Vertices } from './interfaces'
 import { DIRECTIONS, STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
 import { MyControls } from './MyControls';
-import { start } from 'repl';
 
 
 
