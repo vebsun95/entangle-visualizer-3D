@@ -3,7 +3,7 @@ import { Vertices, Parities } from './interfaces';
 import { COLORS, STRANDS } from './constants';
 import { BitMap } from './bitmap';
 
-const nrOfVertices = 25000;
+const nrOfVertices = 250000;
 const alpha = 3;
 const p = 5;
 const s = 5;
@@ -56,7 +56,7 @@ function readFile() {
                         {
                             LeftPos: i,
                             RightPos: parityTo,
-                            Strand: STRANDS.HStrand,
+                            Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
                         }
                     )
