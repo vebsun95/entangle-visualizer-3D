@@ -3,7 +3,7 @@ import { Vertices, Parities } from './interfaces';
 import { COLORS, STRANDS } from './constants';
 import { BitMap } from './bitmap';
 
-const nrOfVertices = 250000;
+const nrOfVertices = 25000;
 const alpha = 3;
 const p = 5;
 const s = 5;
