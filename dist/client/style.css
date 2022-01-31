@@ -28,17 +28,31 @@ body {
     width: 20vw;
     z-index: 10;
     position: absolute;
-    background-color: gray;
+    background-color: white;
+    border: 3px solid grey;
+    border-radius: 5px 5px;
     top: 20px;
     left: 5;
 }
 
-#bitmap-container {
+#footer {
     width: 100vw;
-    height: 5vh;
+    position: absolute;
+    bottom: 0%;
 }
 
-#bitmap {
-    width: 100vw;
-    height: 5vh;
+#bitmap-container {
+    max-height: 10vh;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+#toggle-bitmap {
+    position: absolute;
+    right: 20px;
+}
+
+.bitmap-view {
+    position: absolute;
+    top: -25px;
 }
