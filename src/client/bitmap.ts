@@ -81,9 +81,11 @@ export class BitMap extends DataContainer {
 
     private toggleVisible() {
         if (this.visible) {
-            this.container.style.display = 'none';
+            this.container.classList.remove("showBitMap")
+            this.container.classList.add("hideBitMap")
         } else {
-            this.container.style.display = 'unset';
+            this.container.classList.remove("hideBitMap")
+            this.container.classList.add("showBitMap")
         }
         this.visible = !this.visible;
     }

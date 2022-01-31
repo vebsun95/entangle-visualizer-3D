@@ -45,6 +45,9 @@ body {
     max-height: 10vh;
     overflow-x: auto;
     overflow-y: hidden;
+    padding-bottom: 1em;
+
+    
 }
 
 #toggle-bitmap {
@@ -55,4 +58,26 @@ body {
 .bitmap-view {
     position: absolute;
     top: -25px;
+}
+
+.hideBitMap{
+    animation-duration: 1s;
+    animation-name: hideBitMap;
+    height: 0;
+}
+
+.showBitMap {
+    animation-duration: 1s;
+    animation-name: showBitMap;
+    height: 10vh;
+}
+
+@keyframes hideBitMap {
+    from { height: 10vh; }
+    to   { height: 0;   }
+}
+
+@keyframes showBitMap {
+    from { height: 0;  }
+    to   { height: 10vh;}
 }
