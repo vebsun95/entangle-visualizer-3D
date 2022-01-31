@@ -4,10 +4,10 @@ import { Vertices } from "./interfaces";
 
 export class BitMap extends DataContainer {
 
-    canvases: HTMLCanvasElement[];
-    container: HTMLDivElement;
-    pixelHeight: number;
-    pixelWidth: number;
+    private canvases: HTMLCanvasElement[];
+    private container: HTMLDivElement;
+    private pixelHeight: number;
+    private pixelWidth: number;
     private visible: boolean = true;
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
