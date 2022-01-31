@@ -21,7 +21,7 @@ export class RendererObject extends DataContainer {
     paritiesGroup: THREE.Group = new THREE.Group();
     ghostGroup: THREE.Group = new THREE.Group();
     scale: number = 10;
-    radius: number = 1;
+    radius: number = 2;
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[], ppp: number) {
         super(alpha, s, p, vertices);
@@ -217,9 +217,8 @@ export class RendererObject extends DataContainer {
         
 
     createGhostVertex(index: string, x: number, y: number, z: number, color: number) {
-        const radius = 1;
     
-        const geometry = new THREE.SphereGeometry(radius);
+        const geometry = new THREE.SphereGeometry(this.radius);
     
         var obj: THREE.Mesh;
         var material: THREE.MeshBasicMaterial;
@@ -246,6 +245,8 @@ export class RendererObject extends DataContainer {
     }
 
     createLattice() {
+
+        this.ghostGroup.clear();
 
         var deltaPi: number = (2 * Math.PI) / this.s;
         var column = - Math.ceil((this.limit / 2) / this.s)
@@ -319,6 +320,9 @@ export class RendererObject extends DataContainer {
                         //@ts-ignore
                         line.geometry.attributes.position.needsUpdate = true;
                     }
+                }
+                else {
+                    line.visible = false;
                 }
                 lineGeomIndex++
             }
@@ -494,16 +498,18 @@ export class RendererObject extends DataContainer {
         let ctx = c.getContext("2d");
         ctx!.fillStyle = "white";
         ctx!.fillRect(0, 0, c.width, c.height);
-        ctx!.font = this.radius * 5 + "em black";
+        ctx!.font = this.radius * 3 + "em black";
         ctx!.fillStyle = "black";
         ctx!.textBaseline = "middle";
-        ctx!.fillText(text, c.width / 10, step * 0.8);
+        ctx!.textAlign = "center"
+        ctx!.fillText(text, c.width / 4, step * 0.8);
         return new THREE.CanvasTexture(c);
     }
 
     GoTo(vertexIndex: number) {
         this.drawFrom = vertexIndex - (this.limit / 2);
-        this.createLattice();
+        this.drawFrom = Math.ceil(this.drawFrom/ this.s) * this.s
+        this.createTwoDimView();
     }
 
     onWindowResize() {
@@ -517,7 +523,7 @@ export class RendererObject extends DataContainer {
         requestAnimationFrame(this.animate.bind(this));
         this.controls.update()
         for(var v of this.verticesGroup.children) {
-            v.lookAt( this.camera.position)
+            v.lookAt( this.camera.position )
         }
         this.render()
     }

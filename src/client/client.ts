@@ -5,8 +5,8 @@ import { BitMap } from './bitmap';
 
 const nrOfVertices = 25000;
 const alpha = 3;
-const p = 5;
 const s = 5;
+const p = s;
 
 var renderer: RendererObject;
 var bitmapObj: BitMap;
@@ -176,23 +176,19 @@ function readFile() {
 
 function GetRandomColorString(): number {
     var dice = Math.random();
-    if (dice < 0.7)
+    if (dice < 0.99)
         return COLORS.GREEN
-    if (dice < 0.8)
-        return COLORS.RED
-    if (dice < 0.9)
-        return COLORS.GREY
-    return COLORS.BLUE
+    return COLORS.RED
 }
 
 function init() {
     let data = readFile();
-    renderer = new RendererObject(3, 5, 5, data, 4);
+    renderer = new RendererObject(alpha, s, p, data, 4);
     renderer.initObjects();
     renderer.createTwoDimView();
     renderer.animate();
 
-    bitmapObj = new BitMap(3, 5, 5, data);
+    bitmapObj = new BitMap(alpha, s, p, data);
     bitmapObj.Draw();
 
     window.addEventListener('resize', () => renderer.onWindowResize(), false);
