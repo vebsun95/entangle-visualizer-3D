@@ -8,6 +8,9 @@ const alpha = 3;
 const p = 5;
 const s = 5;
 
+var renderer: RendererObject;
+var bitmapObj: BitMap;
+
 function readFile() {
     var vertices: Vertices[] = [];
     
@@ -171,51 +174,6 @@ function readFile() {
     return vertices;
 }
 
-function bitMap() {
-
-    var bitMapCanvas = <HTMLCanvasElement> document.getElementById("bitmap");
-    console.log(bitMapCanvas.getAttribute("width"));
-    console.log(bitMapCanvas.getAttribute("height"));
-
-    // const colors = [
-    //     [0,255,0],
-    //     [255,0,0],
-    //     [0,0,255],
-    //     [220,220,220]
-    // ]
-
-    // const width = 80;
-    // const height = 80;
-    // var bitMapCanvas = <HTMLCanvasElement> document.getElementById("bitmap");
-    // bitMapCanvas.setAttribute("height", height.toString());
-    // bitMapCanvas.setAttribute("width", width.toString());
-    // var ctx = bitMapCanvas.getContext('2d');
-    // var imageData = ctx?.createImageData(width, height);
-    // const data = imageData?.data;
-
-    // var color 
-
-    // for (var i = 0; i < data!.length; i += 4) {
-    //     color = colors[GetRandomColor()];
-    //     data![i]     = color[0];  // red
-    //     data![i + 1] = color[1];  // green
-    //     data![i + 2] = color[2];  // blue
-    //     data![i + 3] = 255;       // alpha
-    // }
-    // ctx!.putImageData(imageData!, 0, 0);
-}
-
-function GetRandomColor(): number {
-    var dice = Math.random();
-    if (dice < 0.7)
-        return 0
-    if (dice < 0.8)
-        return 1
-    if (dice < 0.9)
-        return 2
-    return 3
-}
-
 function GetRandomColorString(): number {
     var dice = Math.random();
     if (dice < 0.7)
@@ -229,19 +187,23 @@ function GetRandomColorString(): number {
 
 function init() {
     let data = readFile();
-    const renderer = new RendererObject(3, 5, 5, data, 4);
-    renderer.initObjects(1);
+    renderer = new RendererObject(3, 5, 5, data, 4);
+    renderer.initObjects();
     renderer.createTwoDimView();
     renderer.animate();
 
-    const wqerqwe = new BitMap(3, 5, 5, data);
-    wqerqwe.Draw()
+    bitmapObj = new BitMap(3, 5, 5, data);
+    bitmapObj.Draw();
 
     window.addEventListener('resize', () => renderer.onWindowResize(), false);
 
     document.getElementById("btn-2d")?.addEventListener("click", () => renderer.createTwoDimView());
     document.getElementById("btn-lattice")?.addEventListener("click", () => renderer.createLattice());
     document.getElementById("btn-torus")?.addEventListener("click", () => renderer.createTorus());
+    document.getElementById("bitmap-container")?.addEventListener("click", (event: MouseEvent) => {
+        let index = bitmapObj.GetIndexFromCoord(event.offsetX, event.offsetY);
+        renderer.GoTo(index);
+    })
 }
 
 init();
