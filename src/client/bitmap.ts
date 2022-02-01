@@ -13,7 +13,7 @@ export class BitMap extends DataContainer {
     private visible: boolean = true;
     private viewBox: HTMLDivElement = document.getElementById("bitMap-viewBox")! as HTMLDivElement;
     private viewBoxLocked: HTMLDivElement = document.getElementById("bitMap-viewBox-locked") as HTMLDivElement;
-    drawLimit: number = 500; 
+    drawLimit: number = 250; 
     LabelMap : any = {0: "Original", 1: "Horizontal", 2: "RH-Strand", 3: "LH-Strand"}
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
@@ -50,14 +50,14 @@ export class BitMap extends DataContainer {
 
         this.viewBox.style.display = "none"
         this.viewBox.style.height = this.canvases[0].height.toString() + "px";
-        this.viewBox.style.width = (this.pixelWidth * this.drawLimit).toString() + "px";
+        this.viewBox.style.width = (this.pixelWidth * (this.drawLimit / this.s)).toString() + "px";
 
         this.viewBoxLocked.style.height = this.canvases[0].height.toString() + "px";
-        this.viewBoxLocked.style.width = (this.pixelWidth * this.drawLimit).toString() + "px";
+        this.viewBoxLocked.style.width = (this.pixelWidth * (this.drawLimit / this.s)).toString() + "px";
         
         this.container.addEventListener("mouseenter", () => this.viewBox.style.display = "unset");
         this.container.addEventListener("mouseleave", () => this.viewBox.style.display = "none");
-        this.container.addEventListener("mousemove", (event : MouseEvent) => this.viewBox.style.left = (event.offsetX - this.drawLimit / 2).toString() + "px");
+        this.container.addEventListener("mousemove", (event : MouseEvent) => this.viewBox.style.left = (event.offsetX - this.viewBoxLocked.clientWidth / 2).toString() + "px");
         document.getElementById("toggle-bitmap")?.addEventListener("click", this.toggleVisible.bind(this));
     }
 
@@ -134,7 +134,7 @@ export class BitMap extends DataContainer {
         console.log(offsetX)
         let column = Math.floor(offsetX / this.pixelWidth);
         let row = Math.floor(offsetY / this.pixelHeight);
-        this.viewBoxLocked.style.left = (offsetX - this.drawLimit / 2).toString() + "px"
+        this.viewBoxLocked.style.left = (offsetX - this.viewBoxLocked.clientWidth / 2).toString() + "px"
         return column * this.s + row;
     }
     private convertHexToStringColor(hexColor: number) : string
@@ -146,8 +146,4 @@ export class BitMap extends DataContainer {
         hexColorString = '#' + hexColorString;
         return hexColorString;
     }
-
-    private moveViewBox(event : MouseEvent) {
-    }
-
 }
