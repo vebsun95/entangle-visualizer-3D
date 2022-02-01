@@ -4,6 +4,7 @@ import { Parities, Vertices } from './interfaces'
 import { DIRECTIONS, STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
 import { MyControls } from './MyControls';
+import { start } from 'repl';
 
 
 
@@ -138,14 +139,15 @@ export class RendererObject extends DataContainer {
             endx = this.scale * (column + 1)
         }
         if (this.nrOfVertices <= this.drawFrom + this.limit) {
-            startIndex = this.drawFrom
+            startIndex = 0
         }
 
         for (let i = 0; i < this.s; i++) {
-            let name = this.vertices[startIndex + i].Label
-            let color = this.vertices[startIndex + i].Color
+            let name = this.vertices[startIndex].Label
+            let color = this.vertices[startIndex].Color
             var ghost = this.createGhostVertex(name, endx, starty - (this.scale * (i)), 0, color)
             ghost.name = "ghost" + name
+            startIndex++
         }
         /* --- Flytter på parity blokkene --- */
         startIndex = this.drawFrom;
@@ -518,6 +520,13 @@ export class RendererObject extends DataContainer {
     GoTo(vertexIndex: number) {
         this.drawFrom = vertexIndex - (this.limit / 2);
         this.drawFrom = Math.ceil(this.drawFrom/ this.s) * this.s
+        if (this.drawFrom < 0) {
+            this.drawFrom = 0;
+        }
+        else if (this.drawFrom + this.limit > this.nrOfVertices) {
+            this.drawFrom = this.nrOfVertices - this.limit;
+        }
+        console.log(this.drawFrom);
         this.createTwoDimView();
     }
 

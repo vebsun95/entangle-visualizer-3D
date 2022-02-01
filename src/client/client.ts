@@ -3,7 +3,7 @@ import { Vertices, Parities } from './interfaces';
 import { COLORS, STRANDS } from './constants';
 import { BitMap } from './bitmap';
 
-const nrOfVertices = 25000;
+const nrOfVertices = 249;
 const alpha = 3;
 const s = 5;
 const p = s;
@@ -38,7 +38,16 @@ function readFile() {
                 )
             }
             else if (parityTo > nrOfVertices) {
-                var right_temp = (i + s) % nrOfVertices
+                var right_temp = (i + s) % nrOfVertices;
+                if (nrOfVertices % s != 0) {
+                    var remaining = nrOfVertices % s;
+                    var right_temp = (i + s) % (nrOfVertices - remaining);
+                    if( right_temp > s) {
+                        right_temp = right_temp % s;
+                    } 
+                    console.log(i, right_temp);
+                }
+                
                 vertices[vertices.length - 1].Outputs.push(
                     {
                         LeftPos: i,
