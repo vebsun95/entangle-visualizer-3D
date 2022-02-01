@@ -48,19 +48,16 @@ body {
     left: 5;
 }
 
-#footer {
+#bitmap-container {
     width: 100vw;
     position: absolute;
     bottom: 0%;
 }
 
-#bitmap-container {
-    max-height: 10vh;
+#bitmap-canvas-container {
+    position: relative;
     overflow-x: auto;
     overflow-y: hidden;
-    padding-bottom: 1em;
-
-    
 }
 
 #toggle-bitmap {
@@ -68,29 +65,46 @@ body {
     right: 20px;
 }
 
-.bitmap-view {
+#bitmap-viewbox-container {
+    pointer-events: none;
+}
+
+#bitMap-viewBox{
     position: absolute;
-    top: -25px;
+    margin-top: 20px;
+    border: 1px solid grey;
+    background-color: #0000001c;
+}
+
+#bitMap-viewBox-locked{
+    position: absolute;
+    margin-top: 20px;
+    border: 1px solid black;
+    background-color: #0000001c;
 }
 
 .hideBitMap{
     animation-duration: 1s;
     animation-name: hideBitMap;
-    height: 0;
+    max-height: 0;
 }
 
 .showBitMap {
     animation-duration: 1s;
     animation-name: showBitMap;
-    height: 10vh;
+    max-height: 200px;
+}
+
+.bitMapCanvas {
+    margin-bottom: -3px;
 }
 
 @keyframes hideBitMap {
-    from { height: 10vh; }
-    to   { height: 0;   }
+    from { max-height: 200px; }
+    to   { max-height: 0;   }
 }
 
 @keyframes showBitMap {
-    from { height: 0;  }
-    to   { height: 10vh;}
+    from { max-height: 0;  }
+    to   { max-height: 200px;}
 }
