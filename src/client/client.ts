@@ -196,6 +196,7 @@ function init() {
     document.getElementById("btn-2d")?.addEventListener("click", () => renderer.createTwoDimView());
     document.getElementById("btn-lattice")?.addEventListener("click", () => renderer.createLattice());
     document.getElementById("btn-torus")?.addEventListener("click", () => renderer.createTorus());
+    document.getElementById("btn-ghostgroup")?.addEventListener("click", () => renderer.show_hide_ghostvertcies());
     document.getElementById("bitmap-container")?.addEventListener("click", (event: MouseEvent) => {
         let index = bitmapObj.GetIndexFromCoord(event.offsetX, event.offsetY);
         renderer.GoTo(index);

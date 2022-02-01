@@ -22,6 +22,7 @@ export class RendererObject extends DataContainer {
     ghostGroup: THREE.Group = new THREE.Group();
     scale: number = 10;
     radius: number = 2;
+    ghostgroupshow: boolean = true;
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[], ppp: number) {
         super(alpha, s, p, vertices);
@@ -35,6 +36,8 @@ export class RendererObject extends DataContainer {
         document.body.appendChild(this.renderer.domElement)
         this.renderer.domElement.setAttribute("tabindex", "1");
         this.controls = new MyControls(this.camera, this.renderer.domElement);
+        this.limit = this.limit + (this.s - (this.limit % this.s));
+        console.log(this.limit)
     }
 
 
@@ -212,6 +215,7 @@ export class RendererObject extends DataContainer {
                 }
             }
         }
+        this.ghostGroup.visible = this.ghostgroupshow;
 
     }
         
@@ -242,6 +246,11 @@ export class RendererObject extends DataContainer {
         this.scene.add(this.ghostGroup);
 
         return obj
+    }
+
+    show_hide_ghostvertcies() {
+        this.ghostgroupshow = !this.ghostgroupshow;
+        this.ghostGroup.visible = this.ghostgroupshow;
     }
 
     createLattice() {
