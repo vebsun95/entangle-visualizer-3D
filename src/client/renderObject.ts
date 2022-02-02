@@ -25,6 +25,7 @@ export class RendererObject extends DataContainer {
     scale: number = 10;
     radius: number = 2;
     ghostgroupshow: boolean = true;
+    paritiesGroupList: THREE.Group[] = [];
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[], ppp: number) {
         super(alpha, s, p, vertices);
@@ -40,6 +41,10 @@ export class RendererObject extends DataContainer {
         this.controls = new MyControls(this.camera, this.renderer.domElement);
         this.limit = this.limit + (this.s - (this.limit % this.s));
         console.log(this.limit)
+        for (let i = 0; i < this.alpha; i++) {
+            this.paritiesGroupList.push(new THREE.Group());
+        }
+        
     }
 
 
@@ -75,11 +80,15 @@ export class RendererObject extends DataContainer {
                 curveObject = new THREE.Line(lineGeometry, lineMaterial);
                 curveObject.geometry.attributes.position.needsUpdate;
                 this.paritiesGroup.add(curveObject);
+                //this.paritiesGroupList[i].add(curveObject);
             }
         }
 
         this.scene.add(this.verticesGroup);
         this.scene.add(this.paritiesGroup);
+        for (let i = 0; i < this.alpha; i++) {
+            this.scene.add(this.paritiesGroupList[i]);
+        }
     }
 
     createTwoDimView() {
@@ -142,9 +151,11 @@ export class RendererObject extends DataContainer {
         /* --- Flytter på parity blokkene --- */
         startIndex = this.drawFrom;
         let lineGeomIndex = 0;
+        let counter = 0;
         for (let index = this.drawFrom; index < this.drawFrom + this.limit; index++) {
             
             for (var output of this.vertices[index].Outputs) {
+                //let line  = this.paritiesGroupList[counter].children[lineGeomIndex] as THREE.Line;
                 let line  = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
                 let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
                 let rightPos = this.scene.getObjectByName(output.RightPos.toString());

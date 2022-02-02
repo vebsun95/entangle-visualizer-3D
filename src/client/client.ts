@@ -34,6 +34,7 @@ function readFile() {
                         RightPos: i + s,
                         Strand: STRANDS.HStrand,
                         Color: COLORS.BLUE,
+                        Fetched: false,
                     }
                 )
             }
@@ -54,6 +55,7 @@ function readFile() {
                         RightPos: right_temp,
                         Strand: STRANDS.HStrand,
                         Color: COLORS.BLUE,
+                        Fetched: false,
                     }
                 )
             }
@@ -70,6 +72,7 @@ function readFile() {
                             RightPos: parityTo,
                             Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
@@ -84,6 +87,7 @@ function readFile() {
                             RightPos: right_temp,
                             Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
     
@@ -99,6 +103,7 @@ function readFile() {
                             RightPos: parityTo,
                             Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
@@ -113,6 +118,7 @@ function readFile() {
                             RightPos: right_temp,
                             Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
@@ -128,6 +134,7 @@ function readFile() {
                             RightPos: parityTo,
                             Strand: STRANDS.LHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
@@ -142,6 +149,7 @@ function readFile() {
                             RightPos: right_temp,
                             Strand: STRANDS.LHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
@@ -156,6 +164,7 @@ function readFile() {
                             RightPos: parityTo,
                             Strand: STRANDS.LHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
     
                         }
                     )
@@ -171,6 +180,7 @@ function readFile() {
                             RightPos: right_temp,
                             Strand: STRANDS.LHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }

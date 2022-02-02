@@ -3,6 +3,7 @@ export interface Parities {
     RightPos: number,
     Strand: number,
     Color: number,
+    Fetched: boolean,
 }
 
 export interface Vertices {
