@@ -23,6 +23,19 @@ body {
     right: 20;
 }
 
+.checkbox-overlay {
+    z-index: 10;
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: aqua;
+}
+
+#btn-ghostgroup {
+    top: 0;
+    right: 0;
+}
+
 .side-bar {
     height: 80vh;
     width: 20vw;

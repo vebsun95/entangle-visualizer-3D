@@ -4,6 +4,8 @@ import { Parities, Vertices } from './interfaces'
 import { DIRECTIONS, STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
 import { MyControls } from './MyControls';
+import { start } from 'repl';
+import { throws } from 'assert';
 
 
 
@@ -22,6 +24,7 @@ export class RendererObject extends DataContainer {
     ghostGroup: THREE.Group = new THREE.Group();
     scale: number = 10;
     radius: number = 2;
+    ghostgroupshow: boolean = true;
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[], ppp: number) {
         super(alpha, s, p, vertices);
@@ -35,6 +38,8 @@ export class RendererObject extends DataContainer {
         document.body.appendChild(this.renderer.domElement)
         this.renderer.domElement.setAttribute("tabindex", "1");
         this.controls = new MyControls(this.camera, this.renderer.domElement);
+        this.limit = this.limit + (this.s - (this.limit % this.s));
+        console.log(this.limit)
     }
 
 
@@ -75,29 +80,6 @@ export class RendererObject extends DataContainer {
 
         this.scene.add(this.verticesGroup);
         this.scene.add(this.paritiesGroup);
-
-
-
-        // const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf0ff0 });
-
-        // var name: string;
-        // var positions: Float32Array;
-        // var lineGeometry: THREE.BufferGeometry;
-        // var curveObject: THREE.Line;
-
-        // this.parities.forEach(parity => {
-        //     // Hver linje har 4 punkter, som tar 3 plasser(x, y, z)
-        //     positions = new Float32Array(this.pointsPerLine * 3);
-
-        //     lineGeometry = new THREE.BufferGeometry();
-        //     lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-        //     curveObject = new THREE.Line(lineGeometry, lineMaterial);
-        //     name = parity.LeftPos + "_" + parity.RightPos;
-        //     curveObject.name = name;
-        //     this.scene.add(curveObject);
-        //     curveObject.geometry.attributes.position.needsUpdate;
-        // });
     }
 
     createTwoDimView() {
@@ -106,8 +88,11 @@ export class RendererObject extends DataContainer {
         var startIndex = this.drawFrom;
         var row = 0;
         var starty = (this.s * this.scale) / 2
+        var skip = false;
         /* --- Flytter, enderer label og farge på data-blokkene ---*/
         for (var v of this.verticesGroup.children) {
+            if (!skip)
+            {
             v.position.set(
                 this.scale * column,
                 starty - (this.scale * row),
@@ -119,10 +104,19 @@ export class RendererObject extends DataContainer {
             //@ts-ignore
             v.material.color.setHex(this.vertices[startIndex].Color);
             v.rotateY(0.9)
-            startIndex++;
+            startIndex = (startIndex + 1) % this.nrOfVertices;
+            }
+            else {
+                v.visible = false;
+            }
+            if (startIndex == 0) {
+                skip = true
+                column++
+            }
             row = (row + 1) % this.s;
-            if (row == 0 && startIndex > 0) {
+            if (row == 0 && startIndex >= 0) {
                 column++;
+                skip = false
             }
         }
         
@@ -135,14 +129,15 @@ export class RendererObject extends DataContainer {
             endx = this.scale * (column + 1)
         }
         if (this.nrOfVertices <= this.drawFrom + this.limit) {
-            startIndex = this.drawFrom
+            startIndex = 0
         }
 
         for (let i = 0; i < this.s; i++) {
-            let name = this.vertices[startIndex + i].Label
-            let color = this.vertices[startIndex + i].Color
+            let name = this.vertices[startIndex].Label
+            let color = this.vertices[startIndex].Color
             var ghost = this.createGhostVertex(name, endx, starty - (this.scale * (i)), 0, color)
             ghost.name = "ghost" + name
+            startIndex++
         }
         /* --- Flytter på parity blokkene --- */
         startIndex = this.drawFrom;
@@ -212,6 +207,7 @@ export class RendererObject extends DataContainer {
                 }
             }
         }
+        this.ghostGroup.visible = this.ghostgroupshow;
 
     }
         
@@ -242,6 +238,11 @@ export class RendererObject extends DataContainer {
         this.scene.add(this.ghostGroup);
 
         return obj
+    }
+
+    show_hide_ghostvertcies() {
+        this.ghostgroupshow = !this.ghostgroupshow;
+        this.ghostGroup.visible = this.ghostgroupshow;
     }
 
     createLattice() {
@@ -328,92 +329,7 @@ export class RendererObject extends DataContainer {
             }
             startIndex++;
         }
-
-        // for (let i = 1; i <= this.s; i++) {
-        //     counter = i
-        //     for (let pos = 0; pos < 2 * Math.PI; pos += piParts) {
-        //         var obj = this.scene.getObjectByName(counter.toString())
-        //         if (typeof obj != undefined) {
-        //             obj?.position.set(
-        //                 scale * Math.cos(pos),
-        //                 scale * Math.sin(pos),
-        //                 scale * i)
-        //             //@ts-ignore
-        //             obj.material.color.setHex(0xff0000);
-        //         }
-        //         counter += this.s
-        //     }
-        // }
-
-        // this.parities.forEach(parity => {
-        //     let line = this.scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-        //     let vertixTo = this.scene.getObjectByName(parity.LeftPos.toString());
-        //     let vertixFrom = this.scene.getObjectByName(parity.RightPos.toString());
-        //     if (typeof line != undefined && typeof vertixTo != undefined && typeof vertixFrom != undefined) {
-        //         switch (parity.Strand) {
-        //             case STRANDS.HStrand: {
-        //                 //@ts-ignore
-        //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-        //                 // Tegner kun de to første 3d-punktene i listen.
-        //                 //@ts-ignore
-        //                 line.geometry.setDrawRange(0, 2);
-        //                 //@ts-ignore
-        //                 line.geometry.attributes.position.needsUpdate = true;
-        //             }
-        //             case STRANDS.LHStrand: {
-        //                 //@ts-ignore
-        //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-        //                 // Tegner kun de to første 3d-punktene i listen.
-        //                 //@ts-ignore
-        //                 line.geometry.setDrawRange(0, 2);
-        //                 //@ts-ignore
-        //                 line.geometry.attributes.position.needsUpdate = true;
-
-        //             }
-        //             case STRANDS.RHStrand: {
-        //                 //@ts-ignore
-        //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, vertixFrom?.position.x, vertixFrom?.position.y, vertixFrom?.position.z)
-        //                 array.setXYZ(1, vertixTo?.position.x, vertixTo?.position.y, vertixTo?.position.z)
-
-        //                 // Tegner kun de to første 3d-punktene i listen.
-        //                 //@ts-ignore
-        //                 line.geometry.setDrawRange(0, 2);
-        //                 //@ts-ignore
-        //                 line.geometry.attributes.position.needsUpdate = true;
-
-        //             }
-        //         }
-        //     } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
-        // });
     }
-
-    // moveGroups(direction: DIRECTIONS) {
-    //     console.log(this.firstColumn, this.lastcolumn)
-    //     if (direction === DIRECTIONS.LEFT) {
-    //         // let lastColumnGroup = this.columnGroups[this.lastcolumn];
-    //         // let firstColumnGroup = this.columnGroups[this.firstColumn];
-    //         // if (typeof lastColumnGroup != undefined || typeof firstColumnGroup != undefined) {
-    //         //     lastColumnGroup.position.set(firstColumnGroup.position.x + this.scale, firstColumnGroup.position.y, firstColumnGroup.position.z);
-    //         //     this.firstColumn--;
-    //         //     this.lastcolumn--;
-    //         // }
-    //     } else if (direction === DIRECTIONS.RIGHT) {
-    //         let lastColumnGroup = this.columnGroups[this.lastcolumn];
-    //         let firstColumnGroup = this.columnGroups[this.firstColumn];
-    //         if (typeof lastColumnGroup != undefined && typeof firstColumnGroup != undefined) {
-    //             firstColumnGroup.position.set(lastColumnGroup.position.x + this.scale, lastColumnGroup.position.y, lastColumnGroup.position.z);
-    //             this.lastcolumn = this.firstColumn;
-    //             this.firstColumn++;
-    //         } else {console.log("undefined")}
-    //     }
-    // }
 
     createTorus() {
 
@@ -438,55 +354,6 @@ export class RendererObject extends DataContainer {
                 else { console.log(counter) }
             }
         }
-
-        // this.parities.forEach(parity => {
-        //     let line = this.scene.getObjectByName(parity.LeftPos + "_" + parity.RightPos);
-        //     let rightPos = this.scene.getObjectByName(parity.LeftPos.toString());
-        //     let leftPos = this.scene.getObjectByName(parity.RightPos.toString());
-        //     if (typeof line != undefined && typeof rightPos != undefined && typeof leftPos != undefined) {
-        //         switch (parity.Strand) {
-        //             case STRANDS.HStrand: {
-
-        //                 //@ts-ignore
-        //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
-        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
-
-        //                 // Tegner kun de to første 3d-punktene i listen.
-        //                 //@ts-ignore
-        //                 line.geometry.setDrawRange(0, 2);
-        //                 //@ts-ignore
-        //                 line.geometry.attributes.position.needsUpdate = true;
-        //             }
-        //             case STRANDS.LHStrand: {
-        //                 //@ts-ignore
-        //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
-        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
-
-        //                 // Tegner kun de to første 3d-punktene i listen.
-        //                 //@ts-ignore
-        //                 line.geometry.setDrawRange(0, 2);
-        //                 //@ts-ignore
-        //                 line.geometry.attributes.position.needsUpdate = true;
-
-        //             }
-        //             case STRANDS.RHStrand: {
-        //                 //@ts-ignore
-        //                 let array = line.geometry.attributes.position
-        //                 array.setXYZ(0, leftPos?.position.x, leftPos?.position.y, leftPos?.position.z)
-        //                 array.setXYZ(1, rightPos?.position.x, rightPos?.position.y, rightPos?.position.z)
-
-        //                 // Tegner kun de to første 3d-punktene i listen.
-        //                 //@ts-ignore
-        //                 line.geometry.setDrawRange(0, 2);
-        //                 //@ts-ignore
-        //                 line.geometry.attributes.position.needsUpdate = true;
-
-        //             }
-        //         }
-        //     } else { console.log(parity.LeftPos + "_" + parity.RightPos) }
-        // });
     }
 
     createTexture(text: string) {
@@ -509,6 +376,13 @@ export class RendererObject extends DataContainer {
     GoTo(vertexIndex: number) {
         this.drawFrom = vertexIndex - (this.limit / 2);
         this.drawFrom = Math.ceil(this.drawFrom/ this.s) * this.s
+        if (this.drawFrom < 0) {
+            this.drawFrom = 0;
+        }
+        // else if (this.drawFrom + this.limit > this.nrOfVertices) {
+        //     this.drawFrom = this.nrOfVertices - this.limit;
+        // }
+        console.log(this.drawFrom);
         this.createTwoDimView();
     }
 
