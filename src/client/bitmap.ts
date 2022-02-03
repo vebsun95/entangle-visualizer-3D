@@ -55,9 +55,9 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.height = this.canvases[0].height.toString() + "px";
         this.viewBoxLocked.style.width = (this.pixelWidth * (this.drawLimit / this.s)).toString() + "px";
         
-        this.container.addEventListener("mouseenter", () => this.viewBox.style.display = "unset");
-        this.container.addEventListener("mouseleave", () => this.viewBox.style.display = "none");
-        this.container.addEventListener("mousemove", (event : MouseEvent) => this.viewBox.style.left = (event.offsetX - this.viewBoxLocked.clientWidth / 2).toString() + "px");
+        this.container.addEventListener("mouseenter", this.handleMouseEnter.bind(this));
+        this.container.addEventListener("mouseleave", this.handleMouseLeave.bind(this));
+        this.container.addEventListener("mousemove", (event : MouseEvent) => this.handleMouseMove(event));
         document.getElementById("toggle-bitmap")?.addEventListener("click", this.toggleVisible.bind(this));
     }
 
@@ -150,5 +150,17 @@ export class BitMap extends DataContainer {
         }
         hexColorString = '#' + hexColorString;
         return hexColorString;
+    }
+
+    private handleMouseEnter() {
+        this.viewBox.style.display = "unset"
+    }
+
+    private handleMouseLeave() {
+        this.viewBox.style.display = "none"
+    }
+
+    private handleMouseMove(event : MouseEvent) {
+        this.viewBox.style.left = (event.offsetX - this.viewBoxLocked.clientWidth / 2).toString() + "px"
     }
 }
