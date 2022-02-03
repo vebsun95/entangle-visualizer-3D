@@ -79,13 +79,13 @@ export class RendererObject extends DataContainer {
 
                 curveObject = new THREE.Line(lineGeometry, lineMaterial);
                 curveObject.geometry.attributes.position.needsUpdate;
-                this.paritiesGroup.add(curveObject);
-                //this.paritiesGroupList[i].add(curveObject);
+                //this.paritiesGroup.add(curveObject);
+                this.paritiesGroupList[i].add(curveObject);
             }
         }
 
         this.scene.add(this.verticesGroup);
-        this.scene.add(this.paritiesGroup);
+        //this.scene.add(this.paritiesGroup);
         for (let i = 0; i < this.alpha; i++) {
             this.scene.add(this.paritiesGroupList[i]);
         }
@@ -114,18 +114,19 @@ export class RendererObject extends DataContainer {
             v.material.color.setHex(this.vertices[startIndex].Color);
             v.rotateY(0.9)
             startIndex = (startIndex + 1) % this.nrOfVertices;
+            v.visible = true;;
             }
             else {
                 v.visible = false;
             }
             if (startIndex == 0) {
-                skip = true
-                column++
+                skip = true;
+                column++;
             }
             row = (row + 1) % this.s;
             if (row == 0 && startIndex >= 0) {
                 column++;
-                skip = false
+                skip = false;
             }
         }
         
@@ -136,9 +137,6 @@ export class RendererObject extends DataContainer {
         }
         else {
             endx = this.scale * (column + 1)
-        }
-        if (this.nrOfVertices <= this.drawFrom + this.limit) {
-            startIndex = 0
         }
 
         for (let i = 0; i < this.s; i++) {
@@ -152,11 +150,10 @@ export class RendererObject extends DataContainer {
         startIndex = this.drawFrom;
         let lineGeomIndex = 0;
         let counter = 0;
-        for (let index = this.drawFrom; index < this.drawFrom + this.limit; index++) {
-            
-            for (var output of this.vertices[index].Outputs) {
-                //let line  = this.paritiesGroupList[counter].children[lineGeomIndex] as THREE.Line;
-                let line  = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
+        for (let index = 0; index < this.limit; index++) {
+            for (var output of this.vertices[startIndex].Outputs) {
+                let line  = this.paritiesGroupList[counter % this.alpha].children[lineGeomIndex] as THREE.Line;
+                //let line  = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
                 let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
                 let rightPos = this.scene.getObjectByName(output.RightPos.toString());
 
@@ -165,7 +162,8 @@ export class RendererObject extends DataContainer {
                     array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
                     switch (output.Strand) {
                         case STRANDS.HStrand: {
-                            if (output.RightPos <= this.s || output.RightPos > this.drawFrom + this.limit) {
+                            if (index + this.s >= this.limit) {
+                                //console.log("HSTRAND");
                                 console.log(output.LeftPos, output.RightPos)
                                 var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
                                 array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
@@ -176,47 +174,64 @@ export class RendererObject extends DataContainer {
                             break
                         }
                         case STRANDS.LHStrand: {
-                            if (output.RightPos % this.s == 0 || output.RightPos <= this.s) {
+                            if (output.RightPos % this.s == 0) {
+                                //console.log("LHSTRAND");
                                 //console.log(output.LeftPos, output.RightPos)
                                 let name = this.vertices[output.RightPos-1].Label;
                                 let color = this.vertices[output.RightPos-1].Color;
-                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                                if (output.RightPos <= this.s) {
+                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + (this.scale*2), leftPos!.position.y + this.scale, 0, color);
+                                }
+                                else {
+                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                                }
                                 array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                            
                             }
-                            else if(output.RightPos <= this.drawFrom + this.limit) {
-                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            }
-                            else if(output.RightPos > this.drawFrom + this.limit) {
+                            else if(index + this.s >= this.limit) {
                                 var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
                                 array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                            }
+                            else {
+                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                             }
                             break
                         }
                         case STRANDS.RHStrand: {
-                            if (output.RightPos % this.s == 1 || output.RightPos <= this.s) {
+                            if (output.RightPos % this.s == 1) {
+                                //console.log("RHSTRAND");
                                 //console.log(output.LeftPos, output.RightPos)
                                 let name = this.vertices[output.RightPos-1].Label;
                                 let color = this.vertices[output.RightPos-1].Color;
-                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
+                                if (output.RightPos < this.s) {
+                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + (this.scale*2), leftPos!.position.y - this.scale, 0, color);
+                                }
+                                else {
+                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
+                                }   
                                 array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                                
                             }
-                            else if(output.RightPos <= this.drawFrom + this.limit) {
-                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            }
-                            else if(output.RightPos > this.drawFrom + this.limit) {
+                            else if(index + this.s >= this.limit) {
                                 var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
                                 array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
                             }
+                            else {
+                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                            }
                             break
                         }
+                        default:
+                            {
+                                // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
+                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                            }
                     }
                     line!.geometry.setDrawRange(0, 2);
                     line!.geometry.attributes.position.needsUpdate = true;
-                    lineGeomIndex++;
                 }
+                counter++;
             }
+            startIndex = (startIndex + 1) % this.nrOfVertices;
+            lineGeomIndex++;
         }
         this.ghostGroup.visible = this.ghostgroupshow;
 
@@ -230,7 +245,7 @@ export class RendererObject extends DataContainer {
         var obj: THREE.Mesh;
         var material: THREE.MeshBasicMaterial;
         
-        // Lager alle vertex
+        // Lager enkel ghost vertex
         material = new THREE.MeshBasicMaterial();
         obj = new THREE.Mesh(geometry, material);
         //@ts-ignore
@@ -386,13 +401,16 @@ export class RendererObject extends DataContainer {
 
     GoTo(vertexIndex: number) {
         this.drawFrom = vertexIndex - (this.limit / 2);
-        this.drawFrom = Math.ceil(this.drawFrom/ this.s) * this.s
         if (this.drawFrom < 0) {
-            this.drawFrom = 0;
+            this.drawFrom = this.nrOfVertices + this.drawFrom;
         }
         // else if (this.drawFrom + this.limit > this.nrOfVertices) {
         //     this.drawFrom = this.nrOfVertices - this.limit;
         // }
+        this.drawFrom = Math.ceil(this.drawFrom/ this.s) * this.s
+        if (this.drawFrom == this.nrOfVertices) {
+            this.drawFrom = 0;
+        }
         console.log(this.drawFrom);
         this.createTwoDimView();
     }
