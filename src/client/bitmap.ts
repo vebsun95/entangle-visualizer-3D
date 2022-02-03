@@ -131,10 +131,15 @@ export class BitMap extends DataContainer {
     }
 
     GetIndexFromCoord(offsetX: number, offsetY: number) : number {
-        console.log(offsetX)
         let column = Math.floor(offsetX / this.pixelWidth);
         let row = Math.floor(offsetY / this.pixelHeight);
-        this.viewBoxLocked.style.left = (offsetX - this.viewBoxLocked.clientWidth / 2).toString() + "px"
+        let left = offsetX - this.viewBoxLocked.clientWidth / 2;
+        // Check that the viewbox is within bounds.
+        if (left + this.viewBoxLocked.clientWidth > this.container.scrollWidth) {
+            this.viewBoxLocked.style.left = (this.container.scrollWidth - this.viewBoxLocked.clientWidth).toString() + "px";
+        } else {
+            this.viewBoxLocked.style.left = left.toString() + "px"
+        }
         return column * this.s + row;
     }
     private convertHexToStringColor(hexColor: number) : string
