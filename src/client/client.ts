@@ -3,7 +3,7 @@ import { Vertices, Parities } from './interfaces';
 import { COLORS, STRANDS } from './constants';
 import { BitMap } from './bitmap';
 
-const nrOfVertices = 25003;
+const nrOfVertices = 25000;
 const alpha = 3;
 const s = 5;
 const p = s;
@@ -34,6 +34,7 @@ function readFile() {
                         RightPos: i + s,
                         Strand: STRANDS.HStrand,
                         Color: COLORS.BLUE,
+                        Fetched: false,
                     }
                 )
             }
@@ -45,15 +46,16 @@ function readFile() {
                     if( right_temp > s) {
                         right_temp = right_temp % s;
                     } 
-                    console.log(i, right_temp);
                 }
-                
+                //console.log("HStrand")
+                //console.log(i, right_temp);
                 vertices[vertices.length - 1].Outputs.push(
                     {
                         LeftPos: i,
                         RightPos: right_temp,
                         Strand: STRANDS.HStrand,
                         Color: COLORS.BLUE,
+                        Fetched: false,
                     }
                 )
             }
@@ -70,20 +72,50 @@ function readFile() {
                             RightPos: parityTo,
                             Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
                 else if (parityTo > nrOfVertices) {
                     var right_temp = parityTo % nrOfVertices
+                    if (nrOfVertices % s != 0) {
+                        if (helper == 1) {
+                            var temp_node = i;
+                            while(temp_node > s) {
+                                if (temp_node % s == 1) {
+                                    temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
+                                }
+                                else {
+                                    temp_node = temp_node - (s + 1);
+                                }
+                            }
+                            right_temp = temp_node;
+                        }
+                        else if (helper > 1) {
+                            var temp_node = i;
+                            while(temp_node > s) {
+                                if (temp_node % s == 1) {
+                                    temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
+                                }
+                                else {
+                                    temp_node = temp_node - (s + 1);
+                                }
+                            }
+                            right_temp = temp_node
+                        }
+                    }
                     if (right_temp == 0) {
                         right_temp = 1
                     }
+                    //console.log("RHStrand")
+                    //console.log(i, right_temp);
                     vertices[vertices.length - 1].Outputs.push(
                         {
                             LeftPos: i,
                             RightPos: right_temp,
                             Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
     
@@ -99,20 +131,36 @@ function readFile() {
                             RightPos: parityTo,
                             Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
                 else if (parityTo > nrOfVertices) {
                     var right_temp = parityTo % nrOfVertices
+                    if (nrOfVertices % s != 0) {
+                        var temp_node = i;
+                        while(temp_node > s) {
+                            if (temp_node % s == 1) {
+                                temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
+                            }
+                            else {
+                                temp_node = temp_node - (s + 1);
+                            }
+                        }
+                        right_temp = temp_node;
+                    }
                     if (right_temp == 0) {
                         right_temp = 1
                     }
+                    //console.log("RHStrand")
+                    //console.log(i, right_temp);
                     vertices[vertices.length - 1].Outputs.push(
                         {
                             LeftPos: i,
                             RightPos: right_temp,
                             Strand: STRANDS.RHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
@@ -128,20 +176,36 @@ function readFile() {
                             RightPos: parityTo,
                             Strand: STRANDS.LHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
                 else if (parityTo > nrOfVertices) {
                     var right_temp = parityTo % nrOfVertices
+                    if (nrOfVertices % s != 0) {
+                        var temp_node = i;
+                        while(temp_node > s) {
+                            if (temp_node % s == 0) {
+                                temp_node = temp_node - s * p + Math.pow((s - 1), 2);
+                            }
+                            else {
+                                temp_node = temp_node - (s - 1);
+                            }
+                        }
+                        right_temp = temp_node;
+                    }
                     if (right_temp == 0) {
                         right_temp = 1
                     }
+                    //console.log("LHStrand")
+                    //console.log(i, right_temp);
                     vertices[vertices.length - 1].Outputs.push(
                         {
                             LeftPos: i,
                             RightPos: right_temp,
                             Strand: STRANDS.LHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
@@ -156,21 +220,51 @@ function readFile() {
                             RightPos: parityTo,
                             Strand: STRANDS.LHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
     
                         }
                     )
                 }
                 else if (parityTo > nrOfVertices) {
                     var right_temp = parityTo % nrOfVertices
+                    if (nrOfVertices % s != 0) {
+                        if (helper > 1) {
+                            var temp_node = i;
+                            while(temp_node > s) {
+                                if (temp_node % s == 0) {
+                                    temp_node = temp_node - s * p + Math.pow((s - 1), 2);
+                                }
+                                else {
+                                    temp_node = temp_node - (s - 1);
+                                }
+                            }
+                            right_temp = temp_node
+                        }
+                        else if (helper == 0) {
+                            var temp_node = i;
+                            while(temp_node > s) {
+                                if (temp_node % s == 0) {
+                                    temp_node = temp_node - s * p + Math.pow((s - 1), 2);
+                                }
+                                else {
+                                    temp_node = temp_node - (s - 1);
+                                }
+                            }
+                            right_temp = temp_node
+                        }
+                    }
                     if (right_temp == 0) {
                         right_temp = 1
                     }
+                    //console.log("LHStrand")
+                    //console.log(i, right_temp);
                     vertices[vertices.length - 1].Outputs.push(
                         {
                             LeftPos: i,
                             RightPos: right_temp,
                             Strand: STRANDS.LHStrand,
                             Color: COLORS.BLUE,
+                            Fetched: false,
                         }
                     )
                 }
@@ -178,8 +272,6 @@ function readFile() {
     
         }
     }
-
-    
     return vertices;
 }
 

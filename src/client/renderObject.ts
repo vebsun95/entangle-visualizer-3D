@@ -25,6 +25,7 @@ export class RendererObject extends DataContainer {
     scale: number = 10;
     radius: number = 2;
     ghostgroupshow: boolean = true;
+    paritiesGroupList: THREE.Group[] = [];
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[], ppp: number) {
         super(alpha, s, p, vertices);
@@ -40,6 +41,10 @@ export class RendererObject extends DataContainer {
         this.controls = new MyControls(this.camera, this.renderer.domElement);
         this.limit = this.limit + (this.s - (this.limit % this.s));
         console.log(this.limit)
+        for (let i = 0; i < this.alpha; i++) {
+            this.paritiesGroupList.push(new THREE.Group());
+        }
+        
     }
 
 
@@ -74,12 +79,16 @@ export class RendererObject extends DataContainer {
 
                 curveObject = new THREE.Line(lineGeometry, lineMaterial);
                 curveObject.geometry.attributes.position.needsUpdate;
-                this.paritiesGroup.add(curveObject);
+                //this.paritiesGroup.add(curveObject);
+                this.paritiesGroupList[i].add(curveObject);
             }
         }
 
         this.scene.add(this.verticesGroup);
-        this.scene.add(this.paritiesGroup);
+        //this.scene.add(this.paritiesGroup);
+        for (let i = 0; i < this.alpha; i++) {
+            this.scene.add(this.paritiesGroupList[i]);
+        }
     }
 
     createTwoDimView() {
@@ -89,63 +98,67 @@ export class RendererObject extends DataContainer {
         var row = 0;
         var starty = (this.s * this.scale) / 2
         var skip = false;
+        var increasecolumn = false;
         /* --- Flytter, enderer label og farge på data-blokkene ---*/
         for (var v of this.verticesGroup.children) {
-            if (!skip)
-            {
-            v.position.set(
-                this.scale * column,
-                starty - (this.scale * row),
-                0
-            )
-            v.name = this.vertices[startIndex].Label;
-            //@ts-ignore
-            v.material.map = this.createTexture(v.name);
-            //@ts-ignore
-            v.material.color.setHex(this.vertices[startIndex].Color);
-            v.rotateY(0.9)
-            startIndex = (startIndex + 1) % this.nrOfVertices;
+            if (!skip){
+                v.position.set(
+                    this.scale * column,
+                    starty - (this.scale * row),
+                    0
+                )
+                v.name = this.vertices[startIndex].Label;
+                //@ts-ignore
+                v.material.map = this.createTexture(v.name);
+                //@ts-ignore
+                v.material.color.setHex(this.vertices[startIndex].Color);
+                v.rotateY(0.9)
+                startIndex = (startIndex + 1) % this.nrOfVertices;
+                v.visible = true;;
             }
             else {
                 v.visible = false;
+                v.name = "";
             }
             if (startIndex == 0) {
-                skip = true
-                column++
+                skip = true;
+                if (!increasecolumn) {
+                    column++;
+                    increasecolumn = true;
+                }
             }
             row = (row + 1) % this.s;
             if (row == 0 && startIndex >= 0) {
                 column++;
-                skip = false
+                skip = false;
             }
         }
         
         // Lager ghostVertecies på siste kolonne + 1
-        let endx = 0
-        if (startIndex % this.s == 0) {
-            endx = this.scale * column;
-        }
-        else {
-            endx = this.scale * (column + 1)
-        }
-        if (this.nrOfVertices <= this.drawFrom + this.limit) {
-            startIndex = 0
-        }
+        // let endx = 0
+        // if (startIndex % this.s == 0) {
+        //     endx = this.scale * column;
+        // }
+        // else {
+        //     endx = this.scale * (column + 1)
+        // }
 
-        for (let i = 0; i < this.s; i++) {
-            let name = this.vertices[startIndex].Label
-            let color = this.vertices[startIndex].Color
-            var ghost = this.createGhostVertex(name, endx, starty - (this.scale * (i)), 0, color)
-            ghost.name = "ghost" + name
-            startIndex++
-        }
+        // for (let i = 0; i < this.s; i++) {
+        //     let name = this.vertices[startIndex].Label
+        //     let color = this.vertices[startIndex].Color
+        //     var ghost = this.createGhostVertex(name, endx, starty - (this.scale * (i)), 0, color)
+        //     ghost.name = "ghost" + name
+        //     startIndex++
+        // }
         /* --- Flytter på parity blokkene --- */
         startIndex = this.drawFrom;
         let lineGeomIndex = 0;
-        for (let index = this.drawFrom; index < this.drawFrom + this.limit; index++) {
-            
-            for (var output of this.vertices[index].Outputs) {
-                let line  = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
+        let counter = 0;
+        for (let index = 0; index < this.limit; index++) {
+            for (var output of this.vertices[startIndex].Outputs) {
+                if (index + this.s < this.limit) {
+                let line  = this.paritiesGroupList[counter % this.alpha].children[lineGeomIndex] as THREE.Line;
+                //let line  = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
                 let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
                 let rightPos = this.scene.getObjectByName(output.RightPos.toString());
 
@@ -154,10 +167,13 @@ export class RendererObject extends DataContainer {
                     array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
                     switch (output.Strand) {
                         case STRANDS.HStrand: {
-                            if (output.RightPos <= this.s || output.RightPos > this.drawFrom + this.limit) {
-                                console.log(output.LeftPos, output.RightPos)
+                            if (index + this.s >= this.limit) {
+                                //console.log("HSTRAND");
+                                //console.log(output.LeftPos, output.RightPos)
                                 var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
-                                array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                                if (temp != undefined) {
+                                    array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                                }
                             }
                             else {
                                 array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
@@ -165,47 +181,73 @@ export class RendererObject extends DataContainer {
                             break
                         }
                         case STRANDS.LHStrand: {
-                            if (output.RightPos % this.s == 0 || output.RightPos <= this.s) {
-                                //console.log(output.LeftPos, output.RightPos)
+                            if (output.RightPos % this.s == 0) {
+                                console.log("LHSTRAND");
+                                console.log(output.LeftPos, output.RightPos)
                                 let name = this.vertices[output.RightPos-1].Label;
                                 let color = this.vertices[output.RightPos-1].Color;
-                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                                if (output.RightPos <= this.s) {
+                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + (this.scale*2), leftPos!.position.y + this.scale, 0, color);
+                                }
+                                else {
+                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                                }
                                 array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                            
                             }
-                            else if(output.RightPos <= this.drawFrom + this.limit) {
+                            else if(index + this.s >= this.limit) {
+                                console.log("LHSTRAND");
+                                console.log(output.LeftPos, output.RightPos);
+                                var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString()); 
+                                if (temp != undefined) {
+                                    array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                                }
+                            }
+                            else {
                                 array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            }
-                            else if(output.RightPos > this.drawFrom + this.limit) {
-                                var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
-                                array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
                             }
                             break
                         }
                         case STRANDS.RHStrand: {
-                            if (output.RightPos % this.s == 1 || output.RightPos <= this.s) {
-                                //console.log(output.LeftPos, output.RightPos)
+                            if (output.RightPos % this.s == 1) {
+                                console.log("RHSTRAND");
+                                console.log(output.LeftPos, output.RightPos)
                                 let name = this.vertices[output.RightPos-1].Label;
                                 let color = this.vertices[output.RightPos-1].Color;
-                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
+                                if (output.RightPos <= this.s) {
+                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + (this.scale*2), leftPos!.position.y - this.scale, 0, color);
+                                }
+                                else {
+                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
+                                }   
                                 array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                                
                             }
-                            else if(output.RightPos <= this.drawFrom + this.limit) {
-                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            }
-                            else if(output.RightPos > this.drawFrom + this.limit) {
+                            else if(index + this.s >= this.limit) {
+                                console.log("RHSTRAND");
+                                console.log(output.LeftPos, output.RightPos);
                                 var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
-                                array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                                if (temp != undefined) {
+                                    array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                                }
+                            }
+                            else {
+                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                             }
                             break
                         }
+                        default:
+                            {
+                                // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
+                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                            }
                     }
                     line!.geometry.setDrawRange(0, 2);
                     line!.geometry.attributes.position.needsUpdate = true;
-                    lineGeomIndex++;
                 }
+                counter++;
             }
+        }
+            startIndex = (startIndex + 1) % this.nrOfVertices;
+            lineGeomIndex++;
         }
         this.ghostGroup.visible = this.ghostgroupshow;
 
@@ -219,7 +261,7 @@ export class RendererObject extends DataContainer {
         var obj: THREE.Mesh;
         var material: THREE.MeshBasicMaterial;
         
-        // Lager alle vertex
+        // Lager enkel ghost vertex
         material = new THREE.MeshBasicMaterial();
         obj = new THREE.Mesh(geometry, material);
         //@ts-ignore
@@ -375,13 +417,13 @@ export class RendererObject extends DataContainer {
 
     GoTo(vertexIndex: number) {
         this.drawFrom = vertexIndex - (this.limit / 2);
-        this.drawFrom = Math.ceil(this.drawFrom/ this.s) * this.s
         if (this.drawFrom < 0) {
+            this.drawFrom = this.nrOfVertices + this.drawFrom;
+        }
+        this.drawFrom = Math.ceil(this.drawFrom/ this.s) * this.s
+        if (this.drawFrom == this.nrOfVertices) {
             this.drawFrom = 0;
         }
-        // else if (this.drawFrom + this.limit > this.nrOfVertices) {
-        //     this.drawFrom = this.nrOfVertices - this.limit;
-        // }
         console.log(this.drawFrom);
         this.createTwoDimView();
     }
