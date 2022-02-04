@@ -15,7 +15,7 @@ export class BitMap extends DataContainer {
     private visible: boolean = true;
     private viewBox: HTMLDivElement = document.getElementById("bitMap-viewBox")! as HTMLDivElement;
     private viewBoxLocked: HTMLDivElement = document.getElementById("bitMap-viewBox-locked") as HTMLDivElement;
-    private viewBoxWidith = 0;
+    private viewBoxWidth = 0;
     drawLimit: number = 250; 
     LabelMap : any = {0: "Original", 1: "Horizontal", 2: "RH-Strand", 3: "LH-Strand"}
 
@@ -105,6 +105,7 @@ export class BitMap extends DataContainer {
         let row = Math.floor(offsetY / this.pixelHeight);
         // move viewBoxLocked to viewBox position.
         this.viewBoxLocked.style.left = this.viewBox.style.left;
+        this.viewBoxLocked.style.width = this.viewBox.style.width;
         return column * this.s + row;
     }
 
@@ -122,7 +123,6 @@ export class BitMap extends DataContainer {
     private updateDynamicAttributes() {
         var mainContainer = document.getElementById("bitmap-container");
         var changeViewButton: HTMLButtonElement;
-
         /* 
             if nr of columns needed, with pixelwidth = 1, is larger than screen
             the container is scrollable
@@ -153,14 +153,14 @@ export class BitMap extends DataContainer {
     }
 
     private updateDrawLimit() {
-        this.viewBoxWidith = this.pixelWidth * (this.drawLimit / this.s);
+        this.viewBoxWidth = this.pixelWidth * (this.drawLimit / this.s);
 
         this.viewBox.style.display = "none"
         this.viewBox.style.height = this.canvases[0].height.toString() + "px";
-        this.viewBox.style.width = (this.viewBoxWidith).toString() + "px";
+        this.viewBox.style.width = (this.viewBoxWidth).toString() + "px";
 
         this.viewBoxLocked.style.height = this.canvases[0].height.toString() + "px";
-        this.viewBoxLocked.style.width = (this.viewBoxWidith).toString() + "px";
+        this.viewBoxLocked.style.width = (this.viewBoxWidth).toString() + "px";
     }
 
     private updateVertex(vertexIndex : number) {
@@ -176,11 +176,11 @@ export class BitMap extends DataContainer {
     }
 
     private handleMouseMove(event : MouseEvent) {
-        if(event.offsetX + this.viewBoxWidith / 2 > this.containerWidth) {
-            this.viewBox.style.width = (this.containerWidth - event.offsetX).toString() + "px";
+        if(event.offsetX + this.viewBoxWidth / 2 > this.containerWidth) {
+            this.viewBox.style.width = (this.containerWidth - event.offsetX + (this.viewBox.clientWidth / 2)).toString() + "px";
         } else {
-            this.viewBox.style.width = (this.viewBoxWidith).toString() + "px";
+            this.viewBox.style.width = (this.viewBoxWidth).toString() + "px";
         }
-        this.viewBox.style.left = (event.offsetX - this.viewBoxLocked.clientWidth / 2).toString() + "px"
+        this.viewBox.style.left = (event.offsetX - this.viewBox.clientWidth / 2).toString() + "px"
     }
 }
