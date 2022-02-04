@@ -46,9 +46,9 @@ function readFile() {
                     if( right_temp > s) {
                         right_temp = right_temp % s;
                     } 
-                    //console.log(i, right_temp);
                 }
-                
+                //console.log("HStrand")
+                //console.log(i, right_temp);
                 vertices[vertices.length - 1].Outputs.push(
                     {
                         LeftPos: i,
@@ -78,9 +78,37 @@ function readFile() {
                 }
                 else if (parityTo > nrOfVertices) {
                     var right_temp = parityTo % nrOfVertices
+                    if (nrOfVertices % s != 0) {
+                        if (helper == 1) {
+                            var temp_node = i;
+                            while(temp_node > s) {
+                                if (temp_node % s == 1) {
+                                    temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
+                                }
+                                else {
+                                    temp_node = temp_node - (s + 1);
+                                }
+                            }
+                            right_temp = temp_node;
+                        }
+                        else if (helper > 1) {
+                            var temp_node = i;
+                            while(temp_node > s) {
+                                if (temp_node % s == 1) {
+                                    temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
+                                }
+                                else {
+                                    temp_node = temp_node - (s + 1);
+                                }
+                            }
+                            right_temp = temp_node
+                        }
+                    }
                     if (right_temp == 0) {
                         right_temp = 1
                     }
+                    //console.log("RHStrand")
+                    //console.log(i, right_temp);
                     vertices[vertices.length - 1].Outputs.push(
                         {
                             LeftPos: i,
@@ -109,9 +137,23 @@ function readFile() {
                 }
                 else if (parityTo > nrOfVertices) {
                     var right_temp = parityTo % nrOfVertices
+                    if (nrOfVertices % s != 0) {
+                        var temp_node = i;
+                        while(temp_node > s) {
+                            if (temp_node % s == 1) {
+                                temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
+                            }
+                            else {
+                                temp_node = temp_node - (s + 1);
+                            }
+                        }
+                        right_temp = temp_node;
+                    }
                     if (right_temp == 0) {
                         right_temp = 1
                     }
+                    //console.log("RHStrand")
+                    //console.log(i, right_temp);
                     vertices[vertices.length - 1].Outputs.push(
                         {
                             LeftPos: i,
@@ -140,9 +182,23 @@ function readFile() {
                 }
                 else if (parityTo > nrOfVertices) {
                     var right_temp = parityTo % nrOfVertices
+                    if (nrOfVertices % s != 0) {
+                        var temp_node = i;
+                        while(temp_node > s) {
+                            if (temp_node % s == 0) {
+                                temp_node = temp_node - s * p + Math.pow((s - 1), 2);
+                            }
+                            else {
+                                temp_node = temp_node - (s - 1);
+                            }
+                        }
+                        right_temp = temp_node;
+                    }
                     if (right_temp == 0) {
                         right_temp = 1
                     }
+                    //console.log("LHStrand")
+                    //console.log(i, right_temp);
                     vertices[vertices.length - 1].Outputs.push(
                         {
                             LeftPos: i,
@@ -171,9 +227,37 @@ function readFile() {
                 }
                 else if (parityTo > nrOfVertices) {
                     var right_temp = parityTo % nrOfVertices
+                    if (nrOfVertices % s != 0) {
+                        if (helper > 1) {
+                            var temp_node = i;
+                            while(temp_node > s) {
+                                if (temp_node % s == 0) {
+                                    temp_node = temp_node - s * p + Math.pow((s - 1), 2);
+                                }
+                                else {
+                                    temp_node = temp_node - (s - 1);
+                                }
+                            }
+                            right_temp = temp_node
+                        }
+                        else if (helper == 0) {
+                            var temp_node = i;
+                            while(temp_node > s) {
+                                if (temp_node % s == 0) {
+                                    temp_node = temp_node - s * p + Math.pow((s - 1), 2);
+                                }
+                                else {
+                                    temp_node = temp_node - (s - 1);
+                                }
+                            }
+                            right_temp = temp_node
+                        }
+                    }
                     if (right_temp == 0) {
                         right_temp = 1
                     }
+                    //console.log("LHStrand")
+                    //console.log(i, right_temp);
                     vertices[vertices.length - 1].Outputs.push(
                         {
                             LeftPos: i,
@@ -188,8 +272,6 @@ function readFile() {
     
         }
     }
-
-    
     return vertices;
 }
 
