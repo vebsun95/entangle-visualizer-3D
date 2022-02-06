@@ -428,6 +428,13 @@ export class RendererObject extends DataContainer {
         this.createTwoDimView();
     }
 
+    UpdateVertex(vertexIndex: number){
+        let vertex = this.scene.getObjectByName((vertexIndex + 1).toString()) as THREE.Mesh< THREE.BufferGeometry, THREE.MeshBasicMaterial>
+        if(typeof vertex != undefined) {
+            vertex.material.color.setHex(this.vertices[vertexIndex].Color)
+        }
+    }
+
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;;
         this.camera.updateProjectionMatrix();

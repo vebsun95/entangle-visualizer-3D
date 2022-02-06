@@ -2,6 +2,7 @@ import { RendererObject } from './renderObject'
 import { Vertices, Parities } from './interfaces';
 import { COLORS, STRANDS } from './constants';
 import { BitMap } from './bitmap';
+import { SideBar } from './sidebar';
 
 const nrOfVertices = 25000;
 const alpha = 3;
@@ -10,6 +11,7 @@ const p = s;
 
 var renderer: RendererObject;
 var bitmapObj: BitMap;
+var sideBar: SideBar;
 
 function readFile() {
     var vertices: Vertices[] = [];
@@ -277,13 +279,13 @@ function readFile() {
 
 function GetRandomColorString(): number {
     var dice = Math.random();
-    if (dice < 0.99)
+    if (dice < 1)
         return COLORS.GREEN
     return COLORS.RED
 }
 
 function init() {
-    let data = readFile();
+    var data = readFile();
     renderer = new RendererObject(alpha, s, p, data, 4);
     renderer.initObjects();
     renderer.createTwoDimView();
@@ -291,6 +293,8 @@ function init() {
 
     bitmapObj = new BitMap(alpha, s, p, data);
     bitmapObj.Draw();
+
+    sideBar = new SideBar(alpha, s, p, data);
 
     window.addEventListener('resize', () => renderer.onWindowResize(), false);
 
@@ -302,6 +306,17 @@ function init() {
         let index = bitmapObj.GetIndexFromCoord(event.offsetX, event.offsetY);
         renderer.GoTo(index);
     })
+    document.getElementById("random")?.addEventListener("click", () => {
+        var randomIndex = generateRandomNumber(0, 250);
+        data[randomIndex].Color = COLORS.RED;
+        bitmapObj.updateVertex(randomIndex);
+        renderer.UpdateVertex(randomIndex);
+        sideBar.UpdateInfo();
+    });
 }
+
+function generateRandomNumber (min: number, max: number)  {
+    return Math.floor(Math.random() * (max - min) + min);
+      };
 
 init();
