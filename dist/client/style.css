@@ -38,7 +38,7 @@ body {
 
 #side-bar {
     height: 80vh;
-    width: 20vw;
+    width: 30vw;
     z-index: 10;
     position: absolute;
     background-color: white;

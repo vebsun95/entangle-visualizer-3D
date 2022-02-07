@@ -429,10 +429,9 @@ export class RendererObject extends DataContainer {
     }
 
     UpdateVertex(vertexIndex: number){
-        let vertex = this.scene.getObjectByName((vertexIndex + 1).toString()) as THREE.Mesh< THREE.BufferGeometry, THREE.MeshBasicMaterial>
-        if(typeof vertex != undefined) {
-            vertex.material.color.setHex(this.vertices[vertexIndex].Color)
-        }
+        var vertex = this.scene.getObjectByName((vertexIndex + 1).toString()) as THREE.Mesh< THREE.BufferGeometry, THREE.MeshBasicMaterial>
+        if(typeof vertex == "undefined") return
+        vertex.material.color.setHex(this.vertices[vertexIndex].Color)
     }
 
     onWindowResize() {
