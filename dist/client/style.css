@@ -36,9 +36,9 @@ body {
     right: 0;
 }
 
-.side-bar {
+#side-bar {
     height: 80vh;
-    width: 20vw;
+    width: 30vw;
     z-index: 10;
     position: absolute;
     background-color: white;
@@ -46,6 +46,18 @@ body {
     border-radius: 5px 5px;
     top: 20px;
     left: 5;
+}
+
+#toggle-side-bar {
+    display: table-cell;
+    position: absolute;
+    top: 0%;
+    right: 0;
+    height: 100%;
+    line-height: 100%;
+    vertical-align: middle;
+    border-radius: 0 0.5em 0.5em 0;
+    background-color: white;
 }
 
 #bitmap-container {

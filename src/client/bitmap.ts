@@ -163,8 +163,12 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.width = (this.viewBoxWidth).toString() + "px";
     }
 
-    private updateVertex(vertexIndex : number) {
-
+    updateVertex(vertexIndex : number) {
+        let ctx = this.canvases[0].getContext("2d");
+        let col = Math.floor(vertexIndex / this.s)
+        let row = Math.floor(vertexIndex % this.s)
+        ctx!.fillStyle = this.convertHexToStringColor(this.vertices[vertexIndex].Color);
+        ctx?.fillRect(col * this.pixelWidth, row * this.pixelHeight, this.pixelWidth, this.pixelHeight);
     }
 
     private handleMouseEnter() {
