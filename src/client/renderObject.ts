@@ -151,7 +151,12 @@ export class RendererObject extends DataContainer {
         //     startIndex++
         // }
         /* --- Flytter på parity blokkene --- */
-        startIndex = this.drawFrom;
+        this.createParitiesfor2d();
+
+    }
+
+    createParitiesfor2d() {
+        let startIndex = this.drawFrom;
         let lineGeomIndex = 0;
         let counter = 0;
         for (let index = 0; index < this.limit; index++) {
@@ -162,45 +167,53 @@ export class RendererObject extends DataContainer {
                 let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
                 let rightPos = this.scene.getObjectByName(output.RightPos.toString());
 
-                if (typeof leftPos != undefined && typeof rightPos != undefined) {
+                if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
                     let array = line.geometry.attributes.position;
                     array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
                     switch (output.Strand) {
                         case STRANDS.HStrand: {
-                            if (index + this.s >= this.limit) {
-                                //console.log("HSTRAND");
-                                //console.log(output.LeftPos, output.RightPos)
-                                var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
-                                if (temp != undefined) {
-                                    array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
-                                }
-                            }
-                            else {
-                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            }
+                            array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                             break
                         }
                         case STRANDS.LHStrand: {
-                            if (output.RightPos % this.s == 0) {
-                                console.log("LHSTRAND");
-                                console.log(output.LeftPos, output.RightPos)
-                                let name = this.vertices[output.RightPos-1].Label;
-                                let color = this.vertices[output.RightPos-1].Color;
-                                if (output.RightPos <= this.s) {
-                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + (this.scale*2), leftPos!.position.y + this.scale, 0, color);
+                            if(output.RightPos < output.LeftPos) {
+                                // MÅ FORANDRES HER
+                                if (this.nrOfVertices % this.s != 0) {
+                                    console.log("LHSTRAND");
+                                    console.log(output.LeftPos, output.RightPos);
+                                    if (output.RightPos % this.s == output.LeftPos % this.s) {
+                                        console.log("LHStrand går til samme")
+                                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                                    }
+                                    else if(output.RightPos % this.s == 0) {
+                                        let name = this.vertices[output.RightPos-1].Label;
+                                        let color = this.vertices[output.RightPos-1].Color;
+                                        var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                                        array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                                    }
+                                    else {
+                                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                                    }
+                                }
+                                else if (output.RightPos % this.s == 0) {
+                                    let name = this.vertices[output.RightPos-1].Label;
+                                    let color = this.vertices[output.RightPos-1].Color;
+                                    // Henter ut x-koordinaten til vertex 1
+                                    var temp = this.scene.getObjectByName("1")?.position.x;
+                                    //@ts-ignore
+                                    var ghost = this.createGhostVertex(name, temp, leftPos!.position.y + this.scale, 0, color);
                                 }
                                 else {
-                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                                 }
-                                array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
                             }
-                            else if(index + this.s >= this.limit) {
-                                console.log("LHSTRAND");
-                                console.log(output.LeftPos, output.RightPos);
-                                var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString()); 
-                                if (temp != undefined) {
-                                    array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
-                                }
+                            // Sjekker om Vertex er top node
+                            else if (output.RightPos % this.s == 0) {
+                                let name = this.vertices[output.RightPos-1].Label;
+                                let color = this.vertices[output.RightPos-1].Color;
+                                // Lager en ghost Vertex
+                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                                array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
                             }
                             else {
                                 array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
@@ -208,26 +221,29 @@ export class RendererObject extends DataContainer {
                             break
                         }
                         case STRANDS.RHStrand: {
-                            if (output.RightPos % this.s == 1) {
-                                console.log("RHSTRAND");
-                                console.log(output.LeftPos, output.RightPos)
-                                let name = this.vertices[output.RightPos-1].Label;
-                                let color = this.vertices[output.RightPos-1].Color;
-                                if (output.RightPos <= this.s) {
-                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + (this.scale*2), leftPos!.position.y - this.scale, 0, color);
+                            if(output.RightPos < output.LeftPos) {
+                                // MÅ FORANDRES HER
+                                if (this.nrOfVertices % this.s != 0) {
+                                    console.log("RHSTRAND");
+                                    console.log(output.LeftPos, output.RightPos)
+                                    if (output.RightPos % this.s == output.LeftPos % this.s) {
+                                        console.log("RHStrand går til samme")
+                                        //array.setXYZ(1, rightPos!.position.x / 2, rightPos!.position.y + (this.scale/2), rightPos!.position.z);
+                                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                                    }
+                                    else {
+                                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                                    }
                                 }
                                 else {
-                                    var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
-                                }   
-                                array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                            }
-                            else if(index + this.s >= this.limit) {
-                                console.log("RHSTRAND");
-                                console.log(output.LeftPos, output.RightPos);
-                                var temp = this.scene.getObjectByName("ghost" + output.RightPos.toString());
-                                if (temp != undefined) {
-                                    array.setXYZ(1, temp!.position.x, temp!.position.y, temp!.position.z);
+                                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                                 }
+                            }
+                            else if (output.RightPos % this.s == 1) {
+                                let name = this.vertices[output.RightPos-1].Label;
+                                let color = this.vertices[output.RightPos-1].Color;
+                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color) 
+                                array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
                             }
                             else {
                                 array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);

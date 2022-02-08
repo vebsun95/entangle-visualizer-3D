@@ -4,7 +4,7 @@ import { COLORS, STRANDS } from './constants';
 import { BitMap } from './bitmap';
 import { SideBar } from './sidebar';
 
-const nrOfVertices = 25003;
+const nrOfVertices = 25002;
 const alpha = 3;
 const s = 5;
 const p = s;
