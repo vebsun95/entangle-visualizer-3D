@@ -151,8 +151,165 @@ export class RendererObject extends DataContainer {
         //     startIndex++
         // }
         /* --- Flytter på parity blokkene --- */
-        this.createParitiesfor2d();
+        startIndex = this.drawFrom;
+        let lineGeomIndex = 0;
+        let counter = 0;
+        for (let index = 0; index < this.limit; index++) {
+            for (var output of this.vertices[startIndex].Outputs) {
+                if (index + this.s < this.limit) {
+                    // Sjekker at RightPos er mindre enn LeftPos og siste kolonne ikke er fylt opp av verticies
+                    if (output.RightPos < output.LeftPos && this.nrOfVertices % this.s != 0) {
+                        // Gjør avansert logikk her
+                        this.CreateParitiyAdvanced2D(output, counter % this.alpha, lineGeomIndex);
+                    }
+                    else {
+                        // Gjør basic logikk her
+                        this.CreateParitiyBasic2D(output, counter % this.alpha, lineGeomIndex);
+                    }
+                }
+                counter++;
+            }
+            startIndex = (startIndex + 1) % this.nrOfVertices;
+            lineGeomIndex++;
+        }
+        this.ghostGroup.visible = this.ghostgroupshow;
+    }
 
+    CreateParitiyAdvanced2D(output: Parities, ParityGroupNumber:  number, lineIndex: number) {
+        let line = this.paritiesGroupList[ParityGroupNumber].children[lineIndex] as THREE.Line;
+        let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
+        let rightPos = this.scene.getObjectByName(output.RightPos.toString());
+        let nrColumns = Math.floor(this.nrOfVertices / this.s);
+        let currentColumn = Math.floor((output.LeftPos - 1) / this.s);
+        if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
+            let array = line.geometry.attributes.position;
+            array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
+            switch (output.Strand) {
+                case STRANDS.HStrand: {
+                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                    line!.geometry.setDrawRange(0, 2);
+                    line!.geometry.attributes.position.needsUpdate = true;
+                    return
+                }
+                case STRANDS.RHStrand: {
+                    // LeftPos and RightPos is on the same row
+                    if (output.RightPos % this.s == output.LeftPos % this.s) {
+                        console.log("RHStrand går til samme")
+                        array.setXYZ(1, (rightPos!.position.x + leftPos!.position.x) / 2, rightPos!.position.y + (this.scale/3), rightPos!.position.z);
+                        array.setXYZ(2, rightPos.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 3);
+                        line!.geometry.attributes.position.needsUpdate = true;
+                        return
+                    }
+                    // If second last column
+                    else if (currentColumn < nrColumns) {
+                        array.setXYZ(1, leftPos!.position.x + this.scale, leftPos!.position.y - (this.scale/2), leftPos!.position.z);
+                        array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 3);
+                        line!.geometry.attributes.position.needsUpdate = true;
+                        return
+                    }
+                    else {
+                        array.setXYZ(1, rightPos.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 2);
+                        line!.geometry.attributes.position.needsUpdate = true;
+                        return
+                    }
+
+                }
+                case STRANDS.LHStrand: {
+                    // LeftPos and RightPos is on the same row
+                    if (output.RightPos % this.s == output.LeftPos % this.s) {
+                        console.log("LHStrand går til samme")
+                        array.setXYZ(1, (rightPos!.position.x + leftPos!.position.x) / 2, rightPos!.position.y - (this.scale/3), rightPos!.position.z);
+                        array.setXYZ(2, rightPos.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 3);
+                        line!.geometry.attributes.position.needsUpdate = true;
+                        return
+                    }
+                    // If top row and second last column
+                    else if (output.LeftPos % this.s == 1 && currentColumn < nrColumns) {
+                        console.log("Skal lage ghost vertex for:", output.LeftPos, output.RightPos);
+                        let name = this.vertices[output.RightPos-1].Label;
+                        let color = this.vertices[output.RightPos-1].Color;
+                        var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                        array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                        line!.geometry.setDrawRange(0, 2);
+                        line!.geometry.attributes.position.needsUpdate = true;
+                        return
+                    }
+                    else if (currentColumn == nrColumns) {
+                        array.setXYZ(1, leftPos!.position.x + this.scale, leftPos!.position.y + (this.scale/2), leftPos!.position.z);
+                        array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 3);
+                        line!.geometry.attributes.position.needsUpdate = true;
+                        return
+                    }
+                    else {
+                        array.setXYZ(1, rightPos.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 2);
+                        line!.geometry.attributes.position.needsUpdate = true;
+                        return
+                    }
+
+                }
+                default: {
+                    // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
+                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                    line!.geometry.setDrawRange(0, 2);
+                    line!.geometry.attributes.position.needsUpdate = true;
+                    return
+                }
+            }
+        }
+
+    }
+
+
+    CreateParitiyBasic2D(output: Parities, ParityGroupNumber:  number, lineIndex: number) {
+        let line = this.paritiesGroupList[ParityGroupNumber].children[lineIndex] as THREE.Line;
+        let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
+        let rightPos = this.scene.getObjectByName(output.RightPos.toString());
+        if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
+            let array = line.geometry.attributes.position;
+            array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
+            switch (output.Strand) {
+                case STRANDS.HStrand: {
+                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                    break
+                }
+                case STRANDS.RHStrand: {
+                    if (output.RightPos % this.s == 1) {
+                        let name = this.vertices[output.RightPos-1].Label;
+                        let color = this.vertices[output.RightPos-1].Color;
+                        var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
+                        array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                    }
+                    else {
+                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                    }
+                    break
+                }
+                case STRANDS.LHStrand: {
+                    if (output.RightPos % this.s == 0) {
+                        let name = this.vertices[output.RightPos-1].Label;
+                        let color = this.vertices[output.RightPos-1].Color;
+                        var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
+                        array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                    }
+                    else {
+                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                    }
+                    break
+                }
+                default: {
+                    // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
+                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                }
+            }
+            line!.geometry.setDrawRange(0, 2);
+            line!.geometry.attributes.position.needsUpdate = true;
+        }
     }
 
     createParitiesfor2d() {
