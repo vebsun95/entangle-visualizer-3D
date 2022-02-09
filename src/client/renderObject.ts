@@ -203,7 +203,7 @@ export class RendererObject extends DataContainer {
                     }
                     // If second last column
                     else if (currentColumn < nrColumns) {
-                        array.setXYZ(1, leftPos!.position.x + this.scale, leftPos!.position.y - (this.scale/2), leftPos!.position.z);
+                        array.setXYZ(1, leftPos!.position.x + (this.scale/1.3), leftPos!.position.y - (this.scale/2), leftPos!.position.z);
                         array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                         line!.geometry.setDrawRange(0, 3);
                         line!.geometry.attributes.position.needsUpdate = true;
@@ -239,7 +239,7 @@ export class RendererObject extends DataContainer {
                         return
                     }
                     else if (currentColumn == nrColumns) {
-                        array.setXYZ(1, leftPos!.position.x + this.scale, leftPos!.position.y + (this.scale/2), leftPos!.position.z);
+                        array.setXYZ(1, leftPos!.position.x + (this.scale/1.3), leftPos!.position.y + (this.scale/2), leftPos!.position.z);
                         array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                         line!.geometry.setDrawRange(0, 3);
                         line!.geometry.attributes.position.needsUpdate = true;
