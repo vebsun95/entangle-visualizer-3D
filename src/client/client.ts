@@ -3,8 +3,9 @@ import { Vertices, Parities } from './interfaces';
 import { COLORS, STRANDS } from './constants';
 import { BitMap } from './bitmap';
 import { SideBar } from './sidebar';
+import { MerkelTreeViewer } from './merkelTreeViewer';
 
-const nrOfVertices = 25003;
+const nrOfVertices = 16000;
 const alpha = 3;
 const s = 5;
 const p = s;
@@ -12,16 +13,43 @@ const p = s;
 var renderer: RendererObject;
 var bitmapObj: BitMap;
 var sideBar: SideBar;
+var merkelTree: MerkelTreeViewer;
 
 function readFile() {
+    var branchingFactor = 128;
+    var depth, index, parent, replication: number;
+    var addr: string;
+    addr = "aaaqqqaaaqqqaaaqqqaaaqqq";
+    replication = 33;
     var vertices: Vertices[] = [];
     
     for (let i = 1; i < nrOfVertices + 1; i++) {
+
+        if (i == nrOfVertices) {
+            depth = 3;
+            parent = 0;
+        }
+
+        if (i % (branchingFactor + 1) == 0)
+        {
+            parent = nrOfVertices;
+            depth = 2;
+        } else {
+            depth = 1;
+            parent = Math.ceil(i / branchingFactor) * 129;
+        }
+
+
         vertices.push(
             {
+                Index: i,
                 Label: i.toString(),
                 Color: GetRandomColorString(),
                 Outputs: [],
+                Replication: replication,
+                Addr: addr,
+                Parent: parent,
+                Depth: depth,
             }
         )
         for (let j = 1; j < 2; j++) {
@@ -296,6 +324,8 @@ function init() {
 
     sideBar = new SideBar(alpha, s, p, data);
 
+    merkelTree = new MerkelTreeViewer(alpha, s, p, data);
+
     window.addEventListener('resize', () => renderer.onWindowResize(), false);
 
     document.getElementById("btn-2d")?.addEventListener("click", () => renderer.createTwoDimView());
@@ -313,6 +343,7 @@ function init() {
         renderer.UpdateVertex(randomIndex);
         sideBar.UpdateInfo();
     });
+    window.addEventListener("test", () => console.log("i client fil"), false);
 }
 
 function generateRandomNumber (min: number, max: number)  {

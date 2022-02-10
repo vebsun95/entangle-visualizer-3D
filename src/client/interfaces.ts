@@ -7,9 +7,14 @@ export interface Parities {
 }
 
 export interface Vertices {
+    Addr: string,
     Label: string,
     Color: number,
     Outputs: Parities[],
+    Index: number,
+    Depth: number,
+    Parent: number,
+    Replication: number,
 }
 
 export interface Keys {

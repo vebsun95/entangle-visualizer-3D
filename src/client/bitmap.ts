@@ -106,6 +106,8 @@ export class BitMap extends DataContainer {
         // move viewBoxLocked to viewBox position.
         this.viewBoxLocked.style.left = this.viewBox.style.left;
         this.viewBoxLocked.style.width = this.viewBox.style.width;
+        dispatchEvent(new Event("test"));
+        console.log("custom events sent")
         return column * this.s + row;
     }
 
