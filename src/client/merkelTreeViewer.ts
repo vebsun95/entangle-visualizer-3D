@@ -18,13 +18,15 @@ export class MerkelTreeViewer extends DataContainer {
     private leafNodeHeight: number = 8;
     private margin: number = 4;
     private view: number = 0;
+    private branchingFactor: number = 128;
 
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
         super(alpha, s, p, vertices);
-        
+
         this.updateDynamicAttributes();
         this.generateNodes();
+        this.drawOMT();
     }
 
 
@@ -35,65 +37,86 @@ export class MerkelTreeViewer extends DataContainer {
             this.svgElement.removeChild(this.svgElement.firstChild);
         }
 
-        /* Generate InternalNodes */
+        /* Create InternalNodes */
         var nrOfInternalNodes = 4 + 1;
         var internalNode: SVGCircleElement;
-        for(let i=0; i < nrOfInternalNodes - 1; i++) {
+        var leafGroup: SVGElement;
+        var leafNode: SVGRectElement;
+        for (let i = 0; i < nrOfInternalNodes - 1; i++) {
             internalNode = document.createElementNS(SVGURL, "circle");
-            internalNode.setAttributeNS(null, "r", this.radius.toString());
+            internalNode.setAttribute("r", this.radius.toString());
             internalNode.id = "IN" + (i).toString();
+            this.internalNodes[i] = this.svgElement.appendChild(internalNode);
         }
 
-        this.placeCircle(0, 0, "lightgreen", "93933");
-        this.placeCircle(-this.radius * 3, -this.radius * 2, "lightgreen", "1");
-        this.placeCircle(-this.radius * 3, this.radius * 2, "lightgreen", "2");
-        this.placeCircle(this.radius * 3, -this.radius * 2, "lightgreen", "3");
-        this.placeCircle(this.radius * 3, this.radius * 2, "lightgreen", "4");
-
-
-        var nrOfColumns = 16;
-        var nrOfRows = 8;
-        var maxDepth = 3;
-        var x = [-this.radius * 6, -this.radius * 8, this.radius * 6, this.radius * 8]
-        var y = [-this.radius * 0, this.radius * 0, -this.radius * 0, this.radius * 0]
-        // Root node;
-        for(let i=0; i<4; i++){
-            var childNodeGroup = document.createElementNS(SVGURL, "svg");
-            childNodeGroup.setAttributeNS(null, "x", (x[i] + this.originOffsetX).toString());
-            childNodeGroup.setAttributeNS(null, "y", (y[i] + this.originOffsetY).toString());
-            childNodeGroup.setAttributeNS(null, "width", (this.leafNodeWidth * nrOfColumns).toString());
-            childNodeGroup.setAttributeNS(null, "height", (this.leafNodeHeight * nrOfRows).toString());
-    
-            var leafNode: SVGRectElement;
-            for(let i = 0; i < 128; i++) {
+        /* Create Leaf groups */
+        for (let i = 0; i < this.leafGroups.length; i++) {
+            leafGroup = document.createElementNS(SVGURL, "svg");
+            for (let j = 0; j < this.branchingFactor; j++) {
                 leafNode = document.createElementNS(SVGURL, "rect");
-                leafNode.setAttributeNS(null, "width", this.leafNodeWidth.toString())
-                leafNode.setAttributeNS(null, "height", this.leafNodeHeight.toString())
-                leafNode.setAttributeNS(null, "x", ((i % nrOfColumns) * this.leafNodeWidth).toString())
-                leafNode.setAttributeNS(null, "y", (Math.floor(i / nrOfColumns) * this.leafNodeHeight).toString())
-                leafNode.setAttributeNS(null, "fill", this.randomColor());
-                leafNode.setAttributeNS(null, "stroke", "none")
-                
-                childNodeGroup.appendChild(leafNode);
+                leafNode.setAttribute("width", (this.leafNodeWidth).toString());
+                leafNode.setAttribute("height", (this.leafNodeHeight).toString());
+                leafNode.setAttribute("stroke", "none");
+                leafGroup.append(leafNode);
             }
-            childNodeGroup.addEventListener("mousemove", (e: MouseEvent) => { childNodeGroup.setAttributeNS(null, "x", (Number(childNodeGroup.getAttributeNS(null, "x")) + 1).toString()) })
-            this.svgElement.appendChild(childNodeGroup);
+            this.svgElement.append(leafGroup);
         }
+
+        // internalNode = document.createElementNS(SVGURL, "circle");
+        // internalNode.setAttributeNS(null, "r", this.radius.toString());
+        // internalNode.id = "root";
+        // this.internalNodes[nrOfInternalNodes - 1] = this.svgElement.appendChild(internalNode);
+
+        // this.placeCircle(0, 0, "lightgreen", "93933");
+        // this.placeCircle(-this.radius * 3, -this.radius * 2, "lightgreen", "1");
+        // this.placeCircle(-this.radius * 3, this.radius * 2, "lightgreen", "2");
+        // this.placeCircle(this.radius * 3, -this.radius * 2, "lightgreen", "3");
+        // this.placeCircle(this.radius * 3, this.radius * 2, "lightgreen", "4");
+
+
+        // var nrOfColumns = 16;
+        // var nrOfRows = 8;
+        // var maxDepth = 3;
+        // var x = [-this.radius * 6, -this.radius * 8, this.radius * 6, this.radius * 8]
+        // var y = [-this.radius * 0, this.radius * 0, -this.radius * 0, this.radius * 0]
+        // // Root node;
+        // for (let i = 0; i < 4; i++) {
+        //     var childNodeGroup = document.createElementNS(SVGURL, "svg");
+        //     childNodeGroup.setAttributeNS(null, "x", (x[i] + this.originOffsetX).toString());
+        //     childNodeGroup.setAttributeNS(null, "y", (y[i] + this.originOffsetY).toString());
+        //     childNodeGroup.setAttributeNS(null, "width", (this.leafNodeWidth * nrOfColumns).toString());
+        //     childNodeGroup.setAttributeNS(null, "height", (this.leafNodeHeight * nrOfRows).toString());
+
+        //     var leafNode: SVGRectElement;
+        //     for (let i = 0; i < 128; i++) {
+        //         leafNode = document.createElementNS(SVGURL, "rect");
+        //         leafNode.setAttributeNS(null, "width", this.leafNodeWidth.toString())
+        //         leafNode.setAttributeNS(null, "height", this.leafNodeHeight.toString())
+        //         leafNode.setAttributeNS(null, "x", ((i % nrOfColumns) * this.leafNodeWidth).toString())
+        //         leafNode.setAttributeNS(null, "y", (Math.floor(i / nrOfColumns) * this.leafNodeHeight).toString())
+        //         leafNode.setAttributeNS(null, "fill", this.randomColor());
+        //         leafNode.setAttributeNS(null, "stroke", "none")
+
+        //         childNodeGroup.appendChild(leafNode);
+        //     }
+        //     childNodeGroup.addEventListener("mousemove", (e: MouseEvent) => { childNodeGroup.setAttributeNS(null, "x", (Number(childNodeGroup.getAttributeNS(null, "x")) + 1).toString()) })
+        //     this.svgElement.appendChild(childNodeGroup);
+        // }
     }
 
     private drawOMT() {
 
     }
 
-    private randomColor() : string {
+    private randomColor(): string {
         let random = Math.random()
-        if( random < 0.5 ) return "grey";
-        if( random < 0.7 ) return "red";
+        if (random < 0.5) return "grey";
+        if (random < 0.7) return "red";
         return "green";
     }
 
     private updateDynamicAttributes() {
-        this.svgElement.style.height = (window.innerHeight * 0.3).toString() + "px";
+        this.svgElement.style.height = (window.innerHeight * 1).toString() + "px";
         this.svgElement.style.width = window.innerWidth.toString() + "px";
         this.originOffsetX = this.svgElement.clientWidth / 2;
         this.originOffsetY = this.svgElement.clientHeight / 2;
@@ -116,7 +139,7 @@ export class MerkelTreeViewer extends DataContainer {
 
         this.svgElement.appendChild(circleSvg)
         this.svgElement.appendChild(textSvg);
-        
+
     }
 
 }
