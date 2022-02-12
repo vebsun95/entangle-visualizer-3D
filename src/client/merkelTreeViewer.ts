@@ -3,22 +3,37 @@ import { Vertices } from "./interfaces";
 
 const SVGURL = "http://www.w3.org/2000/svg";
 
+interface InternalNode {
+    Container: SVGElement,
+    Circle: SVGCircleElement,
+    Label: SVGTextElement,
+}
+
+interface LeafGroup {
+    Container: SVGElement,
+    LeafNodes: SVGRectElement[],
+}
 
 export class MerkelTreeViewer extends DataContainer {
 
     private container: HTMLDivElement = document.getElementById("tree-container") as HTMLDivElement;
     private svgElement: SVGElement = document.getElementById("original-merkel-tree") as unknown as SVGElement;
-    private leafGroups: SVGElement[] = Array(4);
-    private internalNodes: SVGCircleElement[] = Array(4 + 1);
+    private leafGroups: LeafGroup[] = Array(6);
+    private internalNodes: InternalNode[] = Array(6);
+    private rootNode: InternalNode = {
+        Container: document.createElementNS(SVGURL, "svg"),
+        Circle: document.createElementNS(SVGURL, "circle"),
+        Label: document.createElementNS(SVGURL, "text")
+    };
     private originOffsetX: number = 0;
     private originOffsetY: number = 0;
     private radius: number = 30;
-    private nrOfleafGroups: number = 4;
     private leafNodeWidth: number = 8;
     private leafNodeHeight: number = 8;
-    private margin: number = 4;
     private view: number = 0;
     private branchingFactor: number = 128;
+    private nrOfRows: number = 12;
+    private nrOfColm: number = 12;
 
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
@@ -32,80 +47,113 @@ export class MerkelTreeViewer extends DataContainer {
 
     private generateNodes() {
 
-        /* Clear svg container containers */
+        /* Clear svg container */
         while (this.svgElement.firstChild) {
             this.svgElement.removeChild(this.svgElement.firstChild);
         }
 
+        /* Create the rootNode */
+        this.rootNode.Container.setAttribute("x", (this.originOffsetX).toString());
+        this.rootNode.Container.setAttribute("y", (this.originOffsetY).toString());
+        this.rootNode.Container.setAttribute("height", (this.radius * 2).toString());
+        this.rootNode.Container.setAttribute("width", (this.radius * 2).toString());
+
+        this.rootNode.Circle.setAttribute("cx", (this.radius).toString());
+        this.rootNode.Circle.setAttribute("cy", (this.radius).toString());
+        this.rootNode.Circle.setAttribute("r", (this.radius).toString());
+        this.rootNode.Circle.setAttribute("fill", "none");
+        this.rootNode.Circle.setAttribute("stroke", "black");
+
+        this.rootNode.Label.setAttribute("x", (this.radius).toString());
+        this.rootNode.Label.setAttribute("y", (this.radius + 2).toString());
+        this.rootNode.Label.setAttribute("text-anchor", "middle");
+        this.rootNode.Label.setAttribute("dominant-baseline", "middle");
+        this.rootNode.Label.innerHTML = "root";
+
+        this.rootNode.Container.append(this.rootNode.Circle, this.rootNode.Label);
+
+        this.svgElement.append(this.rootNode.Container);
+        
         /* Create InternalNodes */
-        var nrOfInternalNodes = 4 + 1;
-        var internalNode: SVGCircleElement;
-        var leafGroup: SVGElement;
-        var leafNode: SVGRectElement;
-        for (let i = 0; i < nrOfInternalNodes - 1; i++) {
-            internalNode = document.createElementNS(SVGURL, "circle");
-            internalNode.setAttribute("r", this.radius.toString());
-            internalNode.id = "IN" + (i).toString();
-            this.internalNodes[i] = this.svgElement.appendChild(internalNode);
+        var internalNode: InternalNode
+        var x = [this.originOffsetX - 90, this.originOffsetX + 90, this.originOffsetX - 120, this.originOffsetX + 120, this.originOffsetX - 90, this.originOffsetX + 90]
+        var y = [this.originOffsetY - 200, this.originOffsetY - 200, this.originOffsetY, this.originOffsetY, this.originOffsetY + 200, this.originOffsetY + 200]
+        for (var i = 0; i < this.internalNodes.length; i++) {
+
+            internalNode = {
+                Container: document.createElementNS(SVGURL, "svg"),
+                Circle: document.createElementNS(SVGURL, "circle"),
+                Label: document.createElementNS(SVGURL, "text")
+            };
+
+            internalNode.Container.setAttribute("x", (x[i]).toString());
+            internalNode.Container.setAttribute("y", (y[i]).toString());
+            internalNode.Container.setAttribute("height", (this.radius * 2).toString());
+            internalNode.Container.setAttribute("width", (this.radius * 2).toString());
+
+            internalNode.Circle.setAttribute("r", (this.radius).toString());
+            internalNode.Circle.setAttribute("cx", (this.radius).toString());
+            internalNode.Circle.setAttribute("cy", (this.radius).toString());
+            internalNode.Circle.setAttribute("fill", "none");
+            internalNode.Circle.setAttribute("stroke", "black");
+
+            internalNode.Label.setAttribute("x", (this.radius).toString());
+            internalNode.Label.setAttribute("y", (this.radius + 2).toString());
+            internalNode.Label.setAttribute("text-anchor", "middle");
+            internalNode.Label.setAttribute("dominant-baseline", "middle");
+            internalNode.Label.innerHTML = `IN ${i}`;
+
+            internalNode.Container.append(internalNode.Circle, internalNode.Label);
+
+            this.svgElement.append(internalNode.Container);
         }
 
         /* Create Leaf groups */
-        for (let i = 0; i < this.leafGroups.length; i++) {
-            leafGroup = document.createElementNS(SVGURL, "svg");
-            for (let j = 0; j < this.branchingFactor; j++) {
-                leafNode = document.createElementNS(SVGURL, "rect");
-                leafNode.setAttribute("width", (this.leafNodeWidth).toString());
-                leafNode.setAttribute("height", (this.leafNodeHeight).toString());
-                leafNode.setAttribute("stroke", "none");
-                leafGroup.append(leafNode);
+        var leafGroup : LeafGroup;
+        var leaf: SVGRectElement;
+        x = [this.originOffsetX - 200, this.originOffsetX + 200, this.originOffsetX - 230, this.originOffsetX + 230, this.originOffsetX - 200, this.originOffsetX + 200]
+        y = [this.originOffsetY - 200, this.originOffsetY - 200, this.originOffsetY, this.originOffsetY, this.originOffsetY + 200, this.originOffsetY + 200]
+
+        for( var i=0; i < this.leafGroups.length; i++ ) {
+            leafGroup = {
+                Container: document.createElementNS(SVGURL, "svg"),
+                LeafNodes: Array(this.branchingFactor),
+            };
+
+            leafGroup.Container.setAttribute("width", (this.leafNodeWidth * this.nrOfColm).toString());
+            leafGroup.Container.setAttribute("height", (this.leafNodeHeight * this.nrOfRows).toString());
+            leafGroup.Container.setAttribute("x", (x[i].toString()));
+            leafGroup.Container.setAttribute("y", (y[i].toString()));
+
+            for (var j=0; j<this.branchingFactor; j++) {
+                leaf = document.createElementNS(SVGURL, "rect");
+                leaf.setAttribute("width", (this.leafNodeWidth).toString());
+                leaf.setAttribute("height", (this.leafNodeHeight).toString());
+                leaf.setAttribute("x", ((j % this.nrOfColm) * this.leafNodeWidth).toString());
+                leaf.setAttribute("y", (Math.floor(j / this.nrOfColm) * this.leafNodeHeight).toString());
+                leaf.setAttribute("stroke", "none");
+                leaf.setAttribute("fill", this.randomColor());
+                leafGroup.LeafNodes[j] = leaf;
+
+                leafGroup.Container.append(leaf);
             }
-            this.svgElement.append(leafGroup);
+            this.leafGroups[i] = leafGroup;
+            this.svgElement.append(leafGroup.Container);
         }
-
-        // internalNode = document.createElementNS(SVGURL, "circle");
-        // internalNode.setAttributeNS(null, "r", this.radius.toString());
-        // internalNode.id = "root";
-        // this.internalNodes[nrOfInternalNodes - 1] = this.svgElement.appendChild(internalNode);
-
-        // this.placeCircle(0, 0, "lightgreen", "93933");
-        // this.placeCircle(-this.radius * 3, -this.radius * 2, "lightgreen", "1");
-        // this.placeCircle(-this.radius * 3, this.radius * 2, "lightgreen", "2");
-        // this.placeCircle(this.radius * 3, -this.radius * 2, "lightgreen", "3");
-        // this.placeCircle(this.radius * 3, this.radius * 2, "lightgreen", "4");
-
-
-        // var nrOfColumns = 16;
-        // var nrOfRows = 8;
-        // var maxDepth = 3;
-        // var x = [-this.radius * 6, -this.radius * 8, this.radius * 6, this.radius * 8]
-        // var y = [-this.radius * 0, this.radius * 0, -this.radius * 0, this.radius * 0]
-        // // Root node;
-        // for (let i = 0; i < 4; i++) {
-        //     var childNodeGroup = document.createElementNS(SVGURL, "svg");
-        //     childNodeGroup.setAttributeNS(null, "x", (x[i] + this.originOffsetX).toString());
-        //     childNodeGroup.setAttributeNS(null, "y", (y[i] + this.originOffsetY).toString());
-        //     childNodeGroup.setAttributeNS(null, "width", (this.leafNodeWidth * nrOfColumns).toString());
-        //     childNodeGroup.setAttributeNS(null, "height", (this.leafNodeHeight * nrOfRows).toString());
-
-        //     var leafNode: SVGRectElement;
-        //     for (let i = 0; i < 128; i++) {
-        //         leafNode = document.createElementNS(SVGURL, "rect");
-        //         leafNode.setAttributeNS(null, "width", this.leafNodeWidth.toString())
-        //         leafNode.setAttributeNS(null, "height", this.leafNodeHeight.toString())
-        //         leafNode.setAttributeNS(null, "x", ((i % nrOfColumns) * this.leafNodeWidth).toString())
-        //         leafNode.setAttributeNS(null, "y", (Math.floor(i / nrOfColumns) * this.leafNodeHeight).toString())
-        //         leafNode.setAttributeNS(null, "fill", this.randomColor());
-        //         leafNode.setAttributeNS(null, "stroke", "none")
-
-        //         childNodeGroup.appendChild(leafNode);
-        //     }
-        //     childNodeGroup.addEventListener("mousemove", (e: MouseEvent) => { childNodeGroup.setAttributeNS(null, "x", (Number(childNodeGroup.getAttributeNS(null, "x")) + 1).toString()) })
-        //     this.svgElement.appendChild(childNodeGroup);
-        // }
     }
 
     private drawOMT() {
+        //setInterval(this.test.bind(this), 1000);
+        console.log(this.GetInternalNodes(0, 250));
+    }
 
+    private test() {
+        for(var leafGroup of this.leafGroups) {
+            for(var leaf of leafGroup.LeafNodes) {
+                leaf.setAttribute("fill", this.randomColor());
+            }
+        }
+        console.log("TEST");
     }
 
     private randomColor(): string {
@@ -125,16 +173,16 @@ export class MerkelTreeViewer extends DataContainer {
     private placeCircle(x: number, y: number, color: string, label: string) {
         var circleSvg = document.createElementNS(SVGURL, "circle") as SVGCircleElement;
         var textSvg = document.createElementNS(SVGURL, "text") as SVGTextElement;
-        circleSvg.setAttributeNS(null, "cx", (this.originOffsetX + x).toString());
-        circleSvg.setAttributeNS(null, "cy", (this.originOffsetY + y).toString());
-        circleSvg.setAttributeNS(null, "r", (this.radius).toString());
-        circleSvg.setAttributeNS(null, "stroke", "black");
-        circleSvg.setAttributeNS(null, "fill", color);
+        circleSvg.setAttribute("cx", (this.originOffsetX + x).toString());
+        circleSvg.setAttribute("cy", (this.originOffsetY + y).toString());
+        circleSvg.setAttribute("r", (this.radius).toString());
+        circleSvg.setAttribute("stroke", "black");
+        circleSvg.setAttribute("fill", color);
 
-        textSvg.setAttributeNS(null, "x", (this.originOffsetX + x).toString());
-        textSvg.setAttributeNS(null, "y", (this.originOffsetY + y + 2).toString());
-        textSvg.setAttributeNS(null, "text-anchor", "middle");
-        textSvg.setAttributeNS(null, "dominant-baseline", "middle");
+        textSvg.setAttribute("x", (this.originOffsetX + x).toString());
+        textSvg.setAttribute("y", (this.originOffsetY + y + 2).toString());
+        textSvg.setAttribute("text-anchor", "middle");
+        textSvg.setAttribute("dominant-baseline", "middle");
         textSvg.innerHTML = label;
 
         this.svgElement.appendChild(circleSvg)

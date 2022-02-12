@@ -15,6 +15,7 @@ export interface Vertices {
     Depth: number,
     Parent: number,
     Replication: number,
+    Children: number[],
 }
 
 export interface Keys {

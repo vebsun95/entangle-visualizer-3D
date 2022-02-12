@@ -1,4 +1,4 @@
-import { Parities, Vertices } from "./interfaces";
+import { Vertices } from "./interfaces";
 
 export class DataContainer {
     alpha: number;
@@ -14,4 +14,14 @@ export class DataContainer {
         this.vertices = vertices;
         this.nrOfVertices = vertices.length;
     }
+    GetInternalNodes(StartIndex: number, EndIndex: number) :number[]{
+        var res = []
+        for(;StartIndex < EndIndex; StartIndex++) {
+            if(this.vertices[StartIndex].Depth == 2) {
+                res.push(StartIndex);
+            }
+        }
+        return res;
+    }
+
 }

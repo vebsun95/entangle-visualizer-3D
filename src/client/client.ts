@@ -29,14 +29,21 @@ function readFile() {
             depth = 3;
             parent = 0;
         }
+        else if ( i == nrOfVertices - 1) {
+            depth = 2
+            parent = nrOfVertices - 1;
+        }
 
-        if (i % (branchingFactor + 1) == 0)
+        else if (i % (branchingFactor + 1) == 0)
         {
-            parent = nrOfVertices;
+            parent = nrOfVertices - 1;
             depth = 2;
         } else {
             depth = 1;
             parent = Math.ceil(i / branchingFactor) * 129;
+            if(parent > nrOfVertices) {
+                parent = parent = nrOfVertices - 2
+            }
         }
 
 
@@ -50,6 +57,7 @@ function readFile() {
                 Addr: addr,
                 Parent: parent,
                 Depth: depth,
+                Children: []
             }
         )
         for (let j = 1; j < 2; j++) {
@@ -300,6 +308,11 @@ function readFile() {
                 }
             }
     
+        }
+    }
+    for(let k=0; k < nrOfVertices; k++) {
+        if (vertices[k].Depth < 3 ) {
+            vertices[vertices[k].Parent].Children.push(k);
         }
     }
     return vertices;
