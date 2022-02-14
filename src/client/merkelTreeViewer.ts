@@ -3,191 +3,146 @@ import { Vertices } from "./interfaces";
 
 const SVGURL = "http://www.w3.org/2000/svg";
 
-interface InternalNode {
+interface Tile {
     Container: SVGElement,
-    Circle: SVGCircleElement,
-    Label: SVGTextElement,
+    Rect: SVGRectElement,
+    Text: SVGTextElement,
 }
 
-interface LeafGroup {
-    Container: SVGElement,
-    LeafNodes: SVGRectElement[],
+interface InfoGraphic {
+    Container: SVGElement;
+    NrOfChilderen: SVGTextElement;
+    CurrentNode: SVGTextElement;
+    Depth: SVGTextElement;
 }
 
 export class MerkelTreeViewer extends DataContainer {
 
     private container: HTMLDivElement = document.getElementById("tree-container") as HTMLDivElement;
     private svgElement: SVGElement = document.getElementById("original-merkel-tree") as unknown as SVGElement;
-    private leafGroups: LeafGroup[] = Array(6);
-    private internalNodes: InternalNode[] = Array(6);
-    private rootNode: InternalNode = {
+    private nrOfColumns = 16;
+    private nrOfRows = 8;
+    private padding = 20;
+    private tiles: Tile[] = Array(this.nrOfColumns * this.nrOfRows);
+    private infoGraphic: InfoGraphic = { 
         Container: document.createElementNS(SVGURL, "svg"),
-        Circle: document.createElementNS(SVGURL, "circle"),
-        Label: document.createElementNS(SVGURL, "text")
-    };
-    private originOffsetX: number = 0;
-    private originOffsetY: number = 0;
-    private radius: number = 30;
-    private leafNodeWidth: number = 8;
-    private leafNodeHeight: number = 8;
-    private view: number = 0;
-    private branchingFactor: number = 128;
-    private nrOfRows: number = 12;
-    private nrOfColm: number = 12;
-
+        NrOfChilderen: document.createElementNS(SVGURL, "text"),
+        CurrentNode: document.createElementNS(SVGURL, "text"),
+        Depth: document.createElementNS(SVGURL, "text")};
 
     constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
         super(alpha, s, p, vertices);
 
         this.updateDynamicAttributes();
-        this.generateNodes();
-        this.drawOMT();
-    }
-
-
-    private generateNodes() {
-
-        /* Clear svg container */
-        while (this.svgElement.firstChild) {
-            this.svgElement.removeChild(this.svgElement.firstChild);
-        }
-
-        /* Create the rootNode */
-        this.rootNode.Container.setAttribute("x", (this.originOffsetX).toString());
-        this.rootNode.Container.setAttribute("y", (this.originOffsetY).toString());
-        this.rootNode.Container.setAttribute("height", (this.radius * 2).toString());
-        this.rootNode.Container.setAttribute("width", (this.radius * 2).toString());
-
-        this.rootNode.Circle.setAttribute("cx", (this.radius).toString());
-        this.rootNode.Circle.setAttribute("cy", (this.radius).toString());
-        this.rootNode.Circle.setAttribute("r", (this.radius).toString());
-        this.rootNode.Circle.setAttribute("fill", "none");
-        this.rootNode.Circle.setAttribute("stroke", "black");
-
-        this.rootNode.Label.setAttribute("x", (this.radius).toString());
-        this.rootNode.Label.setAttribute("y", (this.radius + 2).toString());
-        this.rootNode.Label.setAttribute("text-anchor", "middle");
-        this.rootNode.Label.setAttribute("dominant-baseline", "middle");
-        this.rootNode.Label.innerHTML = "root";
-
-        this.rootNode.Container.append(this.rootNode.Circle, this.rootNode.Label);
-
-        this.svgElement.append(this.rootNode.Container);
-        
-        /* Create InternalNodes */
-        var internalNode: InternalNode
-        var x = [this.originOffsetX - 90, this.originOffsetX + 90, this.originOffsetX - 120, this.originOffsetX + 120, this.originOffsetX - 90, this.originOffsetX + 90]
-        var y = [this.originOffsetY - 200, this.originOffsetY - 200, this.originOffsetY, this.originOffsetY, this.originOffsetY + 200, this.originOffsetY + 200]
-        for (var i = 0; i < this.internalNodes.length; i++) {
-
-            internalNode = {
-                Container: document.createElementNS(SVGURL, "svg"),
-                Circle: document.createElementNS(SVGURL, "circle"),
-                Label: document.createElementNS(SVGURL, "text")
-            };
-
-            internalNode.Container.setAttribute("x", (x[i]).toString());
-            internalNode.Container.setAttribute("y", (y[i]).toString());
-            internalNode.Container.setAttribute("height", (this.radius * 2).toString());
-            internalNode.Container.setAttribute("width", (this.radius * 2).toString());
-
-            internalNode.Circle.setAttribute("r", (this.radius).toString());
-            internalNode.Circle.setAttribute("cx", (this.radius).toString());
-            internalNode.Circle.setAttribute("cy", (this.radius).toString());
-            internalNode.Circle.setAttribute("fill", "none");
-            internalNode.Circle.setAttribute("stroke", "black");
-
-            internalNode.Label.setAttribute("x", (this.radius).toString());
-            internalNode.Label.setAttribute("y", (this.radius + 2).toString());
-            internalNode.Label.setAttribute("text-anchor", "middle");
-            internalNode.Label.setAttribute("dominant-baseline", "middle");
-            internalNode.Label.innerHTML = `IN ${i}`;
-
-            internalNode.Container.append(internalNode.Circle, internalNode.Label);
-
-            this.svgElement.append(internalNode.Container);
-        }
-
-        /* Create Leaf groups */
-        var leafGroup : LeafGroup;
-        var leaf: SVGRectElement;
-        x = [this.originOffsetX - 200, this.originOffsetX + 200, this.originOffsetX - 230, this.originOffsetX + 230, this.originOffsetX - 200, this.originOffsetX + 200]
-        y = [this.originOffsetY - 200, this.originOffsetY - 200, this.originOffsetY, this.originOffsetY, this.originOffsetY + 200, this.originOffsetY + 200]
-
-        for( var i=0; i < this.leafGroups.length; i++ ) {
-            leafGroup = {
-                Container: document.createElementNS(SVGURL, "svg"),
-                LeafNodes: Array(this.branchingFactor),
-            };
-
-            leafGroup.Container.setAttribute("width", (this.leafNodeWidth * this.nrOfColm).toString());
-            leafGroup.Container.setAttribute("height", (this.leafNodeHeight * this.nrOfRows).toString());
-            leafGroup.Container.setAttribute("x", (x[i].toString()));
-            leafGroup.Container.setAttribute("y", (y[i].toString()));
-
-            for (var j=0; j<this.branchingFactor; j++) {
-                leaf = document.createElementNS(SVGURL, "rect");
-                leaf.setAttribute("width", (this.leafNodeWidth).toString());
-                leaf.setAttribute("height", (this.leafNodeHeight).toString());
-                leaf.setAttribute("x", ((j % this.nrOfColm) * this.leafNodeWidth).toString());
-                leaf.setAttribute("y", (Math.floor(j / this.nrOfColm) * this.leafNodeHeight).toString());
-                leaf.setAttribute("stroke", "none");
-                leaf.setAttribute("fill", this.randomColor());
-                leafGroup.LeafNodes[j] = leaf;
-
-                leafGroup.Container.append(leaf);
-            }
-            this.leafGroups[i] = leafGroup;
-            this.svgElement.append(leafGroup.Container);
-        }
-    }
-
-    private drawOMT() {
-        //setInterval(this.test.bind(this), 1000);
-        console.log(this.GetInternalNodes(0, 250));
-    }
-
-    private test() {
-        for(var leafGroup of this.leafGroups) {
-            for(var leaf of leafGroup.LeafNodes) {
-                leaf.setAttribute("fill", this.randomColor());
-            }
-        }
-        console.log("TEST");
-    }
-
-    private randomColor(): string {
-        let random = Math.random()
-        if (random < 0.5) return "grey";
-        if (random < 0.7) return "red";
-        return "green";
+        this.createTileElements();
+        this.CreateOMT(0, []);
+        this.CreateInfoGraphic();
+        this.UpdateInfoGraphic(16000, 3, 125);
     }
 
     private updateDynamicAttributes() {
-        this.svgElement.style.height = (window.innerHeight * 1).toString() + "px";
-        this.svgElement.style.width = window.innerWidth.toString() + "px";
-        this.originOffsetX = this.svgElement.clientWidth / 2;
-        this.originOffsetY = this.svgElement.clientHeight / 2;
+        this.svgElement.setAttribute("height", (window.innerHeight * 0.2).toString());
+        this.svgElement.setAttribute("width", (window.innerWidth).toString());
     }
 
-    private placeCircle(x: number, y: number, color: string, label: string) {
-        var circleSvg = document.createElementNS(SVGURL, "circle") as SVGCircleElement;
-        var textSvg = document.createElementNS(SVGURL, "text") as SVGTextElement;
-        circleSvg.setAttribute("cx", (this.originOffsetX + x).toString());
-        circleSvg.setAttribute("cy", (this.originOffsetY + y).toString());
-        circleSvg.setAttribute("r", (this.radius).toString());
-        circleSvg.setAttribute("stroke", "black");
-        circleSvg.setAttribute("fill", color);
+    private createTileElements() {
+        var tile: Tile
+        
+        for(let i =0; i < this.tiles.length; i++) {
+                tile = {Container: document.createElementNS(SVGURL, "svg"),
+                    Rect: document.createElementNS(SVGURL, "rect"),
+                    Text: document.createElementNS(SVGURL, "text")};
 
-        textSvg.setAttribute("x", (this.originOffsetX + x).toString());
-        textSvg.setAttribute("y", (this.originOffsetY + y + 2).toString());
-        textSvg.setAttribute("text-anchor", "middle");
-        textSvg.setAttribute("dominant-baseline", "middle");
-        textSvg.innerHTML = label;
+                tile.Rect.setAttribute("stroke", "black")
 
-        this.svgElement.appendChild(circleSvg)
-        this.svgElement.appendChild(textSvg);
+                tile.Text.setAttribute("text-anchor", "middle");
+                tile.Text.setAttribute("dominant-baseline", "middle");
+
+                tile.Container.append(tile.Rect, tile.Text);
+                this.svgElement.append(tile.Container);
+                this.tiles[i] = tile
+        }
+    }
+
+    private CreateInfoGraphic() {
+
+        this.infoGraphic.Container.setAttribute("width", (window.innerWidth).toString());
+        this.infoGraphic.Container.setAttribute("height", (this.padding).toString());
+
+        this.infoGraphic.CurrentNode.setAttribute("x", (200).toString());
+        this.infoGraphic.CurrentNode.setAttribute("y", (this.padding / 2).toString());
+        this.infoGraphic.CurrentNode.setAttribute("dominant-baseline", "middle");
+
+        this.infoGraphic.Depth.setAttribute("x", (400).toString());
+        this.infoGraphic.Depth.setAttribute("y", (this.padding / 2).toString());
+        this.infoGraphic.Depth.setAttribute("dominant-baseline", "middle");
+
+        this.infoGraphic.NrOfChilderen.setAttribute("x", (600).toString());
+        this.infoGraphic.NrOfChilderen.setAttribute("y", (this.padding / 2).toString());
+        this.infoGraphic.NrOfChilderen.setAttribute("dominant-baseline", "middle");
+
+        this.infoGraphic.Container.append(this.infoGraphic.CurrentNode, this.infoGraphic.Depth, this.infoGraphic.NrOfChilderen);
+        this.svgElement.append(this.infoGraphic.Container);
+    }
+
+    private UpdateInfoGraphic(currentNode: number, depth: number, nrOfChildren: number) {
+        this.infoGraphic.CurrentNode.innerHTML = `Current node: ${currentNode}`;
+        this.infoGraphic.Depth.innerHTML = `Depth: ${depth}`;
+        this.infoGraphic.NrOfChilderen.innerHTML = `Number of children: ${nrOfChildren}`;
 
     }
 
+    private CreateOMT(depth: number, path: number[]) {
+        var vertex: Vertices;
+        var tile: Tile;
+        var nrOfChildren, nrOfRows, nrOfColumns, tileWidth, tileHeight, tileCounter, row, col: number;
+
+        nrOfChildren = this.vertices[this.nrOfVertices - 1].Children.length;
+        nrOfRows = Math.floor((2 / 3) * Math.sqrt(nrOfChildren)); // https://www.brilliant.org/bartek_stasiak;
+        nrOfColumns = Math.ceil(nrOfChildren / nrOfRows);
+
+        tileWidth = Math.ceil((this.svgElement.clientWidth - this.padding * 2) / nrOfColumns);
+        tileHeight = Math.ceil((this.svgElement.clientHeight - this.padding * 2) / nrOfRows);
+        tileCounter = 0;
+        row = 0;
+        col = 0;
+
+        for(var childIndex of this.vertices[this.nrOfVertices - 1].Children) {
+            vertex = this.vertices[childIndex];
+            tile = this.tiles[tileCounter];
+
+            tile.Container.setAttribute("x", (col * tileWidth + this.padding).toString());
+            tile.Container.setAttribute("y", (row * tileHeight + this.padding).toString());
+            tile.Container.setAttribute("width",  (tileWidth).toString());
+            tile.Container.setAttribute("height", (tileHeight).toString());
+            tile.Container.setAttribute("display", "unset");
+
+            tile.Rect.setAttribute("width", (tileWidth).toString());
+            tile.Rect.setAttribute("height", (tileHeight).toString());
+            tile.Rect.setAttribute("fill", this.convertHexToStringColor(vertex.Color));
+
+            tile.Text.setAttribute("x", (tileWidth / 2).toString());
+            tile.Text.setAttribute("y", (tileHeight / 2 + 2).toString());
+            tile.Text.innerHTML = vertex.Index.toString();
+
+            col = (col + 1) % nrOfColumns
+            if(col == 0 ) row++
+
+            tileCounter++;
+        }
+        for(; tileCounter < this.tiles.length; tileCounter++) {
+            this.tiles[tileCounter].Container.setAttribute("display", "none");
+        }
+    }
+
+    private convertHexToStringColor(hexColor: number) : string
+    {
+        let hexColorString = hexColor.toString(16);
+        // 0xFFFFFF
+        while(hexColorString.length < 6) {
+            hexColorString = '0' + hexColorString;
+        }
+        hexColorString = '#' + hexColorString;
+        return hexColorString;
+    }
 }
