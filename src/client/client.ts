@@ -327,7 +327,7 @@ function GetRandomColorString(): number {
 
 function init() {
     var data = readFile();
-    renderer = new RendererObject(alpha, s, p, data, 4);
+    renderer = new RendererObject(alpha, s, p, data, 40);
     renderer.initObjects();
     renderer.createTwoDimView();
     renderer.animate();

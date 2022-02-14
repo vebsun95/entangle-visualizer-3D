@@ -79,13 +79,11 @@ export class RendererObject extends DataContainer {
 
                 curveObject = new THREE.Line(lineGeometry, lineMaterial);
                 curveObject.geometry.attributes.position.needsUpdate;
-                //this.paritiesGroup.add(curveObject);
                 this.paritiesGroupList[i].add(curveObject);
             }
         }
 
         this.scene.add(this.verticesGroup);
-        //this.scene.add(this.paritiesGroup);
         for (let i = 0; i < this.alpha; i++) {
             this.scene.add(this.paritiesGroupList[i]);
         }
@@ -123,6 +121,7 @@ export class RendererObject extends DataContainer {
             if (startIndex == 0) {
                 skip = true;
                 if (!increasecolumn) {
+                    column++;
                     column++;
                     increasecolumn = true;
                 }
@@ -192,43 +191,57 @@ export class RendererObject extends DataContainer {
                     return
                 }
                 case STRANDS.RHStrand: {
-                    // LeftPos and RightPos is on the same row
-                    if (output.RightPos % this.s == output.LeftPos % this.s) {
+                    // LeftPos and RightPos is on the same row and last column
+                    if (output.RightPos % this.s == output.LeftPos % this.s && currentColumn == nrColumns) {
                         console.log("RHStrand går til samme")
-                        array.setXYZ(1, (rightPos!.position.x + leftPos!.position.x) / 2, rightPos!.position.y + (this.scale/3), rightPos!.position.z);
-                        array.setXYZ(2, rightPos.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 3);
+                        let deltaX = (rightPos!.position.x + leftPos!.position.x) / 2;
+                        let deltaY = leftPos!.position.y;
+                        let a = rightPos!.position.x - deltaX;
+                        let b = this.scale/3;
+                        let counter = 1;
+                        let xPosition = leftPos!.position.x
+                        console.log("Start spot:", leftPos!.position.x, leftPos!.position.y);
+                        console.log("Slutt spot:", rightPos!.position.x, rightPos!.position.y);
+                        for (let i = a-1; i > 0; i--) {
+                            xPosition = xPosition + 1;
+                            let y = deltaY - (b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2));
+                            console.log(xPosition, y, counter);
+                            array.setXYZ(counter, xPosition, y, 0);
+                            counter++;
+                        }
+                        for (let i = 0; i < a; i++) {
+                            xPosition = xPosition + 1;
+                            let y = deltaY - (b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2));
+                            console.log(xPosition, y, counter);
+                            array.setXYZ(counter, xPosition, y, 0);
+                            counter++;
+                        }
+                        console.log(counter);
+                        array.setXYZ(counter, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, counter);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
                     // If second last column
                     else if (currentColumn < nrColumns) {
-                        array.setXYZ(1, leftPos!.position.x + (this.scale/1.3), leftPos!.position.y - (this.scale/2), leftPos!.position.z);
+                        array.setXYZ(1, leftPos!.position.x + (this.scale), leftPos!.position.y - (this.scale/3), leftPos!.position.z);
                         array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                         line!.geometry.setDrawRange(0, 3);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
                     else {
-                        array.setXYZ(1, rightPos.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 2);
+                        array.setXYZ(1,leftPos!.position.x + (this.scale), leftPos!.position.y - (this.scale/3), leftPos!.position.z );
+                        array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 3);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
 
                 }
                 case STRANDS.LHStrand: {
-                    // LeftPos and RightPos is on the same row
-                    if (output.RightPos % this.s == output.LeftPos % this.s) {
-                        console.log("LHStrand går til samme")
-                        array.setXYZ(1, (rightPos!.position.x + leftPos!.position.x) / 2, rightPos!.position.y - (this.scale/3), rightPos!.position.z);
-                        array.setXYZ(2, rightPos.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 3);
-                        line!.geometry.attributes.position.needsUpdate = true;
-                        return
-                    }
                     // If top row and second last column
-                    else if (output.LeftPos % this.s == 1 && currentColumn < nrColumns) {
+                    if (output.LeftPos % this.s == 1 && currentColumn < nrColumns) {
                         console.log("Skal lage ghost vertex for:", output.LeftPos, output.RightPos);
                         let name = this.vertices[output.RightPos-1].Label;
                         let color = this.vertices[output.RightPos-1].Color;
@@ -238,16 +251,48 @@ export class RendererObject extends DataContainer {
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
-                    else if (currentColumn == nrColumns) {
-                        array.setXYZ(1, leftPos!.position.x + (this.scale/1.3), leftPos!.position.y + (this.scale/2), leftPos!.position.z);
-                        array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 3);
+                    // LeftPos and RightPos is on the same row and last column
+                    else if (output.RightPos % this.s == output.LeftPos % this.s && currentColumn == nrColumns) {
+                        console.log("LHStrand går til samme")
+                        let deltaX = (rightPos!.position.x + leftPos!.position.x) / 2;
+                        let deltaY = leftPos!.position.y;
+                        let a = rightPos!.position.x - deltaX;
+                        let b = this.scale/3;
+                        let counter = 1;
+                        let xPosition = leftPos!.position.x
+                        console.log("Start spot:", leftPos!.position.x, leftPos!.position.y);
+                        console.log("Slutt spot:", rightPos!.position.x, rightPos!.position.y);
+                        for (let i = a-1; i > 0; i--) {
+                            xPosition = xPosition + 1;
+                            let y = deltaY + (b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2));
+                            console.log(xPosition, y, counter);
+                            array.setXYZ(counter, xPosition, y, 0);
+                            counter++;
+                        }
+                        for (let i = 0; i < a; i++) {
+                            xPosition = xPosition + 1;
+                            let y = deltaY + (b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2));
+                            console.log(xPosition, y, counter);
+                            array.setXYZ(counter, xPosition, y, 0);
+                            counter++;
+                        }
+                        console.log(counter);
+                        array.setXYZ(counter, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, counter);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
+                    // else if (currentColumn == nrColumns) {
+                    //     array.setXYZ(1, leftPos!.position.x + (this.scale/1.3), leftPos!.position.y + (this.scale/2), leftPos!.position.z);
+                    //     array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                    //     line!.geometry.setDrawRange(0, 3);
+                    //     line!.geometry.attributes.position.needsUpdate = true;
+                    //     return
+                    // }
                     else {
-                        array.setXYZ(1, rightPos.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 2);
+                        array.setXYZ(1, leftPos!.position.x + (this.scale), leftPos!.position.y + (this.scale/3), leftPos!.position.z);
+                        array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 3);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
