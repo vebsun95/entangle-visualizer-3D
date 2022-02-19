@@ -1,17 +1,18 @@
 import { Interface } from "readline";
 import { COLORS } from "./constants";
 import { DataContainer } from "./dataContainer";
-import { Vertices } from "./interfaces";
+import { Vertex } from "./interfaces";
 
 export class BitMap extends DataContainer {
 
-    private canvases: HTMLCanvasElement[] = Array(this.alpha + 1);;
+    private viewButtons: HTMLButtonElement[] = []
+    private canvases: HTMLCanvasElement[] = []
     private container: HTMLDivElement = document.getElementById("bitmap-canvas-container") as HTMLDivElement;
     private containerWidth: number = this.container.clientWidth;
     private ruler: HTMLCanvasElement = this.container.appendChild(document.createElement('canvas'));
     private rulerHeight: number = 20;
     private pixelHeight: number = 15;
-    private pixelWidth: number = Math.ceil((this.container.clientWidth) / (this.vertices.length / this.s));
+    private pixelWidth: number = 1;
     private visible: boolean = true;
     private viewBox: HTMLDivElement = document.getElementById("bitMap-viewBox")! as HTMLDivElement;
     private viewBoxLocked: HTMLDivElement = document.getElementById("bitMap-viewBox-locked") as HTMLDivElement;
@@ -19,22 +20,27 @@ export class BitMap extends DataContainer {
     drawLimit: number = 250; 
     LabelMap : any = {0: "Original", 1: "Horizontal", 2: "RH-Strand", 3: "LH-Strand"}
 
-    constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
-        super(alpha, s, p, vertices);
-        
-        this.updateDynamicAttributes();
-        this.updateDrawLimit();
+    constructor() {
+        super();
 
         this.container.addEventListener("mouseenter", this.handleMouseEnter.bind(this));
         this.container.addEventListener("mouseleave", this.handleMouseLeave.bind(this));
         this.container.addEventListener("mousemove", (event : MouseEvent) => this.handleMouseMove(event));
+        this.container.addEventListener("mousedown", this.handleMouseDown.bind(this));
         document.getElementById("toggle-bitmap")?.addEventListener("click", this.toggleVisible.bind(this));
     }
 
-    Draw() {
+    HandleUpdatedData() {
+        this.updateDynamicAttributes();
+        this.updateDrawLimit();
+        this.draw();
+    }
+
+    private draw() {
+
         var row = 0;
         var column = 0;
-        var contextIndex: number; // Which canvas gets written to.
+        var contextIndex: number; // Which canvas gets drawn on.
         var color: string;
         var rulerStep = 100; // How often do you mark the ruler.
         var rulerCtx = this.ruler.getContext('2d');
@@ -59,6 +65,7 @@ export class BitMap extends DataContainer {
                 row * this.pixelHeight,
                 this.pixelWidth,
                 this.pixelHeight);
+            
             contextIndex++;
             for (var output of vertex.Outputs) {
                 ctxs[contextIndex].fillStyle = this.convertHexToStringColor(output.Color);
@@ -100,12 +107,10 @@ export class BitMap extends DataContainer {
         }
     }
 
-    GetIndexFromCoord(offsetX: number, offsetY: number) : number {
+    private getIndexFromCoord(offsetX: number, offsetY: number) : number {
         let column = Math.floor(offsetX / this.pixelWidth);
         let row = Math.floor(offsetY / this.pixelHeight);
-        // move viewBoxLocked to viewBox position.
-        this.viewBoxLocked.style.left = this.viewBox.style.left;
-        this.viewBoxLocked.style.width = this.viewBox.style.width;
+        
         return column * this.s + row;
     }
 
@@ -122,20 +127,31 @@ export class BitMap extends DataContainer {
 
     private updateDynamicAttributes() {
         var mainContainer = document.getElementById("bitmap-container");
-        var changeViewButton: HTMLButtonElement;
+        /*  Delete Old Buttons */
+        for (var oldButton of this.viewButtons) {
+            oldButton.parentNode?.removeChild(oldButton);
+        }
+
+        /* Delete Old Canvases */
+        for (var oldCanvas of this.canvases) {
+            oldCanvas.parentNode?.removeChild(oldCanvas)
+        }
         /* 
             if nr of columns needed, with pixelwidth = 1, is larger than screen
             the container is scrollable
         */
-        if (this.vertices.length / this.s > window.innerWidth ) {
+        if (this.nrOfVertices / this.s > window.innerWidth ) {
             this.containerWidth = this.nrOfVertices / this.s;
+            this.pixelWidth = 1;
+        } else {
+            this.pixelWidth = Math.floor(window.innerWidth / this.s)
         }
         
         for(let i = 0; i < this.alpha + 1; i++){
-            changeViewButton = mainContainer?.insertBefore(document.createElement("button"), this.container) as HTMLButtonElement;
-            changeViewButton.id = "bitmap-view" + i.toString();
-            changeViewButton.innerText = this.LabelMap[i];
-            changeViewButton.addEventListener("click", () => this.changeView(i))
+            this.viewButtons[i] = mainContainer?.insertBefore(document.createElement("button"), this.container) as HTMLButtonElement;
+            this.viewButtons[i].id = "bitmap-view" + i.toString();
+            this.viewButtons[i].innerText = this.LabelMap[i];
+            this.viewButtons[i].addEventListener("click", () => this.changeView(i))
             this.canvases[i] = this.container.appendChild(document.createElement("canvas"));
             this.canvases[i].setAttribute("width", this.containerWidth.toString() + "px");
             this.canvases[i].setAttribute("height", this.pixelHeight * this.s + "px")
@@ -163,7 +179,7 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.width = (this.viewBoxWidth).toString() + "px";
     }
 
-    updateVertex(vertexIndex : number) {
+    UpdateVertex(vertexIndex : number) {
         let ctx = this.canvases[0].getContext("2d");
         let col = Math.floor(vertexIndex / this.s)
         let row = Math.floor(vertexIndex % this.s)
@@ -186,5 +202,14 @@ export class BitMap extends DataContainer {
             this.viewBox.style.width = (this.viewBoxWidth).toString() + "px";
         }
         this.viewBox.style.left = (event.offsetX - this.viewBox.clientWidth / 2).toString() + "px"
+    }
+
+    private handleMouseDown( event : MouseEvent ) {
+        // move viewBoxLocked to viewBox position.
+        this.viewBoxLocked.style.left = this.viewBox.style.left;
+        this.viewBoxLocked.style.width = this.viewBox.style.width;
+
+        var vertexIndex = this.getIndexFromCoord(event.offsetX, event.offsetY);
+        dispatchEvent(new CustomEvent("bitmap-clicked", {detail: {vertexIndex: vertexIndex}}))
     }
 }

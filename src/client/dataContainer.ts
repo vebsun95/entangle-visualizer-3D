@@ -1,13 +1,15 @@
-import { Parities, Vertices } from "./interfaces";
+import { Vertex } from "./interfaces";
 
 export class DataContainer {
-    alpha: number;
-    s: number;
-    p: number;
-    nrOfVertices: number;
-    vertices: Vertices[];
+    alpha: number = 0;
+    s: number = 0;
+    p: number = 0;
+    nrOfVertices: number = 0;
+    vertices: Vertex[] = [];
 
-    constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
+    constructor() {}
+
+    UpdateData(alpha: number, s: number, p: number, vertices: Vertex[]) {
         this.alpha = alpha;
         this.s = s;
         this.p = p;

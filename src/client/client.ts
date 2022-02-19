@@ -1,10 +1,12 @@
 import { RendererObject } from './renderObject'
-import { Vertices, Parities } from './interfaces';
+import { Vertex } from './interfaces';
 import { COLORS, STRANDS } from './constants';
 import { BitMap } from './bitmap';
 import { SideBar } from './sidebar';
+import { MerkelTreeViewer } from './merkelTreeViewer';
+import { App } from './app';
 
-const nrOfVertices = 25001;
+const nrOfVertices = 16000;
 const alpha = 3;
 const s = 5;
 const p = s;
@@ -12,16 +14,67 @@ const p = s;
 var renderer: RendererObject;
 var bitmapObj: BitMap;
 var sideBar: SideBar;
+var merkelTree: MerkelTreeViewer;
+
+function readFile2(this: HTMLElement, e: Event) {
+    const fileReader = new FileReader()
+    var content: any
+    fileReader.onloadend = () => {
+        console.log("Reading file")
+        var res = fileReader.result as string;
+        content = JSON.parse(res)
+        console.log(content);
+    }
+    fileReader.onerror = (error) => {
+        console.log(error);
+    }
+    const file = (<HTMLInputElement>e.target).files![0]
+    fileReader.readAsText(file, "UTF-8")
+}
 
 function readFile() {
-    var vertices: Vertices[] = [];
+    var branchingFactor = 128;
+    var depth, index, parent, replication: number;
+    var addr: string;
+    addr = "aaaqqqaaaqqqaaaqqqaaaqqq";
+    replication = 33;
+    var vertices: Vertex[] = [];
     
     for (let i = 1; i < nrOfVertices + 1; i++) {
+
+        if (i == nrOfVertices) {
+            depth = 3;
+            parent = 0;
+        }
+        else if ( i == nrOfVertices - 1) {
+            depth = 2
+            parent = nrOfVertices - 1;
+        }
+
+        else if (i % (branchingFactor + 1) == 0)
+        {
+            parent = nrOfVertices - 1;
+            depth = 2;
+        } else {
+            depth = 1;
+            parent = Math.ceil(i / branchingFactor) * 129;
+            if(parent > nrOfVertices) {
+                parent = parent = nrOfVertices - 2
+            }
+        }
+
+
         vertices.push(
             {
+                Index: i,
                 Label: i.toString(),
                 Color: GetRandomColorString(),
                 Outputs: [],
+                Replication: replication,
+                Addr: addr,
+                Parent: parent,
+                Depth: depth,
+                Children: []
             }
         )
         for (let j = 1; j < 2; j++) {
@@ -274,6 +327,11 @@ function readFile() {
     
         }
     }
+    for(let k=0; k < nrOfVertices; k++) {
+        if (vertices[k].Depth < 3 ) {
+            vertices[vertices[k].Parent].Children.push(k);
+        }
+    }
     return vertices;
 }
 
@@ -284,39 +342,46 @@ function GetRandomColorString(): number {
     return COLORS.RED
 }
 
-function init() {
-    var data = readFile();
-    renderer = new RendererObject(alpha, s, p, data, 40);
-    renderer.initObjects();
-    renderer.createTwoDimView();
-    renderer.animate();
+// function init() {
+//     var data = readFile();
+//     renderer = new RendererObject(alpha, s, p, data, 40);
+//     renderer.initObjects();
+//     renderer.createTwoDimView();
+//     renderer.animate();
 
-    bitmapObj = new BitMap(alpha, s, p, data);
-    bitmapObj.Draw();
+//     bitmapObj = new BitMap(alpha, s, p, data);
+//     bitmapObj.Draw();
 
-    sideBar = new SideBar(alpha, s, p, data);
+//     sideBar = new SideBar(alpha, s, p, data);
 
-    window.addEventListener('resize', () => renderer.onWindowResize(), false);
+//     merkelTree = new MerkelTreeViewer(alpha, s, p, data);
 
-    document.getElementById("btn-2d")?.addEventListener("click", () => renderer.createTwoDimView());
-    document.getElementById("btn-lattice")?.addEventListener("click", () => renderer.createLattice());
-    document.getElementById("btn-torus")?.addEventListener("click", () => renderer.createTorus());
-    document.getElementById("btn-ghostgroup")?.addEventListener("click", () => renderer.show_hide_ghostvertcies());
-    document.getElementById("bitmap-canvas-container")?.addEventListener("click", (event: MouseEvent) => {
-        let index = bitmapObj.GetIndexFromCoord(event.offsetX, event.offsetY);
-        renderer.GoTo(index);
-    })
-    document.getElementById("random")?.addEventListener("click", () => {
-        var randomIndex = generateRandomNumber(0, 250);
-        data[randomIndex].Color = COLORS.RED;
-        bitmapObj.updateVertex(randomIndex);
-        renderer.UpdateVertex(randomIndex);
-        sideBar.UpdateInfo();
-    });
-}
+//     window.addEventListener('resize', () => {renderer.onWindowResize(); merkelTree.UpdateDynamicAttributes(); merkelTree.CreateOMT(0, [])}, false);
+
+//     document.getElementById("btn-2d")?.addEventListener("click", () => renderer.createTwoDimView());
+//     document.getElementById("btn-lattice")?.addEventListener("click", () => renderer.createLattice());
+//     document.getElementById("btn-torus")?.addEventListener("click", () => renderer.createTorus());
+//     document.getElementById("btn-ghostgroup")?.addEventListener("click", () => renderer.show_hide_ghostvertcies());
+//     document.getElementById("bitmap-canvas-container")?.addEventListener("click", (event: MouseEvent) => {
+//         let index = bitmapObj.GetIndexFromCoord(event.offsetX, event.offsetY);
+//         renderer.GoTo(index);
+//     })
+//     document.getElementById("random")?.addEventListener("click", () => {
+//         var randomIndex = generateRandomNumber(0, 250);
+//         data[randomIndex].Color = COLORS.RED;
+//         bitmapObj.updateVertex(randomIndex);
+//         renderer.UpdateVertex(randomIndex);
+//         sideBar.UpdateInfo();
+//     });
+//     document.getElementById("file-uploader")?.addEventListener("input", readFile2)
+//     window.addEventListener("test", () => console.log("i client fil"), false);
+// }
 
 function generateRandomNumber (min: number, max: number)  {
     return Math.floor(Math.random() * (max - min) + min);
       };
 
-init();
+//init();
+
+var app = new App()
+app.TestDev();

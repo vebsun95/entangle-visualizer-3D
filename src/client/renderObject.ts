@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Parities, Vertices } from './interfaces'
+import { Parity, Vertex } from './interfaces'
 import { DIRECTIONS, STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
 import { MyControls } from './MyControls';
@@ -12,11 +12,11 @@ import { throws } from 'assert';
 export class RendererObject extends DataContainer {
 
 
-    renderer: THREE.Renderer;
-    scene: THREE.Scene;
-    camera: THREE.PerspectiveCamera;
-    controls: MyControls;
-    pointsPerLine: number;
+    renderer: THREE.Renderer = new THREE.WebGL1Renderer();
+    scene: THREE.Scene = new THREE.Scene();
+    camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);;
+    controls: MyControls = new MyControls(this.camera, this.renderer.domElement);;
+    pointsPerLine: number = 40;
     limit: number = 250;
     drawFrom: number = 0;
     verticesGroup: THREE.Group = new THREE.Group();
@@ -27,36 +27,39 @@ export class RendererObject extends DataContainer {
     ghostgroupshow: boolean = true;
     paritiesGroupList: THREE.Group[] = [];
 
-    constructor(alpha: number, s: number, p: number, vertices: Vertices[], ppp: number) {
-        super(alpha, s, p, vertices);
-        this.pointsPerLine = ppp;
-
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    constructor() {
+        super();
         this.camera.position.z = 50;
-        this.renderer = new THREE.WebGL1Renderer();
         this.renderer.setSize(window.innerWidth, window.innerHeight)
         document.body.appendChild(this.renderer.domElement)
-        this.renderer.domElement.setAttribute("tabindex", "1");
-        this.controls = new MyControls(this.camera, this.renderer.domElement);
-        this.limit = this.limit + (this.s - (this.limit % this.s));
-        console.log(this.limit)
-        for (let i = 0; i < this.alpha; i++) {
-            this.paritiesGroupList.push(new THREE.Group());
-        }
-        
+        this.animate();
     }
 
+    HandleUpdatedData() {
+        this.initObjects();
+        this.createTwoDimView();
+    }
 
     initObjects() {
+        this.verticesGroup.clear();
+        this.scene.clear();
+        for(var p of this.paritiesGroupList) {
+            p.clear();
+        }
+
         const geometry = new THREE.SphereGeometry(this.radius);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf0ff0, linewidth: 2 });
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xd1d1d1, linewidth: 2 });
 
         var obj: THREE.Mesh;
         var material: THREE.MeshBasicMaterial;
         var positions: Float32Array;
         var lineGeometry: THREE.BufferGeometry;
         var curveObject: THREE.Line;
+
+        this.limit = 250 + (this.s - (250 % this.s));
+        for (let i = 0; i < this.alpha; i++) {
+            this.paritiesGroupList.push(new THREE.Group());
+        }
 
         // Hvis listen av vertcies er mindre enn limit verdien.
         if (this.vertices.length < this.limit) {
@@ -87,6 +90,7 @@ export class RendererObject extends DataContainer {
         for (let i = 0; i < this.alpha; i++) {
             this.scene.add(this.paritiesGroupList[i]);
         }
+
     }
 
     createTwoDimView() {
@@ -102,7 +106,7 @@ export class RendererObject extends DataContainer {
             if (!skip){
                 v.position.set(
                     this.scale * column,
-                    starty - (this.scale * row),
+                    starty - (this.scale * row) + 5,
                     0
                 )
                 v.name = this.vertices[startIndex].Label;
@@ -174,7 +178,7 @@ export class RendererObject extends DataContainer {
         this.ghostGroup.visible = this.ghostgroupshow;
     }
 
-    CreateParitiyAdvanced2D(output: Parities, ParityGroupNumber:  number, lineIndex: number) {
+    CreateParitiyAdvanced2D(output: Parity, ParityGroupNumber:  number, lineIndex: number) {
         let line = this.paritiesGroupList[ParityGroupNumber].children[lineIndex] as THREE.Line;
         let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
         let rightPos = this.scene.getObjectByName(output.RightPos.toString());
@@ -311,7 +315,7 @@ export class RendererObject extends DataContainer {
     }
 
 
-    CreateParitiyBasic2D(output: Parities, ParityGroupNumber:  number, lineIndex: number) {
+    CreateParitiyBasic2D(output: Parity, ParityGroupNumber:  number, lineIndex: number) {
         let line = this.paritiesGroupList[ParityGroupNumber].children[lineIndex] as THREE.Line;
         let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
         let rightPos = this.scene.getObjectByName(output.RightPos.toString());
@@ -348,10 +352,11 @@ export class RendererObject extends DataContainer {
                     break
                 }
                 default: {
+                    console.log("default")
                     // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
                     array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                 }
-            }
+            } 
             line!.geometry.setDrawRange(0, 2);
             line!.geometry.attributes.position.needsUpdate = true;
         }

@@ -10,11 +10,17 @@
 
 <body>
     <div class="overlay-layout">
+        <div id="tree-container">
+            <svg id="original-merkel-tree">
+
+            </svg>
+        </div>
         <div class="btn-overlay">
             <button id="btn-2d">Go 2D!</button>
             <button id="btn-lattice">Go Lattice!</button>
             <button id="btn-torus"> Go Torus!</button>
             <button id="btn-label-test"> Go Torus!</button>
+            <input id="file-uploader" type="file">
         </div>
         <div class="checkbox-overlay">
             <input type="checkbox" id="btn-ghostgroup" name="btn-ghostgroup" checked>
@@ -23,10 +29,6 @@
         <div id="side-bar">
             <button id="toggle-side-bar">></button>
             <ul id="side-bar-stats"></ul>
-            <button id="random">RANDOM</button>
-            <button id="pop-up"> POP-UP</button>
-            <svg id="original-merkle-tree" height="70%" width="100%">
-            </svg>
         </div>
         <div id="footer">
         <div id="bitmap-container">
