@@ -1,27 +1,19 @@
-import { Vertices } from "./interfaces";
+import { Vertex } from "./interfaces";
 
 export class DataContainer {
-    alpha: number;
-    s: number;
-    p: number;
-    nrOfVertices: number;
-    vertices: Vertices[];
+    alpha: number = 0;
+    s: number = 0;
+    p: number = 0;
+    nrOfVertices: number = 0;
+    vertices: Vertex[] = [];
 
-    constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
+    constructor() {}
+
+    UpdateData(alpha: number, s: number, p: number, vertices: Vertex[]) {
         this.alpha = alpha;
         this.s = s;
         this.p = p;
         this.vertices = vertices;
         this.nrOfVertices = vertices.length;
     }
-    GetInternalNodes(StartIndex: number, EndIndex: number) :number[]{
-        var res = []
-        for(;StartIndex < EndIndex; StartIndex++) {
-            if(this.vertices[StartIndex].Depth == 2) {
-                res.push(StartIndex);
-            }
-        }
-        return res;
-    }
-
 }

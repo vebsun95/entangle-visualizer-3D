@@ -1,5 +1,6 @@
+import { threadId } from "worker_threads";
 import { DataContainer } from "./dataContainer";
-import { Vertices } from "./interfaces";
+import { Vertex } from "./interfaces";
 
 const SVGURL = "http://www.w3.org/2000/svg";
 
@@ -10,39 +11,50 @@ interface Tile {
 }
 
 interface InfoGraphic {
-    Container: SVGElement;
-    NrOfChilderen: SVGTextElement;
-    CurrentNode: SVGTextElement;
-    Depth: SVGTextElement;
+    Container: HTMLDivElement;
+    Text: HTMLParagraphElement;
+    BreadCrumbs: HTMLParagraphElement;
+    BreadCrumbsIndex: number[];
 }
 
 export class MerkelTreeViewer extends DataContainer {
 
     private container: HTMLDivElement = document.getElementById("tree-container") as HTMLDivElement;
-    private svgElement: SVGElement = document.getElementById("original-merkel-tree") as unknown as SVGElement;
-    private nrOfColumns = 16;
-    private nrOfRows = 8;
-    private padding = 20;
-    private tiles: Tile[] = Array(this.nrOfColumns * this.nrOfRows);
     private infoGraphic: InfoGraphic = { 
-        Container: document.createElementNS(SVGURL, "svg"),
-        NrOfChilderen: document.createElementNS(SVGURL, "text"),
-        CurrentNode: document.createElementNS(SVGURL, "text"),
-        Depth: document.createElementNS(SVGURL, "text")};
+        Container: document.createElement("div"),
+        Text: document.createElement("p"),
+        BreadCrumbs: document.createElement("p"),
+        BreadCrumbsIndex: [],}
+    private svgElement: SVGElement = document.getElementById("original-merkel-tree") as unknown as SVGElement;
+    private padding = 20;
+    private tiles: Tile[] = Array(260);
+    private currentRootNode: number = 0;
 
-    constructor(alpha: number, s: number, p: number, vertices: Vertices[]) {
-        super(alpha, s, p, vertices);
-
-        this.updateDynamicAttributes();
+    constructor() {
+        super();
         this.createTileElements();
-        this.CreateOMT(0, []);
-        this.CreateInfoGraphic();
-        this.UpdateInfoGraphic(16000, 3, 125);
     }
 
-    private updateDynamicAttributes() {
+    HandleUpdatedDate() {
+        this.currentRootNode = this.nrOfVertices - 1;
+        this.infoGraphic.BreadCrumbsIndex = [ this.currentRootNode ]
+        this.CreateInfoGraphic();
+        this.updateInfoGraphic();
+        this.UpdateDynamicAttributes();
+        this.CreateOMT();
+    }
+
+    UpdateDynamicAttributes() {
         this.svgElement.setAttribute("height", (window.innerHeight * 0.2).toString());
         this.svgElement.setAttribute("width", (window.innerWidth).toString());
+
+        this.infoGraphic.Container.setAttribute("height", (window.innerHeight * 0.2).toString());
+        this.infoGraphic.Container.setAttribute("width", (window.innerWidth).toString());
+    }
+
+    onWindowResize() {
+        this.UpdateDynamicAttributes();
+        this.CreateOMT();
     }
 
     private createTileElements() {
@@ -59,6 +71,8 @@ export class MerkelTreeViewer extends DataContainer {
                 tile.Text.setAttribute("dominant-baseline", "middle");
 
                 tile.Container.append(tile.Rect, tile.Text);
+                tile.Container.addEventListener("click", () => { this.tileOnClickHandler(i) });
+                
                 this.svgElement.append(tile.Container);
                 this.tiles[i] = tile
         }
@@ -66,38 +80,45 @@ export class MerkelTreeViewer extends DataContainer {
 
     private CreateInfoGraphic() {
 
-        this.infoGraphic.Container.setAttribute("width", (window.innerWidth).toString());
-        this.infoGraphic.Container.setAttribute("height", (this.padding).toString());
+        this.infoGraphic.Container.style.width = window.innerWidth.toString() + "px";
+        this.infoGraphic.Container.style.height = this.padding.toString() + "px";
+        this.infoGraphic.Container.style.position = "absolute";
 
-        this.infoGraphic.CurrentNode.setAttribute("x", (200).toString());
-        this.infoGraphic.CurrentNode.setAttribute("y", (this.padding / 2).toString());
-        this.infoGraphic.CurrentNode.setAttribute("dominant-baseline", "middle");
+        this.infoGraphic.BreadCrumbs.style.margin = "0";
+        this.infoGraphic.BreadCrumbs.style.float = "left";
 
-        this.infoGraphic.Depth.setAttribute("x", (400).toString());
-        this.infoGraphic.Depth.setAttribute("y", (this.padding / 2).toString());
-        this.infoGraphic.Depth.setAttribute("dominant-baseline", "middle");
+        this.infoGraphic.Text.style.margin = "0";
+        this.infoGraphic.Text.style.textAlign = "center";
 
-        this.infoGraphic.NrOfChilderen.setAttribute("x", (600).toString());
-        this.infoGraphic.NrOfChilderen.setAttribute("y", (this.padding / 2).toString());
-        this.infoGraphic.NrOfChilderen.setAttribute("dominant-baseline", "middle");
-
-        this.infoGraphic.Container.append(this.infoGraphic.CurrentNode, this.infoGraphic.Depth, this.infoGraphic.NrOfChilderen);
-        this.svgElement.append(this.infoGraphic.Container);
+        this.infoGraphic.Container.append(this.infoGraphic.BreadCrumbs, this.infoGraphic.Text);
+        this.container.insertBefore(this.infoGraphic.Container, this.svgElement);
     }
 
-    private UpdateInfoGraphic(currentNode: number, depth: number, nrOfChildren: number) {
-        this.infoGraphic.CurrentNode.innerHTML = `Current node: ${currentNode}`;
-        this.infoGraphic.Depth.innerHTML = `Depth: ${depth}`;
-        this.infoGraphic.NrOfChilderen.innerHTML = `Number of children: ${nrOfChildren}`;
+    private updateInfoGraphic() {
+        var breadCrumb: HTMLAnchorElement;
+
+        while(this.infoGraphic.BreadCrumbs.children.length > 0) { this.infoGraphic.BreadCrumbs.removeChild(this.infoGraphic.BreadCrumbs.lastChild!) }
+        for (let rootNodeIndex of this.infoGraphic.BreadCrumbsIndex) {
+            breadCrumb = document.createElement("a");
+            breadCrumb.href = "#";
+            breadCrumb.addEventListener("mousedown", () => this.breadCrumbOnClickHandler(rootNodeIndex));
+            breadCrumb.innerHTML = `>${this.vertices[rootNodeIndex].Index}`
+            this.infoGraphic.BreadCrumbs.append(breadCrumb);
+        }
+
+        let currentNode = this.vertices[this.currentRootNode].Index;
+        let depth = this.vertices[this.currentRootNode].Depth;
+        let nrOfChildren = this.vertices[this.currentRootNode].Children.length;
+        this.infoGraphic.Text.innerHTML = `Current node: ${currentNode}, Depth: ${depth}, Number of children: ${nrOfChildren}`
 
     }
 
-    private CreateOMT(depth: number, path: number[]) {
-        var vertex: Vertices;
+    CreateOMT() {
+        var vertex: Vertex;
         var tile: Tile;
         var nrOfChildren, nrOfRows, nrOfColumns, tileWidth, tileHeight, tileCounter, row, col: number;
 
-        nrOfChildren = this.vertices[this.nrOfVertices - 1].Children.length;
+        nrOfChildren = this.vertices[this.currentRootNode].Children.length;
         nrOfRows = Math.floor((2 / 3) * Math.sqrt(nrOfChildren)); // https://www.brilliant.org/bartek_stasiak;
         nrOfColumns = Math.ceil(nrOfChildren / nrOfRows);
 
@@ -107,7 +128,7 @@ export class MerkelTreeViewer extends DataContainer {
         row = 0;
         col = 0;
 
-        for(var childIndex of this.vertices[this.nrOfVertices - 1].Children) {
+        for(let childIndex of this.vertices[this.currentRootNode].Children) {
             vertex = this.vertices[childIndex];
             tile = this.tiles[tileCounter];
 
@@ -133,6 +154,30 @@ export class MerkelTreeViewer extends DataContainer {
         for(; tileCounter < this.tiles.length; tileCounter++) {
             this.tiles[tileCounter].Container.setAttribute("display", "none");
         }
+
+        this.updateInfoGraphic();
+    }
+
+    private tileOnClickHandler(tileIndex: number) {
+        console.log(tileIndex)
+        console.log(this.currentRootNode)
+        console.log(this.vertices[this.currentRootNode])
+        let childIndex = this.vertices[this.currentRootNode].Children[tileIndex] 
+        if (this.vertices[childIndex].Children.length > 0) {
+            this.currentRootNode = this.vertices[this.currentRootNode].Children[tileIndex]
+            console.log(this.vertices[this.currentRootNode])
+            this.infoGraphic.BreadCrumbsIndex.push(this.currentRootNode);
+            this.CreateOMT();
+            this.updateInfoGraphic();
+        }
+    }
+
+    private breadCrumbOnClickHandler( rootNodeIndex: number ) {
+        this.currentRootNode = rootNodeIndex;
+        while( this.infoGraphic.BreadCrumbsIndex[ this.infoGraphic.BreadCrumbsIndex.length - 1 ] != rootNodeIndex ) {
+            this.infoGraphic.BreadCrumbsIndex.pop();
+        }
+        this.CreateOMT();
     }
 
     private convertHexToStringColor(hexColor: number) : string
