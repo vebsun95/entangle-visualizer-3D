@@ -7,7 +7,6 @@ import { SideBar } from "./sidebar";
 
 import { VertexJSON, ContentJSON, Vertex, ParityJSON } from "./interfaces";
 import { COLORS, STRANDS } from "./constants";
-import { json } from "express";
 
 
 
@@ -27,6 +26,12 @@ export class App {
     }
 
     UpdateData(alpha: number, s: number, p: number) {
+
+        this.vertices[0].Color = COLORS.RED;
+        this.vertices[this.vertices[0].Parent -1].DamagedChildren.push(0);
+        this.vertices[this.vertices.length - 3].Color = COLORS.RED;
+        this.vertices[this.vertices[this.vertices.length - 3].Parent -1].DamagedChildren.push(this.vertices.length - 3);
+
         this.renderer.UpdateData(alpha, s, p, this.vertices);
         this.bitMap.UpdateData(alpha, s, p, this.vertices);
         this.merkelTree.UpdateData(alpha, s, p, this.vertices);
@@ -68,6 +73,7 @@ export class App {
                 Parent: vertexJson.parent,
                 Replication: vertexJson.replication,
                 Children: [],
+                DamagedChildren: [],
             }
             for(var j=0; j<alpha; j++) {
                 parityJson = content.parityTrees[j][i]
@@ -142,7 +148,8 @@ function readFile() {
                 Addr: addr,
                 Parent: parent,
                 Depth: depth,
-                Children: []
+                Children: [],
+                DamagedChildren: [],
             }
         )
         for (let j = 1; j < 2; j++) {

@@ -74,7 +74,8 @@ function readFile() {
                 Addr: addr,
                 Parent: parent,
                 Depth: depth,
-                Children: []
+                Children: [],
+                DamagedChildren: [],
             }
         )
         for (let j = 1; j < 2; j++) {
