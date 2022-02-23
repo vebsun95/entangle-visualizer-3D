@@ -6,6 +6,7 @@ export class DataContainer {
     p: number = 0;
     nrOfVertices: number = 0;
     vertices: Vertex[] = [];
+    maxDepth: number = 0;
 
     constructor() {}
 
@@ -15,5 +16,6 @@ export class DataContainer {
         this.p = p;
         this.vertices = vertices;
         this.nrOfVertices = vertices.length;
+        this.maxDepth = vertices[this.vertices.length - 1].Depth; // Last node in the array is always the root node.
     }
 }
