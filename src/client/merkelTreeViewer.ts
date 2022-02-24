@@ -37,7 +37,7 @@ export class MerkelTreeViewer extends DataContainer {
         Container: this.container.appendChild(document.createElement("div")),
         List: document.createElement("ul")};
     private padding = 20;
-    private borderSize = 10;
+    private borderSize = 5;
     private tiles: Tile[] = Array(260);
     private currentRootNode: number = 0;
 
@@ -159,11 +159,11 @@ export class MerkelTreeViewer extends DataContainer {
             if (vertex.DamagedChildren.length > 0 && vertex.Depth > 1) {
                 tile.Rect.setAttribute("stroke", "red");
             } else {
-                tile.Rect.setAttribute("stroke", this.convertHexToStringColor(COLORS.GREEN));
+                tile.Rect.setAttribute("stroke", this.convertHexToStringColor(0x000000));
             }
 
             tile.Container.setAttribute("x", (col * tileWidth + this.padding).toString());
-            tile.Container.setAttribute("y", (row * tileHeight + this.padding).toString());
+            tile.Container.setAttribute("y", (row * (tileHeight) + this.padding).toString());
             tile.Container.setAttribute("width",  (tileWidth).toString());
             tile.Container.setAttribute("height", (tileHeight).toString());
             tile.Container.setAttribute("display", "unset");
@@ -181,6 +181,7 @@ export class MerkelTreeViewer extends DataContainer {
 
             tileCounter++;
         }
+        // Hide rest of the tiles.
         for(; tileCounter < this.tiles.length; tileCounter++) {
             this.tiles[tileCounter].Container.setAttribute("display", "none");
         }
@@ -193,6 +194,8 @@ export class MerkelTreeViewer extends DataContainer {
         if (this.vertices[childIndex].Children.length > 0) {
             this.currentRootNode = this.vertices[this.currentRootNode].Children[tileIndex]
             this.infoGraphic.BreadCrumbsIndex.push(this.currentRootNode);
+            // Hide the the mouseOverElement
+            this.mouseOverEle.Container.style.display = "none";
             this.CreateOMT();
             this.updateInfoGraphic();
         }
@@ -202,8 +205,8 @@ export class MerkelTreeViewer extends DataContainer {
         let childIndex = this.vertices[this.currentRootNode].Children[tileIndex]
         if ( this.vertices[childIndex].DamagedChildren.length > 0 ) {
             this.mouseOverEle.Container.style.display = "unset";
-            this.mouseOverEle.Container.style.left = ( parseInt( this.tiles[tileIndex].Container.getAttribute("x")!) + this.borderSize / 2) + "px";
-            this.mouseOverEle.Container.style.top = ( parseInt( this.tiles[tileIndex].Container.getAttribute("y")!) + this.borderSize / 2) + "px";
+            this.mouseOverEle.Container.style.left = this.tiles[tileIndex].Container.getAttribute("x")+ "px";
+            this.mouseOverEle.Container.style.top = this.tiles[tileIndex].Container.getAttribute("y") + "px";
             this.mouseOverEle.List.innerHTML = "";
             var li: HTMLLIElement;
             var vertex: Vertex;

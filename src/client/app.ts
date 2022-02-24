@@ -29,6 +29,10 @@ export class App {
 
         this.vertices[0].Color = COLORS.RED;
         this.vertices[this.vertices[0].Parent -1].DamagedChildren.push(0);
+
+        this.vertices[this.vertices.length - 2].Color = COLORS.RED;
+        this.vertices[this.vertices[this.vertices.length - 2].Parent -1].DamagedChildren.push(this.vertices.length - 2);
+
         this.vertices[this.vertices.length - 3].Color = COLORS.RED;
         this.vertices[this.vertices[this.vertices.length - 3].Parent -1].DamagedChildren.push(this.vertices.length - 3);
 
@@ -40,6 +44,7 @@ export class App {
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
         this.merkelTree.HandleUpdatedDate();
+
     }
 
     AddEventListener() {
