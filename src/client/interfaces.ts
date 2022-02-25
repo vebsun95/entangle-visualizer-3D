@@ -16,6 +16,7 @@ export interface Vertex {
     Parent: number,
     Replication: number,
     Children: number[],
+    DamagedChildren: number[],
 }
 
 export interface Keys {

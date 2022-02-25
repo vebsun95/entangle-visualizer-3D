@@ -1,4 +1,6 @@
+import * as e from "express";
 import { threadId } from "worker_threads";
+import { COLORS } from "./constants";
 import { DataContainer } from "./dataContainer";
 import { Vertex } from "./interfaces";
 
@@ -17,6 +19,11 @@ interface InfoGraphic {
     BreadCrumbsIndex: number[];
 }
 
+interface MouseOverElement {
+    Container: HTMLDivElement,
+    List: HTMLUListElement,
+}
+
 export class MerkelTreeViewer extends DataContainer {
 
     private container: HTMLDivElement = document.getElementById("tree-container") as HTMLDivElement;
@@ -26,13 +33,25 @@ export class MerkelTreeViewer extends DataContainer {
         BreadCrumbs: document.createElement("p"),
         BreadCrumbsIndex: [],}
     private svgElement: SVGElement = document.getElementById("original-merkel-tree") as unknown as SVGElement;
+    private mouseOverEle: MouseOverElement = {
+        Container: this.container.appendChild(document.createElement("div")),
+        List: document.createElement("ul")};
     private padding = 20;
+    private borderSize = 5;
     private tiles: Tile[] = Array(260);
     private currentRootNode: number = 0;
 
     constructor() {
         super();
         this.createTileElements();
+
+        this.mouseOverEle.Container.style.position = "absolute";
+        this.mouseOverEle.Container.style.backgroundColor = "white";
+        this.mouseOverEle.Container.style.border = "1px solid black"
+        this.mouseOverEle.Container.setAttribute("display", "none")
+        this.mouseOverEle.Container.style.pointerEvents = "none";
+
+        this.mouseOverEle.Container.append(this.mouseOverEle.List);
     }
 
     HandleUpdatedDate() {
@@ -65,6 +84,7 @@ export class MerkelTreeViewer extends DataContainer {
                     Rect: document.createElementNS(SVGURL, "rect"),
                     Text: document.createElementNS(SVGURL, "text")};
 
+                tile.Rect.setAttribute("stroke-width", (this.borderSize).toString());
                 tile.Rect.setAttribute("stroke", "black")
 
                 tile.Text.setAttribute("text-anchor", "middle");
@@ -72,6 +92,8 @@ export class MerkelTreeViewer extends DataContainer {
 
                 tile.Container.append(tile.Rect, tile.Text);
                 tile.Container.addEventListener("click", () => { this.tileOnClickHandler(i) });
+                tile.Container.addEventListener("mouseenter", () => { this.tileMouseEnterHandler(i) })
+                tile.Container.addEventListener("mouseleave", this.tileMouseLeaveHandler.bind(this));
                 
                 this.svgElement.append(tile.Container);
                 this.tiles[i] = tile
@@ -124,6 +146,8 @@ export class MerkelTreeViewer extends DataContainer {
 
         tileWidth = Math.ceil((this.svgElement.clientWidth - this.padding * 2) / nrOfColumns);
         tileHeight = Math.ceil((this.svgElement.clientHeight - this.padding * 2) / nrOfRows);
+        
+
         tileCounter = 0;
         row = 0;
         col = 0;
@@ -132,8 +156,14 @@ export class MerkelTreeViewer extends DataContainer {
             vertex = this.vertices[childIndex];
             tile = this.tiles[tileCounter];
 
+            if (vertex.DamagedChildren.length > 0 && vertex.Depth > 1) {
+                tile.Rect.setAttribute("stroke", "red");
+            } else {
+                tile.Rect.setAttribute("stroke", this.convertHexToStringColor(0x000000));
+            }
+
             tile.Container.setAttribute("x", (col * tileWidth + this.padding).toString());
-            tile.Container.setAttribute("y", (row * tileHeight + this.padding).toString());
+            tile.Container.setAttribute("y", (row * (tileHeight) + this.padding).toString());
             tile.Container.setAttribute("width",  (tileWidth).toString());
             tile.Container.setAttribute("height", (tileHeight).toString());
             tile.Container.setAttribute("display", "unset");
@@ -151,6 +181,7 @@ export class MerkelTreeViewer extends DataContainer {
 
             tileCounter++;
         }
+        // Hide rest of the tiles.
         for(; tileCounter < this.tiles.length; tileCounter++) {
             this.tiles[tileCounter].Container.setAttribute("display", "none");
         }
@@ -159,17 +190,37 @@ export class MerkelTreeViewer extends DataContainer {
     }
 
     private tileOnClickHandler(tileIndex: number) {
-        console.log(tileIndex)
-        console.log(this.currentRootNode)
-        console.log(this.vertices[this.currentRootNode])
         let childIndex = this.vertices[this.currentRootNode].Children[tileIndex] 
         if (this.vertices[childIndex].Children.length > 0) {
             this.currentRootNode = this.vertices[this.currentRootNode].Children[tileIndex]
-            console.log(this.vertices[this.currentRootNode])
             this.infoGraphic.BreadCrumbsIndex.push(this.currentRootNode);
+            // Hide the the mouseOverElement
+            this.mouseOverEle.Container.style.display = "none";
             this.CreateOMT();
             this.updateInfoGraphic();
         }
+    }
+
+    private tileMouseEnterHandler( tileIndex: number ) {
+        let childIndex = this.vertices[this.currentRootNode].Children[tileIndex]
+        if ( this.vertices[childIndex].DamagedChildren.length > 0 ) {
+            this.mouseOverEle.Container.style.display = "unset";
+            this.mouseOverEle.Container.style.left = this.tiles[tileIndex].Container.getAttribute("x")+ "px";
+            this.mouseOverEle.Container.style.top = this.tiles[tileIndex].Container.getAttribute("y") + "px";
+            this.mouseOverEle.List.innerHTML = "";
+            var li: HTMLLIElement;
+            var vertex: Vertex;
+            for(let i = 0; i < this.vertices[childIndex].DamagedChildren.length || i < 5; i++) {
+                vertex = this.vertices[this.vertices[childIndex].DamagedChildren[i]];
+                li = document.createElement("li");
+                li.innerText = `Vertex: ${vertex.Index}. Depth: ${vertex.Depth}`;
+                this.mouseOverEle.List.append(li);
+            }
+        }
+    }
+
+    private tileMouseLeaveHandler() {
+        this.mouseOverEle.Container.style.display = "none";
     }
 
     private breadCrumbOnClickHandler( rootNodeIndex: number ) {
