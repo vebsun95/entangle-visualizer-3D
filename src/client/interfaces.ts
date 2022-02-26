@@ -38,19 +38,54 @@ export interface Touches {
 }
 
 export interface ContentJSON {
-    config: ConfigJSON
-    dataTree: VertexJSON[],
-    parityTrees: ParityJSON[][],
-    Log: LogEntryJSON,
+    Level: string,
+    Msg: string,
+    Type: string | null,
+    Log: DownloadConfigLog | TreeLayoutLog | DownloadEntryLog | DownloadSummaryLog,
+
 }
 
-export interface ConfigJSON {
+export interface DownloadConfigLog {
     alpha: number,
     s: number,
     p: number,
     dataElements: number,
     fileSize: number,
     parityLabels: string[]
+    parityLeafIdToCanonIndex: Map<number, number>,
+    parityTreeNumChildren: Map<number, number>,
+}
+
+export interface TreeLayoutLog {
+    depth: number,
+    length: number,
+    subTreesize: number,
+    key: string,
+    index: number,
+    numChildren: number,
+    parent: number | null,
+}
+
+export interface DownloadEntryLog {
+    parity: boolean,
+    position: number,
+    hasData: boolean,
+    downloadStatus: string,
+    repairStatus: string,
+    downloadStart: number,
+    downloadEnd: number | null,
+    repairEnd: number | null,
+}
+
+export interface DownloadSummaryLog {
+    Status: string,
+    totalData: number,
+    totalParity: number,
+    dataDL: number,
+    parityDL: number,
+    dataDlAndRep: number,
+    DLstart: number,
+    DLend: number,
 }
 
 export interface VertexJSON {
