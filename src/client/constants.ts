@@ -1,14 +1,14 @@
 export const STRANDS = {
     HStrand: 1,
-    LHStrand: 2,
-    RHStrand: 3,
+    LHStrand: 3,
+    RHStrand: 2,
 }
 
 export const COLORS = {
     GREEN: 0x00ff00,
     BLUE: 0x0000ff,
     RED: 0xff0000,
-    GREY: 0x808080
+    GREY: 0xd1d1d1
 }
 
 export const STATE = {
