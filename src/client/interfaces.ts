@@ -7,14 +7,12 @@ export interface Parity {
 }
 
 export interface Vertex {
-    Addr: string,
-    Label: string,
     Color: number,
     Outputs: Parity[],
     Index: number,
+    Label: string,
     Depth: number,
     Parent: number,
-    Replication: number,
     Children: number[],
     DamagedChildren: number[],
 }
@@ -38,10 +36,10 @@ export interface Touches {
 }
 
 export interface ContentJSON {
-    Level: string,
-    Msg: string,
-    Type: string | null,
-    Log: DownloadConfigLog | TreeLayoutLog | DownloadEntryLog | DownloadSummaryLog,
+    level: string,
+    msg: string,
+    type: string | null,
+    log: DownloadConfigLog | TreeLayoutLog | DownloadEntryLog | DownloadSummaryLog,
 
 }
 
@@ -69,6 +67,8 @@ export interface TreeLayoutLog {
 export interface DownloadEntryLog {
     parity: boolean,
     position: number,
+    left: number | null,
+    right: number | null,
     hasData: boolean,
     downloadStatus: string,
     repairStatus: string,

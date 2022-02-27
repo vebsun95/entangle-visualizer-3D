@@ -17,7 +17,7 @@ export class RendererObject extends DataContainer {
     camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);;
     controls: MyControls = new MyControls(this.camera, this.renderer.domElement);;
     pointsPerLine: number = 40;
-    limit: number = 250;
+    limit: number = 260;
     drawFrom: number = 0;
     verticesGroup: THREE.Group = new THREE.Group();
     paritiesGroup: THREE.Group = new THREE.Group();

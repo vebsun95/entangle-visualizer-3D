@@ -57,18 +57,16 @@ export class BitMap extends DataContainer {
         var LatticeCtxs = Array(this.alpha + 1);
         var TreeCtxs = Array(this.alpha + 1);
         var oldPos: vec2;
-        var oldPosMaps: Map<number, vec2>[] = Array(this.alpha + 1);
+        var oldPosMaps: Map<number, vec2>[] = Array(this.alpha + 1).fill(new Map());
         var newPos: vec2;
         // Get the context for all alpha + 1 canvases.
         for (let i = 0; i < this.alpha + 1; i++) {
             LatticeCtxs[i] = this.latticeCanvases[i].getContext('2d');
             TreeCtxs[i] = this.treeCanvases[i].getContext('2d');
             for(let j = 1; j < this.maxDepth; j++) {
-                oldPosMaps[i] = new Map();
-                oldPosMaps[i].set(j, {x: 0, y: this.pixelHeight * (j - 2)});
+                oldPosMaps[i].set(j, {x: 0, y: this.pixelHeight * (this.maxDepth - j - 1)});
             }
         }
-
         for (var vertex of this.vertices) {
             contextIndex = 0;
             color = this.convertHexToStringColor(vertex.Color);
@@ -80,7 +78,6 @@ export class BitMap extends DataContainer {
                 this.pixelHeight)         // Height;
             if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
                 oldPos = oldPosMaps[contextIndex].get(vertex.Depth)!;
-                console.log(oldPos.x, oldPos.y, column, row);
                 TreeCtxs[contextIndex].fillStyle = color;
                 TreeCtxs[contextIndex].fillRect(
                     oldPos.x,
@@ -185,7 +182,7 @@ export class BitMap extends DataContainer {
         */
         if (this.nrOfVertices / this.s > window.innerWidth) {
             this.pixelWidth = 1;
-            this.containerWidth = Math.ceil(this.nrOfVertices / this.s) + 5;
+            this.containerWidth = Math.ceil(this.nrOfVertices / this.s) + 1;
         } else {
             this.pixelWidth = Math.floor(window.innerWidth / Math.ceil(this.nrOfVertices / this.s))
         }
@@ -268,5 +265,14 @@ export class BitMap extends DataContainer {
 
         var vertexIndex = this.getIndexFromCoord(event.offsetX, event.offsetY);
         dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
+    }
+
+    onWindowResize() {
+        if (this.pixelWidth > 1) {
+            for (let i = 0; i < this.alpha + 1; i++) {
+                this.treeCanvases[i].setAttribute("width", window.innerWidth.toString() + "px");
+                this.latticeCanvases[i].setAttribute("width", window.innerWidth.toString() + "px");
+            }
+        }
     }
 }

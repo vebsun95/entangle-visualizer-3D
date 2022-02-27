@@ -70,8 +70,6 @@ function readFile() {
                 Label: i.toString(),
                 Color: GetRandomColorString(),
                 Outputs: [],
-                Replication: replication,
-                Addr: addr,
                 Parent: parent,
                 Depth: depth,
                 Children: [],

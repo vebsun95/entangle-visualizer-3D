@@ -141,8 +141,16 @@ export class MerkelTreeViewer extends DataContainer {
         var nrOfChildren, nrOfRows, nrOfColumns, tileWidth, tileHeight, tileCounter, row, col: number;
 
         nrOfChildren = this.vertices[this.currentRootNode].Children.length;
-        nrOfRows = Math.floor((2 / 3) * Math.sqrt(nrOfChildren)); // https://www.brilliant.org/bartek_stasiak;
-        nrOfColumns = Math.ceil(nrOfChildren / nrOfRows);
+        switch(nrOfChildren) {
+            case 128:
+                nrOfColumns = 16;
+                nrOfRows = 8;
+                break;
+            default:
+                nrOfRows = Math.floor((2 / 3) * Math.sqrt(nrOfChildren)) || 1; // https://www.brilliant.org/bartek_stasiak;
+                nrOfColumns = Math.ceil(nrOfChildren / nrOfRows);
+        }
+        
 
         tileWidth = Math.ceil((this.svgElement.clientWidth - this.padding * 2) / nrOfColumns);
         tileHeight = Math.ceil((this.svgElement.clientHeight - this.padding * 2) / nrOfRows);
