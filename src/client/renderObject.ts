@@ -208,18 +208,11 @@ export class RendererObject extends DataContainer {
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
-                    // If second last column
-                    else if (currentColumn < nrColumns) {
-                        array.setXYZ(1, leftPos!.position.x + (this.scale), leftPos!.position.y - (this.scale/3), leftPos!.position.z);
-                        array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 3);
-                        line!.geometry.attributes.position.needsUpdate = true;
-                        return
-                    }
                     else {
-                        array.setXYZ(1,leftPos!.position.x + (this.scale), leftPos!.position.y - (this.scale/3), leftPos!.position.z );
-                        array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 3);
+                        array.setXYZ(1, leftPos!.position.x + (this.scale/2), leftPos!.position.y - (this.scale/3), leftPos!.position.z);
+                        array.setXYZ(2, rightPos!.position.x - (this.scale/2), rightPos!.position.y + (this.scale/3), rightPos!.position.z);
+                        array.setXYZ(3, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 4);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
@@ -251,9 +244,10 @@ export class RendererObject extends DataContainer {
                         return
                     }
                     else {
-                        array.setXYZ(1, leftPos!.position.x + (this.scale), leftPos!.position.y + (this.scale/3), leftPos!.position.z);
-                        array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 3);
+                        array.setXYZ(1, leftPos!.position.x + (this.scale/2), leftPos!.position.y + (this.scale/3), leftPos!.position.z);
+                        array.setXYZ(2, rightPos!.position.x - (this.scale/2), rightPos!.position.y - (this.scale/3), rightPos!.position.z);
+                        array.setXYZ(3, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, 4);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
