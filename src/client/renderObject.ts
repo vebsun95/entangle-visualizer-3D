@@ -41,6 +41,8 @@ export class RendererObject extends DataContainer {
         this.controls = new MyControls(this.camera, this.renderer.domElement);
         this.limit = this.limit + (this.s - (this.limit % this.s));
         console.log(this.limit)
+
+        // Makes group for each parity
         for (let i = 0; i < this.alpha; i++) {
             this.paritiesGroupList.push(new THREE.Group());
         }
@@ -58,7 +60,7 @@ export class RendererObject extends DataContainer {
         var lineGeometry: THREE.BufferGeometry;
         var curveObject: THREE.Line;
 
-        // Hvis listen av vertcies er mindre enn limit verdien.
+        // If vertices length is less than limit.
         if (this.vertices.length < this.limit) {
             this.limit = this.vertices.length
         }
@@ -194,31 +196,13 @@ export class RendererObject extends DataContainer {
                     // LeftPos and RightPos is on the same row and last column
                     if (output.RightPos % this.s == output.LeftPos % this.s && currentColumn == nrColumns) {
                         console.log("RHStrand går til samme")
-                        let deltaX = (rightPos!.position.x + leftPos!.position.x) / 2;
-                        let deltaY = leftPos!.position.y;
-                        let a = rightPos!.position.x - deltaX;
-                        let b = this.scale/3;
-                        let counter = 1;
-                        let xPosition = leftPos!.position.x
-                        console.log("Start spot:", leftPos!.position.x, leftPos!.position.y);
-                        console.log("Slutt spot:", rightPos!.position.x, rightPos!.position.y);
-                        for (let i = a-1; i > 0; i--) {
-                            xPosition = xPosition + 1;
-                            let y = deltaY - (b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2));
-                            console.log(xPosition, y, counter);
-                            array.setXYZ(counter, xPosition, y, 0);
-                            counter++;
+                        // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
+                        let pointList = this.createEclipseLine(rightPos, leftPos, 1);
+                        for (let i = 0; i < pointList.length; i++) {
+                            array.setXYZ(pointList[i][2], pointList[i][0], pointList[i][1], 0);
                         }
-                        for (let i = 0; i < a; i++) {
-                            xPosition = xPosition + 1;
-                            let y = deltaY - (b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2));
-                            console.log(xPosition, y, counter);
-                            array.setXYZ(counter, xPosition, y, 0);
-                            counter++;
-                        }
-                        console.log(counter);
-                        array.setXYZ(counter, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, counter);
+                        array.setXYZ(pointList[pointList.length-1][2] + 1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, pointList[pointList.length-1][2] + 1);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
@@ -254,41 +238,16 @@ export class RendererObject extends DataContainer {
                     // LeftPos and RightPos is on the same row and last column
                     else if (output.RightPos % this.s == output.LeftPos % this.s && currentColumn == nrColumns) {
                         console.log("LHStrand går til samme")
-                        let deltaX = (rightPos!.position.x + leftPos!.position.x) / 2;
-                        let deltaY = leftPos!.position.y;
-                        let a = rightPos!.position.x - deltaX;
-                        let b = this.scale/3;
-                        let counter = 1;
-                        let xPosition = leftPos!.position.x
-                        console.log("Start spot:", leftPos!.position.x, leftPos!.position.y);
-                        console.log("Slutt spot:", rightPos!.position.x, rightPos!.position.y);
-                        for (let i = a-1; i > 0; i--) {
-                            xPosition = xPosition + 1;
-                            let y = deltaY + (b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2));
-                            console.log(xPosition, y, counter);
-                            array.setXYZ(counter, xPosition, y, 0);
-                            counter++;
+                        // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
+                        let pointList = this.createEclipseLine(rightPos, leftPos, -1);
+                        for (let i = 0; i < pointList.length; i++) {
+                            array.setXYZ(pointList[i][2], pointList[i][0], pointList[i][1], 0);
                         }
-                        for (let i = 0; i < a; i++) {
-                            xPosition = xPosition + 1;
-                            let y = deltaY + (b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2));
-                            console.log(xPosition, y, counter);
-                            array.setXYZ(counter, xPosition, y, 0);
-                            counter++;
-                        }
-                        console.log(counter);
-                        array.setXYZ(counter, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, counter);
+                        array.setXYZ(pointList[pointList.length-1][2] + 1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
+                        line!.geometry.setDrawRange(0, pointList[pointList.length-1][2] + 1);
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
-                    // else if (currentColumn == nrColumns) {
-                    //     array.setXYZ(1, leftPos!.position.x + (this.scale/1.3), leftPos!.position.y + (this.scale/2), leftPos!.position.z);
-                    //     array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                    //     line!.geometry.setDrawRange(0, 3);
-                    //     line!.geometry.attributes.position.needsUpdate = true;
-                    //     return
-                    // }
                     else {
                         array.setXYZ(1, leftPos!.position.x + (this.scale), leftPos!.position.y + (this.scale/3), leftPos!.position.z);
                         array.setXYZ(2, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
@@ -296,7 +255,6 @@ export class RendererObject extends DataContainer {
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
-
                 }
                 default: {
                     // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
@@ -357,118 +315,33 @@ export class RendererObject extends DataContainer {
         }
     }
 
-    createParitiesfor2d() {
-        let startIndex = this.drawFrom;
-        let lineGeomIndex = 0;
-        let counter = 0;
-        for (let index = 0; index < this.limit; index++) {
-            for (var output of this.vertices[startIndex].Outputs) {
-                if (index + this.s < this.limit) {
-                let line  = this.paritiesGroupList[counter % this.alpha].children[lineGeomIndex] as THREE.Line;
-                //let line  = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
-                let leftPos = this.scene.getObjectByName(output.LeftPos.toString());
-                let rightPos = this.scene.getObjectByName(output.RightPos.toString());
-
-                if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
-                    let array = line.geometry.attributes.position;
-                    array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
-                    switch (output.Strand) {
-                        case STRANDS.HStrand: {
-                            array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            break
-                        }
-                        case STRANDS.LHStrand: {
-                            if(output.RightPos < output.LeftPos) {
-                                // MÅ FORANDRES HER
-                                if (this.nrOfVertices % this.s != 0) {
-                                    console.log("LHSTRAND");
-                                    console.log(output.LeftPos, output.RightPos);
-                                    if (output.RightPos % this.s == output.LeftPos % this.s) {
-                                        console.log("LHStrand går til samme")
-                                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                                    }
-                                    else if(output.RightPos % this.s == 0) {
-                                        let name = this.vertices[output.RightPos-1].Label;
-                                        let color = this.vertices[output.RightPos-1].Color;
-                                        var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
-                                        array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                                    }
-                                    else {
-                                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                                    }
-                                }
-                                else if (output.RightPos % this.s == 0) {
-                                    let name = this.vertices[output.RightPos-1].Label;
-                                    let color = this.vertices[output.RightPos-1].Color;
-                                    // Henter ut x-koordinaten til vertex 1
-                                    var temp = this.scene.getObjectByName("1")?.position.x;
-                                    //@ts-ignore
-                                    var ghost = this.createGhostVertex(name, temp, leftPos!.position.y + this.scale, 0, color);
-                                }
-                                else {
-                                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                                }
-                            }
-                            // Sjekker om Vertex er top node
-                            else if (output.RightPos % this.s == 0) {
-                                let name = this.vertices[output.RightPos-1].Label;
-                                let color = this.vertices[output.RightPos-1].Color;
-                                // Lager en ghost Vertex
-                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
-                                array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                            }
-                            else {
-                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            }
-                            break
-                        }
-                        case STRANDS.RHStrand: {
-                            if(output.RightPos < output.LeftPos) {
-                                // MÅ FORANDRES HER
-                                if (this.nrOfVertices % this.s != 0) {
-                                    console.log("RHSTRAND");
-                                    console.log(output.LeftPos, output.RightPos)
-                                    if (output.RightPos % this.s == output.LeftPos % this.s) {
-                                        console.log("RHStrand går til samme")
-                                        //array.setXYZ(1, rightPos!.position.x / 2, rightPos!.position.y + (this.scale/2), rightPos!.position.z);
-                                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                                    }
-                                    else {
-                                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                                    }
-                                }
-                                else {
-                                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                                }
-                            }
-                            else if (output.RightPos % this.s == 1) {
-                                let name = this.vertices[output.RightPos-1].Label;
-                                let color = this.vertices[output.RightPos-1].Color;
-                                var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color) 
-                                array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                            }
-                            else {
-                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            }
-                            break
-                        }
-                        default:
-                            {
-                                // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
-                                array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                            }
-                    }
-                    line!.geometry.setDrawRange(0, 2);
-                    line!.geometry.attributes.position.needsUpdate = true;
-                }
-                counter++;
-            }
+    // Returns a list with (xPosition, yPosition, counter) in given order.
+    createEclipseLine(rightPos: THREE.Object3D<THREE.Event>, leftPos: THREE.Object3D<THREE.Event>, type: number) {
+        let tempList: [number, number, number][] = [];
+        let deltaX = (rightPos!.position.x + leftPos!.position.x) / 2;
+        let deltaY = leftPos!.position.y;
+        let a = rightPos!.position.x - deltaX;
+        let b = this.scale/3;
+        let counter = 1;
+        let xPosition = leftPos!.position.x
+        //console.log("Start spot:", leftPos!.position.x, leftPos!.position.y);
+        //console.log("Slutt spot:", rightPos!.position.x, rightPos!.position.y);
+        for (let i = a-1; i > 0; i--) {
+            xPosition = xPosition + 1;
+            let y = deltaY - (type * ((b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2))));
+            //console.log(xPosition, y, counter);
+            tempList.push([xPosition, y, counter]);
+            counter++;
         }
-            startIndex = (startIndex + 1) % this.nrOfVertices;
-            lineGeomIndex++;
+        for (let i = 0; i < a; i++) {
+            xPosition = xPosition + 1;
+            let y = deltaY - (type * ((b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2))));
+            //console.log(xPosition, y, counter);
+            tempList.push([xPosition, y, counter]);
+            counter++;
         }
-        this.ghostGroup.visible = this.ghostgroupshow;
-
+        //console.log(counter);
+        return tempList;
     }
         
 
@@ -486,9 +359,7 @@ export class RendererObject extends DataContainer {
         obj.material.map = this.createTexture(index);
         //@ts-ignore
         obj.material.color.setHex(color);
-        obj.position.x = x
-        obj.position.y = y
-        obj.position.z = z
+        obj.position.set(x,y,z);
         //@ts-ignore
         obj.material.opacity = 0.3
         //@ts-ignore
