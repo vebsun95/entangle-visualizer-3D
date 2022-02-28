@@ -25,7 +25,6 @@ export class RendererObject extends DataContainer {
     scale: number = 10;
     radius: number = 2;
     ghostgroupshow: boolean = true;
-    paritiesGroupList: THREE.Group[] = [];
 
     constructor() {
         super();
@@ -43,9 +42,7 @@ export class RendererObject extends DataContainer {
     initObjects() {
         this.verticesGroup.clear();
         this.scene.clear();
-        for(var p of this.paritiesGroupList) {
-            p.clear();
-        }
+        this.paritiesGroup.clear();
 
         const geometry = new THREE.SphereGeometry(this.radius);
         const lineMaterial = new THREE.LineBasicMaterial({ color: 0xd1d1d1, linewidth: 2 });
@@ -57,18 +54,15 @@ export class RendererObject extends DataContainer {
         var curveObject: THREE.Line;
 
         this.limit = 250 + (this.s - (250 % this.s));
-        for (let i = 0; i < this.alpha; i++) {
-            this.paritiesGroupList.push(new THREE.Group());
-        }
 
         // Hvis listen av vertcies er mindre enn limit verdien.
-        if (this.vertices.length < this.limit) {
-            this.limit = this.vertices.length
+        if (this.vertices.size < this.limit) {
+            this.limit = this.vertices.size
         }
 
         for (var index = 0; index < this.limit; index++) {
             material = new THREE.MeshBasicMaterial({
-                color: this.vertices[index].Color,
+                color: 0xfff00,
             });
             obj = new THREE.Mesh(geometry, material);
             this.verticesGroup.add(obj);
@@ -82,15 +76,12 @@ export class RendererObject extends DataContainer {
 
                 curveObject = new THREE.Line(lineGeometry, lineMaterial);
                 curveObject.geometry.attributes.position.needsUpdate;
-                this.paritiesGroupList[i].add(curveObject);
+                this.paritiesGroup.add(curveObject);
             }
         }
 
         this.scene.add(this.verticesGroup);
-        for (let i = 0; i < this.alpha; i++) {
-            this.scene.add(this.paritiesGroupList[i]);
-        }
-
+        this.scene.add(this.paritiesGroup);
     }
 
     createTwoDimView() {
@@ -109,20 +100,23 @@ export class RendererObject extends DataContainer {
                     starty - (this.scale * row) + 5,
                     0
                 )
-                v.name = this.vertices[startIndex].Label;
+                let vertexInfo = this.vertices.get(startIndex);
+                v.name = vertexInfo!.Label;
                 //@ts-ignore
                 v.material.map = this.createTexture(v.name);
                 //@ts-ignore
-                v.material.color.setHex(this.vertices[startIndex].Color);
+                v.material.color.setHex(vertexInfo!.Color);
                 v.rotateY(0.9)
-                startIndex = (startIndex + 1) % this.nrOfVertices;
+                if (startIndex > this.nrOfVertices) {
+                    startIndex = 1;
+                }
                 v.visible = true;;
             }
             else {
                 v.visible = false;
                 v.name = "";
             }
-            if (startIndex == 0) {
+            if (startIndex == 1) {
                 skip = true;
                 if (!increasecolumn) {
                     column++;
