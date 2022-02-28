@@ -1,6 +1,3 @@
-import * as e from "express";
-import { threadId } from "worker_threads";
-import { COLORS } from "./constants";
 import { DataContainer } from "./dataContainer";
 import { Vertex } from "./interfaces";
 
@@ -38,7 +35,7 @@ export class MerkelTreeViewer extends DataContainer {
         List: document.createElement("ul")};
     private padding = 20;
     private borderSize = 5;
-    private tiles: Tile[] = Array(260);
+    private tiles: Tile[] = Array(140);
     private currentRootNode: number = 0;
 
     constructor() {
@@ -118,29 +115,26 @@ export class MerkelTreeViewer extends DataContainer {
 
     private updateInfoGraphic() {
         var breadCrumb: HTMLAnchorElement;
+        var currentRootNode = this.vertices.get(this.currentRootNode)!
 
         while(this.infoGraphic.BreadCrumbs.children.length > 0) { this.infoGraphic.BreadCrumbs.removeChild(this.infoGraphic.BreadCrumbs.lastChild!) }
         for (let rootNodeIndex of this.infoGraphic.BreadCrumbsIndex) {
             breadCrumb = document.createElement("a");
             breadCrumb.href = "#";
             breadCrumb.addEventListener("mousedown", () => this.breadCrumbOnClickHandler(rootNodeIndex));
-            breadCrumb.innerHTML = `>${this.vertices[rootNodeIndex].Index}`
+            breadCrumb.innerHTML = `>${rootNodeIndex}`
             this.infoGraphic.BreadCrumbs.append(breadCrumb);
         }
-
-        let currentNode = this.vertices[this.currentRootNode].Index;
-        let depth = this.vertices[this.currentRootNode].Depth;
-        let nrOfChildren = this.vertices[this.currentRootNode].Children.length;
-        this.infoGraphic.Text.innerHTML = `Current node: ${currentNode}, Depth: ${depth}, Number of children: ${nrOfChildren}`
-
+        this.infoGraphic.Text.innerHTML = `Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
     }
 
     CreateOMT() {
         var vertex: Vertex;
         var tile: Tile;
         var nrOfChildren, nrOfRows, nrOfColumns, tileWidth, tileHeight, tileCounter, row, col: number;
+        var currentRootNode = this.vertices.get(this.currentRootNode)!;
 
-        nrOfChildren = this.vertices[this.currentRootNode].Children.length;
+        nrOfChildren = currentRootNode.Children.length;
         switch(nrOfChildren) {
             case 128:
                 nrOfColumns = 16;
@@ -160,8 +154,8 @@ export class MerkelTreeViewer extends DataContainer {
         row = 0;
         col = 0;
 
-        for(let childIndex of this.vertices[this.currentRootNode].Children) {
-            vertex = this.vertices[childIndex];
+        for(let childIndex of currentRootNode.Children) {
+            vertex = this.vertices.get(childIndex)!;
             tile = this.tiles[tileCounter];
 
             if (vertex.DamagedChildren.length > 0 && vertex.Depth > 1) {
@@ -198,9 +192,9 @@ export class MerkelTreeViewer extends DataContainer {
     }
 
     private tileOnClickHandler(tileIndex: number) {
-        let childIndex = this.vertices[this.currentRootNode].Children[tileIndex] 
-        if (this.vertices[childIndex].Children.length > 0) {
-            this.currentRootNode = this.vertices[this.currentRootNode].Children[tileIndex]
+        let childIndex = this.vertices.get(this.currentRootNode)!.Children[tileIndex] 
+        if (this.vertices.get(childIndex)!.Children.length > 0) {
+            this.currentRootNode = this.vertices.get(this.currentRootNode)!.Children[tileIndex]
             this.infoGraphic.BreadCrumbsIndex.push(this.currentRootNode);
             // Hide the the mouseOverElement
             this.mouseOverEle.Container.style.display = "none";
@@ -210,16 +204,16 @@ export class MerkelTreeViewer extends DataContainer {
     }
 
     private tileMouseEnterHandler( tileIndex: number ) {
-        let childIndex = this.vertices[this.currentRootNode].Children[tileIndex]
-        if ( this.vertices[childIndex].DamagedChildren.length > 0 ) {
+        let childIndex = this.vertices.get(this.currentRootNode)!.Children[tileIndex]
+        if ( this.vertices.get(childIndex)!.DamagedChildren.length > 0 ) {
             this.mouseOverEle.Container.style.display = "unset";
             this.mouseOverEle.Container.style.left = this.tiles[tileIndex].Container.getAttribute("x")+ "px";
             this.mouseOverEle.Container.style.top = this.tiles[tileIndex].Container.getAttribute("y") + "px";
             this.mouseOverEle.List.innerHTML = "";
             var li: HTMLLIElement;
             var vertex: Vertex;
-            for(let i = 0; i < this.vertices[childIndex].DamagedChildren.length || i < 5; i++) {
-                vertex = this.vertices[this.vertices[childIndex].DamagedChildren[i]];
+            for(let i = 0; i < this.vertices.get(childIndex)!.DamagedChildren.length || i < 5; i++) {
+                vertex = this.vertices.get(this.vertices.get(childIndex)!.DamagedChildren[i])!;
                 li = document.createElement("li");
                 li.innerText = `Vertex: ${vertex.Index}. Depth: ${vertex.Depth}`;
                 this.mouseOverEle.List.append(li);
