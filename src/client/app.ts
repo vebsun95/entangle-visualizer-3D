@@ -5,7 +5,7 @@ import { SideBar } from "./sidebar";
 
 
 
-import { VertexJSON, ContentJSON, Vertex, ParityJSON, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog } from "./interfaces";
+import { VertexJSON, ContentJSON, Vertex, ParityJSON, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity } from "./interfaces";
 import { COLORS, MSG, STRANDS } from "./constants";
 
 
@@ -15,7 +15,8 @@ export class App {
     bitMap = new BitMap();
     merkelTree = new MerkelTreeViewer();
     sideBar = new SideBar();
-    vertices: Vertex[] = []
+    vertices: Map<number, Vertex> = new Map();
+    parities: Map<number, Parity>[] = [];
 
     constructor() {
         this.AddEventListener();
@@ -27,20 +28,10 @@ export class App {
     }
 
     UpdateData(alpha: number, s: number, p: number) {
-
-        // this.vertices[0].Color = COLORS.RED;
-        // this.vertices[this.vertices[0].Parent -1].DamagedChildren.push(0);
-
-        // this.vertices[this.vertices.length - 2].Color = COLORS.RED;
-        // this.vertices[this.vertices[this.vertices.length - 2].Parent -1].DamagedChildren.push(this.vertices.length - 2);
-
-        // this.vertices[this.vertices.length - 3].Color = COLORS.RED;
-        // this.vertices[this.vertices[this.vertices.length - 3].Parent -1].DamagedChildren.push(this.vertices.length - 3);
-
-        this.renderer.UpdateData(alpha, s, p, this.vertices);
-        this.bitMap.UpdateData(alpha, s, p, this.vertices);
-        this.merkelTree.UpdateData(alpha, s, p, this.vertices);
-        this.sideBar.UpdateData(alpha, s, p, this.vertices);
+        this.renderer.UpdateData(alpha, s, p, this.vertices, this.parities);
+        this.bitMap.UpdateData(alpha, s, p, this.vertices, this.parities);
+        this.merkelTree.UpdateData(alpha, s, p, this.vertices, this.parities);
+        this.sideBar.UpdateData(alpha, s, p, this.vertices, this.parities);
 
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
@@ -56,8 +47,8 @@ export class App {
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
     }
     HandleLogEntryEvent(e : CustomEvent) {
-        let i = e.detail.index - 1;
-        this.vertices[i].Color = e.detail.newColor;
+        let i = e.detail.index;
+        this.vertices.get(i)!.Color = e.detail.newColor;
 
         this.renderer.UpdateVertex(i);
         this.bitMap.UpdateVertex(i);
@@ -65,22 +56,13 @@ export class App {
 
     }
     HandleLogEntryParityEvent(e : CustomEvent) {
-        console.log(e.detail.left, e.detail.right)
-        let i = e.detail.left - 1;
-        this.vertices[i].Outputs.push({
-            LeftPos: e.detail.left,
-            RightPos: e.detail.right,
-            Strand: -1,
-            Color: e.detail.newColor,
-            Fetched: false,
-        })
     }
     HandleBitMapClicked(e : CustomEvent) {
         this.renderer.GoTo(e.detail.vertexIndex)
     }
     HandleNewFileUploaded(e : CustomEvent) {
         console.log("new file uploaded")
-        var alpha, s, p, dataElements, lineCounter : number;
+        var alpha, s, p, dataElements, lineCounter, parityIndex: number;
         lineCounter = 0;
 
         let content : ContentJSON[] = e.detail.newContent
@@ -89,31 +71,54 @@ export class App {
         s = (line.log as DownloadConfigLog).s;
         p = (line.log as DownloadConfigLog).p;
         dataElements = (line.log as DownloadConfigLog).dataElements;
+        var parityLabels = (line.log as DownloadConfigLog).parityLabels;
 
-        this.vertices = Array(dataElements);
+        this.vertices.clear();
+        this.parities = Array(alpha).fill(new Map());
         var log: TreeLayoutLog;
         
         line = content[lineCounter++]
         while (line.msg == MSG.TreeLayout) {
             log = line.log as TreeLayoutLog;
             if (line.type == "Data") {
-                this.vertices[log.index - 1] = {
+                this.vertices.set(log.index, {
                     Index: log.index,
                     Label: log.index.toString(),
+                    Adr: log.adr,
                     Color: COLORS.GREY,
-                    Outputs: [],
                     Parent: log.parent || 0,
                     Depth: log.depth,
                     Children: [],
                     DamagedChildren: [],
-                }
+                });
             } else {
+                parityIndex = parityLabels.indexOf(line.type!)
+                this.parities[parityIndex].set(log.index, {
+                    Index: log.index,
+                    To: null,
+                    Label: log.index.toString(),
+                    Adr: log.adr,
+                    Color: COLORS.GREY,
+                    Parent: log.parent || 0,
+                    Depth: log.depth,
+                    Children: [],
+                    DamagedChildren: [],
+                });
             }
             line = content[lineCounter++] 
         }
-        for(let i=0; i < this.vertices.length; i++) {
-            if ( this.vertices[i].Parent != 0 ) {
-                this.vertices[ this.vertices[i].Parent - 1 ].Children.push(i)
+        var v: Vertex;
+        var parity: Parity;
+        for(let i=1; i <= dataElements; i++) {
+            v = this.vertices.get(i)!;
+            if ( v.Parent != 0 ) {
+                this.vertices.get(v.Parent)!.Children.push(i);
+            }
+            for(let j=0; j < this.parities.length; j++) {
+                parity = this.parities[j].get(i)!;
+                if( parity.Parent != 0) {
+                    this.parities[j].get(parity.Parent)?.Children.push(i);
+                }
             }
         }
         this.sideBar.PlayBackEle.LogEntries = (content.slice(lineCounter, content.length - 1).map(c => c.log) as DownloadEntryLog[]) //.sort((a, b) => {return a.downloadStart - b.downloadStart}) ;
@@ -127,323 +132,6 @@ export class App {
     }
 
 }
-var nrOfVertices = 16000;
-    var alpha = 3
-    var s = 5
-    var p = s;
-function readFile() {
-
-    
-
-
-    var branchingFactor = 128;
-    var depth, index, parent, replication: number;
-    var addr: string;
-    addr = "aaaqqqaaaqqqaaaqqqaaaqqq";
-    replication = 33;
-    var vertices: Vertex[] = [];
-    
-    for (let i = 1; i < nrOfVertices + 1; i++) {
-
-        if (i == nrOfVertices) {
-            depth = 3;
-            parent = 0;
-        }
-        else if ( i == nrOfVertices - 1) {
-            depth = 2
-            parent = nrOfVertices - 1;
-        }
-
-        else if (i % (branchingFactor + 1) == 0)
-        {
-            parent = nrOfVertices - 1;
-            depth = 2;
-        } else {
-            depth = 1;
-            parent = Math.ceil(i / branchingFactor) * 129;
-            if(parent > nrOfVertices) {
-                parent = parent = nrOfVertices - 2
-            }
-        }
-
-
-        vertices.push(
-            {
-                Index: i,
-                Label: i.toString(),
-                Color: 0x00ff00,//GetRandomColorString(),
-                Outputs: [],
-                Parent: parent,
-                Depth: depth,
-                Children: [],
-                DamagedChildren: [],
-            }
-        )
-        for (let j = 1; j < 2; j++) {
-            let parityTo = i + s;
-    
-            // -- H Strand --
-            if (parityTo <= nrOfVertices) {
-                // horizontal
-                vertices[vertices.length - 1].Outputs.push(
-                    {
-                        LeftPos: i,
-                        RightPos: i + s,
-                        Strand: STRANDS.HStrand,
-                        Color: COLORS.BLUE,
-                        Fetched: false,
-                    }
-                )
-            }
-            else if (parityTo > nrOfVertices) {
-                var right_temp = (i + s) % nrOfVertices;
-                if (nrOfVertices % s != 0) {
-                    var remaining = nrOfVertices % s;
-                    var right_temp = (i + s) % (nrOfVertices - remaining);
-                    if( right_temp > s) {
-                        right_temp = right_temp % s;
-                    } 
-                }
-                //console.log("HStrand")
-                //console.log(i, right_temp);
-                vertices[vertices.length - 1].Outputs.push(
-                    {
-                        LeftPos: i,
-                        RightPos: right_temp,
-                        Strand: STRANDS.HStrand,
-                        Color: COLORS.BLUE,
-                        Fetched: false,
-                    }
-                )
-            }
-    
-            // -- RH Strand --
-            let helper = i % s;
-            // RH Top & middle
-            if (helper >= 1) {
-                parityTo = i + s + 1
-                if (parityTo <= nrOfVertices) {
-                    vertices[vertices.length - 1].Outputs.push(
-                        {
-                            LeftPos: i,
-                            RightPos: parityTo,
-                            Strand: STRANDS.RHStrand,
-                            Color: COLORS.BLUE,
-                            Fetched: false,
-                        }
-                    )
-                }
-                else if (parityTo > nrOfVertices) {
-                    var right_temp = parityTo % nrOfVertices
-                    if (nrOfVertices % s != 0) {
-                        if (helper == 1) {
-                            var temp_node = i;
-                            while(temp_node > s) {
-                                if (temp_node % s == 1) {
-                                    temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
-                                }
-                                else {
-                                    temp_node = temp_node - (s + 1);
-                                }
-                            }
-                            right_temp = temp_node;
-                        }
-                        else if (helper > 1) {
-                            var temp_node = i;
-                            while(temp_node > s) {
-                                if (temp_node % s == 1) {
-                                    temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
-                                }
-                                else {
-                                    temp_node = temp_node - (s + 1);
-                                }
-                            }
-                            right_temp = temp_node
-                        }
-                    }
-                    if (right_temp == 0) {
-                        right_temp = 1
-                    }
-                    //console.log("RHStrand")
-                    //console.log(i, right_temp);
-                    vertices[vertices.length - 1].Outputs.push(
-                        {
-                            LeftPos: i,
-                            RightPos: right_temp,
-                            Strand: STRANDS.RHStrand,
-                            Color: COLORS.BLUE,
-                            Fetched: false,
-                        }
-                    )
-    
-                }
-            }
-            // RH Bottom
-            else if (helper == 0) {
-                parityTo = i + (s * p) - ((s * s) - 1)
-                if (parityTo <= nrOfVertices) {
-                    vertices[vertices.length - 1].Outputs.push(
-                        {
-                            LeftPos: i,
-                            RightPos: parityTo,
-                            Strand: STRANDS.RHStrand,
-                            Color: COLORS.BLUE,
-                            Fetched: false,
-                        }
-                    )
-                }
-                else if (parityTo > nrOfVertices) {
-                    var right_temp = parityTo % nrOfVertices
-                    if (nrOfVertices % s != 0) {
-                        var temp_node = i;
-                        while(temp_node > s) {
-                            if (temp_node % s == 1) {
-                                temp_node = temp_node - s * p + (Math.pow(s,2) - 1)
-                            }
-                            else {
-                                temp_node = temp_node - (s + 1);
-                            }
-                        }
-                        right_temp = temp_node;
-                    }
-                    if (right_temp == 0) {
-                        right_temp = 1
-                    }
-                    //console.log("RHStrand")
-                    //console.log(i, right_temp);
-                    vertices[vertices.length - 1].Outputs.push(
-                        {
-                            LeftPos: i,
-                            RightPos: right_temp,
-                            Strand: STRANDS.RHStrand,
-                            Color: COLORS.BLUE,
-                            Fetched: false,
-                        }
-                    )
-                }
-            }
-            // -- LH Strand --
-            if (helper == 1) {
-                // top
-                parityTo = i + s * p - Math.pow((s - 1), 2)
-                if (parityTo <= nrOfVertices) {
-                    vertices[vertices.length - 1].Outputs.push(
-                        {
-                            LeftPos: i,
-                            RightPos: parityTo,
-                            Strand: STRANDS.LHStrand,
-                            Color: COLORS.BLUE,
-                            Fetched: false,
-                        }
-                    )
-                }
-                else if (parityTo > nrOfVertices) {
-                    var right_temp = parityTo % nrOfVertices
-                    if (nrOfVertices % s != 0) {
-                        var temp_node = i;
-                        while(temp_node > s) {
-                            if (temp_node % s == 0) {
-                                temp_node = temp_node - s * p + Math.pow((s - 1), 2);
-                            }
-                            else {
-                                temp_node = temp_node - (s - 1);
-                            }
-                        }
-                        right_temp = temp_node;
-                    }
-                    if (right_temp == 0) {
-                        right_temp = 1
-                    }
-                    //console.log("LHStrand")
-                    //console.log(i, right_temp);
-                    vertices[vertices.length - 1].Outputs.push(
-                        {
-                            LeftPos: i,
-                            RightPos: right_temp,
-                            Strand: STRANDS.LHStrand,
-                            Color: COLORS.BLUE,
-                            Fetched: false,
-                        }
-                    )
-                }
-            }
-            else if (helper == 0 || helper > 1) {
-                // central && bottom
-                parityTo = i + s - 1
-                if (parityTo <= nrOfVertices) {
-                    vertices[vertices.length - 1].Outputs.push(
-                        {
-                            LeftPos: i,
-                            RightPos: parityTo,
-                            Strand: STRANDS.LHStrand,
-                            Color: COLORS.BLUE,
-                            Fetched: false,
-    
-                        }
-                    )
-                }
-                else if (parityTo > nrOfVertices) {
-                    var right_temp = parityTo % nrOfVertices
-                    if (nrOfVertices % s != 0) {
-                        if (helper > 1) {
-                            var temp_node = i;
-                            while(temp_node > s) {
-                                if (temp_node % s == 0) {
-                                    temp_node = temp_node - s * p + Math.pow((s - 1), 2);
-                                }
-                                else {
-                                    temp_node = temp_node - (s - 1);
-                                }
-                            }
-                            right_temp = temp_node
-                        }
-                        else if (helper == 0) {
-                            var temp_node = i;
-                            while(temp_node > s) {
-                                if (temp_node % s == 0) {
-                                    temp_node = temp_node - s * p + Math.pow((s - 1), 2);
-                                }
-                                else {
-                                    temp_node = temp_node - (s - 1);
-                                }
-                            }
-                            right_temp = temp_node
-                        }
-                    }
-                    if (right_temp == 0) {
-                        right_temp = 1
-                    }
-                    //console.log("LHStrand")
-                    //console.log(i, right_temp);
-                    vertices[vertices.length - 1].Outputs.push(
-                        {
-                            LeftPos: i,
-                            RightPos: right_temp,
-                            Strand: STRANDS.LHStrand,
-                            Color: COLORS.BLUE,
-                            Fetched: false,
-                        }
-                    )
-                }
-            }
-    
-        }
-    }
-    for(let k=0; k < nrOfVertices; k++) {
-        if (vertices[k].Depth < 3 ) {
-            vertices[vertices[k].Parent].Children.push(k);
-        }
-    }
-    return vertices;
-}
-
-function GetRandomColorString(): number {
-    var dice = Math.random();
-    if (dice < 1)
-        return COLORS.GREEN
-    return COLORS.RED
-}
-
 const devContent = `{"level":"info","msg":"Download Config","log":{"alpha":3,"s":5,"p":5,"fileSize":1048576,"dataElements":259,"parityLabels":["Horizontal","Right","Left"],"parityLeafIdToCanonIndex":{"1":1,"10":10,"100":100,"101":101,"102":102,"103":103,"104":104,"105":105,"106":106,"107":107,"108":108,"109":109,"11":11,"110":110,"111":111,"112":112,"113":113,"114":114,"115":115,"116":116,"117":117,"118":118,"119":119,"12":12,"120":120,"121":121,"122":122,"123":123,"124":124,"125":125,"126":126,"127":127,"128":128,"129":130,"13":13,"130":131,"131":132,"132":133,"133":134,"134":135,"135":136,"136":137,"137":138,"138":139,"139":140,"14":14,"140":141,"141":142,"142":143,"143":144,"144":145,"145":146,"146":147,"147":148,"148":149,"149":150,"15":15,"150":151,"151":152,"152":153,"153":154,"154":155,"155":156,"156":157,"157":158,"158":159,"159":160,"16":16,"160":161,"161":162,"162":163,"163":164,"164":165,"165":166,"166":167,"167":168,"168":169,"169":170,"17":17,"170":171,"171":172,"172":173,"173":174,"174":175,"175":176,"176":177,"177":178,"178":179,"179":180,"18":18,"180":181,"181":182,"182":183,"183":184,"184":185,"185":186,"186":187,"187":188,"188":189,"189":190,"19":19,"190":191,"191":192,"192":193,"193":194,"194":195,"195":196,"196":197,"197":198,"198":199,"199":200,"2":2,"20":20,"200":201,"201":202,"202":203,"203":204,"204":205,"205":206,"206":207,"207":208,"208":209,"209":210,"21":21,"210":211,"211":212,"212":213,"213":214,"214":215,"215":216,"216":217,"217":218,"218":219,"219":220,"22":22,"220":221,"221":222,"222":223,"223":224,"224":225,"225":226,"226":227,"227":228,"228":229,"229":230,"23":23,"230":231,"231":232,"232":233,"233":234,"234":235,"235":236,"236":237,"237":238,"238":239,"239":240,"24":24,"240":241,"241":242,"242":243,"243":244,"244":245,"245":246,"246":247,"247":248,"248":249,"249":250,"25":25,"250":251,"251":252,"252":253,"253":254,"254":255,"255":256,"256":257,"257":259,"258":260,"259":261,"26":26,"27":27,"28":28,"29":29,"3":3,"30":30,"31":31,"32":32,"33":33,"34":34,"35":35,"36":36,"37":37,"38":38,"39":39,"4":4,"40":40,"41":41,"42":42,"43":43,"44":44,"45":45,"46":46,"47":47,"48":48,"49":49,"5":5,"50":50,"51":51,"52":52,"53":53,"54":54,"55":55,"56":56,"57":57,"58":58,"59":59,"6":6,"60":60,"61":61,"62":62,"63":63,"64":64,"65":65,"66":66,"67":67,"68":68,"69":69,"7":7,"70":70,"71":71,"72":72,"73":73,"74":74,"75":75,"76":76,"77":77,"78":78,"79":79,"8":8,"80":80,"81":81,"82":82,"83":83,"84":84,"85":85,"86":86,"87":87,"88":88,"89":89,"9":9,"90":90,"91":91,"92":92,"93":93,"94":94,"95":95,"96":96,"97":97,"98":98,"99":99},"dataShiftRegister":{"1":1,"10":10,"100":100,"101":101,"102":102,"103":103,"104":104,"105":105,"106":106,"107":107,"108":108,"109":109,"11":11,"110":110,"111":111,"112":112,"113":113,"114":114,"115":115,"116":116,"117":117,"118":118,"119":119,"12":12,"120":120,"121":121,"122":122,"123":123,"124":124,"125":125,"126":126,"127":127,"128":128,"129":176,"13":13,"130":130,"131":131,"132":132,"133":133,"134":134,"135":135,"136":136,"137":137,"138":138,"139":139,"14":14,"140":140,"141":141,"142":142,"143":143,"144":144,"145":145,"146":146,"147":147,"148":148,"149":149,"15":15,"150":150,"151":151,"152":152,"153":153,"154":154,"155":155,"156":156,"157":157,"158":158,"159":159,"16":16,"160":160,"161":161,"162":162,"163":163,"164":164,"165":165,"166":166,"167":167,"168":168,"169":169,"17":17,"170":170,"171":171,"172":172,"173":173,"174":174,"175":175,"176":129,"177":177,"178":178,"179":179,"18":18,"180":180,"181":181,"182":182,"183":183,"184":184,"185":185,"186":186,"187":187,"188":188,"189":189,"19":19,"190":190,"191":191,"192":192,"193":193,"194":194,"195":195,"196":196,"197":197,"198":198,"199":199,"2":2,"20":20,"200":200,"201":201,"202":202,"203":203,"204":204,"205":205,"206":206,"207":207,"208":208,"209":209,"21":21,"210":210,"211":211,"212":212,"213":213,"214":214,"215":215,"216":216,"217":217,"218":218,"219":219,"22":22,"220":220,"221":221,"222":222,"223":223,"224":224,"225":225,"226":226,"227":227,"228":228,"229":229,"23":23,"230":230,"231":231,"232":232,"233":233,"234":234,"235":235,"236":236,"237":237,"238":238,"239":239,"24":24,"240":240,"241":241,"242":242,"243":243,"244":244,"245":245,"246":246,"247":247,"248":248,"249":249,"25":25,"250":250,"251":251,"252":252,"253":253,"254":254,"255":255,"256":256,"257":257,"258":26,"259":259,"26":258,"27":27,"28":28,"29":29,"3":3,"30":30,"31":31,"32":32,"33":33,"34":34,"35":35,"36":36,"37":37,"38":38,"39":39,"4":4,"40":40,"41":41,"42":42,"43":43,"44":44,"45":45,"46":46,"47":47,"48":48,"49":49,"5":5,"50":50,"51":51,"52":52,"53":53,"54":54,"55":55,"56":56,"57":57,"58":58,"59":59,"6":6,"60":60,"61":61,"62":62,"63":63,"64":64,"65":65,"66":66,"67":67,"68":68,"69":69,"7":7,"70":70,"71":71,"72":72,"73":73,"74":74,"75":75,"76":76,"77":77,"78":78,"79":79,"8":8,"80":80,"81":81,"82":82,"83":83,"84":84,"85":85,"86":86,"87":87,"88":88,"89":89,"9":9,"90":90,"91":91,"92":92,"93":93,"94":94,"95":95,"96":96,"97":97,"98":98,"99":99},"parityTreeNumChildren":{"129":128,"258":128,"262":3,"263":259}}}
 {"level":"info","msg":"Tree Layout","type":"Data","log":{"depth":3,"length":72,"subtreesize":1048576,"key":"b2f67c095fb142e5f8d96bbad645c8ad607da212e072e9566afc445864750a7d","index":259,"numChildren":2}}
 {"level":"info","msg":"Tree Layout","type":"Data","log":{"depth":2,"length":4104,"subtreesize":524288,"key":"4dcd4670d6118575a0b0ddf350403635ecb600e53f7bba0ad22065962c78129d","index":129,"numChildren":128,"parent":259}}

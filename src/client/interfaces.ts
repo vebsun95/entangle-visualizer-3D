@@ -1,16 +1,20 @@
 export interface Parity {
-    LeftPos: number,
-    RightPos: number,
-    Strand: number,
     Color: number,
-    Fetched: boolean,
+    Index: number,
+    Label: string,
+    Adr: string,
+    Depth: number,
+    Parent: number,
+    Children: number[],
+    DamagedChildren: number[],
+    To: number | null,
 }
 
 export interface Vertex {
     Color: number,
-    Outputs: Parity[],
     Index: number,
     Label: string,
+    Adr: string,
     Depth: number,
     Parent: number,
     Children: number[],
@@ -55,6 +59,7 @@ export interface DownloadConfigLog {
 }
 
 export interface TreeLayoutLog {
+    adr: string,
     depth: number,
     length: number,
     subTreesize: number,
