@@ -32,7 +32,7 @@ export class SideBar extends DataContainer {
 
         this.statsEle.innerHTML = ""
 
-        for (var vertex of this.vertices) {
+        for (var vertex of this.vertices.values()) {
             switch (vertex.Color) {
                 case COLORS.GREEN:
                     nrOfDownloaded++

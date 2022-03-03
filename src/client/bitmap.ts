@@ -1,5 +1,7 @@
+import { Vec2 } from "three";
 import { COLORS } from "./constants";
 import { DataContainer } from "./dataContainer";
+import { Vertex } from "./interfaces";
 
 interface vec2 {
     x: number,
@@ -16,10 +18,10 @@ interface rect {
 export class BitMap extends DataContainer {
 
     private container: HTMLDivElement = document.getElementById("bitmap-canvas-container") as HTMLDivElement;
+    private ruler: HTMLCanvasElement = this.container.appendChild(document.createElement('canvas'));
+    private treeCanvases: HTMLCanvasElement = this.container.appendChild(document.createElement("canvas"));
     private latticeCanvas: HTMLCanvasElement = this.container.appendChild(document.createElement("canvas"));
     private containerWidth: number = this.container.clientWidth;
-    private ruler: HTMLCanvasElement = this.container.appendChild(document.createElement('canvas'));
-    private treeCanvases: HTMLCanvasElement = this.container.appendChild( document.createElement("canvas"));
     private treeCanvasesLookup: Map<number, rect> = new Map();
     private rulerHeight: number = 20;
     private pixelHeight: number = 15;
@@ -50,47 +52,52 @@ export class BitMap extends DataContainer {
 
         var row = 0;
         var column = 0;
-        var contextIndex: number; // Which canvas gets drawn on.
         var color: string;
         var rulerStep = 100; // How often do you mark the ruler.
         var rulerCtx = this.ruler.getContext('2d');
         var indexCounter: number; // Helper-variable to convert (row,column) to index
+        var vertex: Vertex;
         rulerCtx!.font = "1em white"
         rulerCtx!.fillStyle = "white";
         rulerCtx!.textAlign = "center";
         rulerCtx!.textBaseline = "middle";
 
         var latticeCtx = this.latticeCanvas.getContext("2d")!;
-        var treeCtx = this.latticeCanvas.getContext("2d")!;
-        var oldPos: vec2;
+        var treeCtx = this.treeCanvases.getContext("2d")!;
         var oldPosMap: Map<number, vec2> = new Map();
-        for(let depth=0; depth < this.maxDepth; depth++) {
-            oldPosMap.set(depth, {x: 0, y: this.pixelHeight * (this.maxDepth - depth - 1)});
+        var oldPos: Vec2;
+        for (let depth = 2; depth < this.maxDepth; depth++) {
+            oldPosMap.set(depth, { x: 0, y: this.pixelHeight * (this.maxDepth - depth - 1) })
         }
 
-        latticeCtx.fillStyle = this.convertHexToStringColor(COLORS.GREY);
-        latticeCtx.fillRect(0, 0, this.latticeCanvas.width, this.latticeCanvas.height);
-
-        for (let vertex of this.vertices.values()) {
+        for (vertex of [...this.vertices.values()].sort((a, b) => a.Index - b.Index)) {
+            color = this.convertHexToStringColor(vertex.Color);
+            latticeCtx.fillStyle = color;
+            latticeCtx.fillRect(
+                column * this.pixelWidth, // X
+                row * this.pixelHeight,   // Y
+                this.pixelWidth,          // Width
+                this.pixelHeight)         // Height;
             if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
                 oldPos = oldPosMap.get(vertex.Depth)!;
-                treeCtx.fillStyle = this.convertHexToStringColor(vertex.Color);
+                console.log(oldPos.x, oldPos.y, column, row, column * this.pixelWidth);
+                treeCtx.fillStyle = color;
                 treeCtx.fillRect(
                     oldPos.x,
                     oldPos.y,
-                    oldPos.x - column * this.pixelWidth,
+                    (column * this.pixelWidth) - oldPos.x,
                     this.pixelHeight,
                 )
                 treeCtx.fillStyle = "black";
                 treeCtx.strokeRect(
                     oldPos.x,
                     oldPos.y,
-                    oldPos.x - column * this.pixelWidth,
+                    (column * this.pixelWidth) - oldPos.x,
                     this.pixelHeight,
                 )
-                
-                oldPosMap.set(vertex.Depth, {x: column * this.pixelWidth, y: oldPos.y})
-                this.treeCanvasesLookup.set(vertex.Index, {x: oldPos.x, y: oldPos.y, width: oldPos.x - column * this.pixelWidth, height: this.pixelHeight})
+
+                oldPosMap.set(vertex.Depth, { x: column * this.pixelWidth, y: oldPos.y })
+                this.treeCanvasesLookup.set(vertex.Index, { x: oldPos.x, y: oldPos.y, width: (column * this.pixelWidth) - oldPos.x, height: this.pixelHeight })
             }
             if (column % rulerStep == 0 && row == 0) {
                 indexCounter = column * this.s + row;
@@ -142,21 +149,16 @@ export class BitMap extends DataContainer {
             this.pixelWidth = Math.floor(window.innerWidth / Math.ceil(this.nrOfVertices / this.s))
         }
 
-        // i == 0 -> original tree / latice
-        for (let i = 0; i < this.alpha + 1; i++) {
+        this.treeCanvases.setAttribute("width", this.containerWidth.toString() + "px");
+        this.treeCanvases.setAttribute("height", ((this.maxDepth - 2) * this.pixelHeight).toString() + "px");
+        this.treeCanvases.classList.add("bitMapCanvas")
 
-            this.treeCanvases.setAttribute("width", this.containerWidth.toString() + "px");
-            this.treeCanvases.setAttribute("height", ((this.maxDepth - 2) * this.pixelHeight).toString() + "px");
-            this.treeCanvases.style.display = "none";
-            this.treeCanvases.classList.add("bitMapCanvas")
+        this.treeCanvasesLookup.clear()
 
-            this.treeCanvasesLookup.clear()
+        this.latticeCanvas.setAttribute("width", this.containerWidth.toString() + "px");
+        this.latticeCanvas.setAttribute("height", this.pixelHeight * this.s + "px")
+        this.latticeCanvas.classList.add("bitMapCanvas")
 
-            this.latticeCanvas.setAttribute("width", this.containerWidth.toString() + "px");
-            this.latticeCanvas.setAttribute("height", this.pixelHeight * this.s + "px")
-            this.latticeCanvas.classList.add("bitMapCanvas")
-
-        }
 
         this.ruler.setAttribute("height", this.rulerHeight.toString() + "px");
         this.ruler.setAttribute("width", (this.nrOfVertices / this.s) + "px");
@@ -180,11 +182,24 @@ export class BitMap extends DataContainer {
     }
 
     UpdateVertex(vertexIndex: number) {
-        let ctx = this.latticeCanvas.getContext("2d");
-        let col = Math.floor(vertexIndex / this.s)
-        let row = Math.floor(vertexIndex % this.s)
-        ctx!.fillStyle = this.convertHexToStringColor(this.vertices.get(vertexIndex)!.Color);
-        ctx?.fillRect(col * this.pixelWidth, row * this.pixelHeight, this.pixelWidth, this.pixelHeight);
+        var vertex = this.vertices.get(vertexIndex);
+        if (typeof vertex == "undefined") {
+            return;
+        }
+        let ctx = this.latticeCanvas.getContext("2d")!;
+        let col = Math.floor((vertexIndex - 1) / this.s)
+        let row = (vertexIndex - 1) % this.s
+        let color = this.convertHexToStringColor(this.vertices.get(vertexIndex)!.Color);
+        ctx.fillStyle = color;
+        ctx.fillRect(col * this.pixelWidth, row * this.pixelHeight, this.pixelWidth, this.pixelHeight);
+        if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
+            ctx = this.treeCanvases.getContext("2d")!;
+            let dim = this.treeCanvasesLookup.get(vertex.Index)!;
+            ctx.fillStyle = color;
+            ctx.fillRect(dim.x, dim.y, dim.width, dim.height);
+            ctx.fillStyle = "black";
+            ctx.strokeRect(dim.x, dim.y, dim.width, dim.height);
+        }
     }
 
     private handleMouseEnter() {
@@ -215,8 +230,8 @@ export class BitMap extends DataContainer {
 
     onWindowResize() {
         if (this.pixelWidth > 1) {
-                this.treeCanvases.setAttribute("width", window.innerWidth.toString() + "px");
-                this.latticeCanvas.setAttribute("width", window.innerWidth.toString() + "px");
+            this.treeCanvases.setAttribute("width", window.innerWidth.toString() + "px");
+            this.latticeCanvas.setAttribute("width", window.innerWidth.toString() + "px");
         }
     }
 }

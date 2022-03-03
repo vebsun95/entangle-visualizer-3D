@@ -17,6 +17,7 @@ export class App {
     sideBar = new SideBar();
     vertices: Map<number, Vertex> = new Map();
     parities: Map<number, Parity>[] = [];
+    AdrToStrand: Map<string, number> = new Map();
 
     constructor() {
         this.AddEventListener();
@@ -28,10 +29,11 @@ export class App {
     }
 
     UpdateData(alpha: number, s: number, p: number) {
-        this.renderer.UpdateData(alpha, s, p, this.vertices, this.parities);
-        this.bitMap.UpdateData(alpha, s, p, this.vertices, this.parities);
-        this.merkelTree.UpdateData(alpha, s, p, this.vertices, this.parities);
-        this.sideBar.UpdateData(alpha, s, p, this.vertices, this.parities);
+        this.parities[0].get(1)!.Color = COLORS.RED;
+        this.renderer.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
+        this.bitMap.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
+        this.merkelTree.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
+        this.sideBar.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
 
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
@@ -52,7 +54,7 @@ export class App {
 
         this.renderer.UpdateVertex(i);
         this.bitMap.UpdateVertex(i);
-        this.merkelTree.CreateOMT();
+        this.merkelTree.UpdateVertex(i);
 
     }
     HandleLogEntryParityEvent(e : CustomEvent) {
@@ -73,8 +75,12 @@ export class App {
         dataElements = (line.log as DownloadConfigLog).dataElements;
         var parityLabels = (line.log as DownloadConfigLog).parityLabels;
 
+        this.AdrToStrand.clear();
         this.vertices.clear();
-        this.parities = Array(alpha).fill(new Map());
+        this.parities = Array(alpha);
+        for(let i=0; i < this.parities.length; i++) {
+            this.parities[i] = new Map();
+        }
         var log: TreeLayoutLog;
         
         line = content[lineCounter++]
@@ -84,7 +90,7 @@ export class App {
                 this.vertices.set(log.index, {
                     Index: log.index,
                     Label: log.index.toString(),
-                    Adr: log.adr,
+                    Adr: log.key,
                     Color: COLORS.GREY,
                     Parent: log.parent || 0,
                     Depth: log.depth,
@@ -97,27 +103,27 @@ export class App {
                     Index: log.index,
                     To: null,
                     Label: log.index.toString(),
-                    Adr: log.adr,
+                    Adr: log.key,
                     Color: COLORS.GREY,
                     Parent: log.parent || 0,
                     Depth: log.depth,
                     Children: [],
                     DamagedChildren: [],
                 });
+                this.AdrToStrand.set(log.key, parityIndex);
             }
             line = content[lineCounter++] 
         }
-        var v: Vertex;
-        var parity: Parity;
-        for(let i=1; i <= dataElements; i++) {
-            v = this.vertices.get(i)!;
-            if ( v.Parent != 0 ) {
-                this.vertices.get(v.Parent)!.Children.push(i);
+        var vertex: Vertex;
+        for (vertex of this.vertices.values()) {
+            if (vertex.Parent != 0) {
+                this.vertices.get(vertex.Parent)?.Children.push(vertex.Index);
             }
-            for(let j=0; j < this.parities.length; j++) {
-                parity = this.parities[j].get(i)!;
-                if( parity.Parent != 0) {
-                    this.parities[j].get(parity.Parent)?.Children.push(i);
+        }
+        for(var parityMap of this.parities) {
+            for(var parity of parityMap.values()) {
+                if (parity.Parent != 0) {
+                    parityMap.get(parity.Parent)!.Children.push(parity.Index);
                 }
             }
         }
