@@ -18,7 +18,7 @@ export class RendererObject extends DataContainer {
     controls: MyControls = new MyControls(this.camera, this.renderer.domElement);;
     pointsPerLine: number = 40;
     limit: number = 260;
-    drawFrom: number = 0;
+    drawFrom: number = 1;
     verticesGroup: THREE.Group = new THREE.Group();
     paritiesGroup: THREE.Group = new THREE.Group();
     ghostGroup: THREE.Group = new THREE.Group();
@@ -127,7 +127,7 @@ export class RendererObject extends DataContainer {
                 }
             }
             row = (row + 1) % this.s;
-            if (row == 0 && startIndex >= 0) {
+            if (row == 0 && startIndex >= 1) {
                 column++;
                 skip = false;
             }
@@ -488,12 +488,13 @@ export class RendererObject extends DataContainer {
 
     GoTo(vertexIndex: number) {
         this.drawFrom = vertexIndex - (this.limit / 2);
-        if (this.drawFrom < 0) {
+        if (this.drawFrom < 1) {
             this.drawFrom = this.nrOfVertices + this.drawFrom;
         }
         this.drawFrom = Math.ceil(this.drawFrom/ this.s) * this.s
-        if (this.drawFrom == this.nrOfVertices) {
-            this.drawFrom = 0;
+        this.drawFrom++;
+        if (this.drawFrom >= this.nrOfVertices) {
+            this.drawFrom = 1;
         }
         console.log(this.drawFrom);
         this.createTwoDimView();
