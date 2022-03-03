@@ -54,12 +54,11 @@ export interface DownloadConfigLog {
     dataElements: number,
     fileSize: number,
     parityLabels: string[]
-    parityLeafIdToCanonIndex: Map<number, number>,
+    parityLeafIdToCanonIndex: Map<number, number>,  
     parityTreeNumChildren: Map<number, number>,
 }
 
 export interface TreeLayoutLog {
-    adr: string,
     depth: number,
     length: number,
     subTreesize: number,
