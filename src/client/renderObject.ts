@@ -93,6 +93,9 @@ export class RendererObject extends DataContainer {
         var starty = (this.s * this.scale) / 2
         var skip = false;
         var increasecolumn = false;
+
+        // TODO: FINN BEDRE LØSNING HER
+
         /* --- Flytter, enderer label og farge på data-blokkene ---*/
         for (var v of this.verticesGroup.children) {
             if (!skip){
