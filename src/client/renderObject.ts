@@ -91,51 +91,40 @@ export class RendererObject extends DataContainer {
         var startIndex = this.drawFrom;
         var row = 0;
         var starty = (this.s * this.scale) / 2
-        var skip = false;
-        var increasecolumn = false;
+        this.verticesGroup.visible = true;
 
         // TODO: FINN BEDRE LØSNING HER
-
-        /* --- Flytter, enderer label og farge på data-blokkene ---*/
         for (var v of this.verticesGroup.children) {
-            if (!skip){
-                v.position.set(
-                    this.scale * column,                // x coordination
-                    starty - (this.scale * row) + 5,    // y coordination
-                    0                                   // z coordination
-                )
-                let vertexInfo = this.vertices.get(startIndex);
-                v.name = vertexInfo!.Label;
-                //@ts-ignore
-                v.material.map = this.createTexture(v.name);
-                //@ts-ignore
-                v.material.color.setHex(vertexInfo!.Color);
-                v.rotateY(0.9)
-                startIndex++;
-                if (startIndex > this.nrOfVertices) {
-                    startIndex = 1;
+            // Give position, label and color to vertex
+            v.position.set(
+                this.scale * column,                // x coordination
+                starty - (this.scale * row) + 5,    // y coordination
+                0                                   // z coordination
+            )
+            let vertexInfo = this.vertices.get(startIndex);
+            v.name = vertexInfo!.Label;
+            //@ts-ignore
+            v.material.map = this.createTexture(v.name);
+            //@ts-ignore
+            v.material.color.setHex(vertexInfo!.Color);
+            v.rotateY(0.9)
+
+            startIndex++;
+            if (startIndex > this.nrOfVertices) {
+                let remainder = this.s - (this.nrOfVertices % this.s);
+                for (let i = 0; i < remainder; i++) {
+                    this.verticesGroup.children[this.verticesGroup.children.length - 1 - i].visible = false;
                 }
-                v.visible = true;;
+                startIndex = 1;
+                column += 3;
+                row = -1;
             }
-            else {
-                v.visible = false;
-                v.name = "";
-            }
-            if (startIndex == 1) {
-                skip = true;
-                if (!increasecolumn) {
-                    column++;
-                    column++;
-                    increasecolumn = true;
-                }
-            }
+            
             row = (row + 1) % this.s;
-            if (row == 0 && startIndex >= 1) {
+            if (row == 0 && startIndex > 1) {
                 column++;
-                skip = false;
             }
         }
-
 
         /* --- Flytter på parity blokkene --- */
         startIndex = this.drawFrom;
