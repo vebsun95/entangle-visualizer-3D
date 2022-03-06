@@ -5,7 +5,7 @@ import { SideBar } from "./sidebar";
 
 
 
-import { VertexJSON, ContentJSON, Vertex, ParityJSON, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity } from "./interfaces";
+import { VertexJSON, ContentJSON, Vertex, ParityJSON, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./interfaces";
 import { COLORS, DLStatus, MSG, STRANDS } from "./constants";
 
 
@@ -29,7 +29,7 @@ export class App {
     }
 
     UpdateData(alpha: number, s: number, p: number) {
-        this.parities[0].get(1)!.Color = COLORS.RED;
+
         this.renderer.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
         this.bitMap.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
         this.merkelTree.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
@@ -44,11 +44,27 @@ export class App {
     AddEventListener() {
         window.addEventListener("bitmap-clicked", this.HandleBitMapClicked.bind(this) as EventListener);
         window.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
-        window.addEventListener("logEntryEvent", this.HandleLogEntryEvent.bind(this) as EventListener);
-        window.addEventListener("logEntryParityEvent", this.HandleLogEntryParityEvent.bind(this) as EventListener);
+        window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
+        window.addEventListener("resetEverything", this.HandleResetEverything.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
     }
-    HandleLogEntryEvent(e : CustomEvent) {
+
+    HandleResetEverything(e : CustomEvent) {
+        for (var vertex of this.vertices.values()) {
+            vertex.Color = COLORS.GREY;
+            vertex.DamagedChildren = []
+        }
+        for(var parityMap of this.parities) {
+            for(var parity of parityMap.values()) {
+                parity.To = null;
+                parity.DamagedChildren = [];
+            }
+        }
+
+        this.bitMap.Reset();
+    }
+
+    HandleLogEntryVertexEvent(e : CustomEvent) {
         let i = e.detail.index;
         this.vertices.get(i)!.Color = e.detail.newColor;
 
@@ -56,6 +72,22 @@ export class App {
         this.bitMap.UpdateVertex(i);
         this.merkelTree.UpdateVertex(i);
 
+    }
+    HandleLogEntryEvents(e: CustomEvent) {
+        var vertexEvent: VertexEvent;
+        var parityEvent: ParityEvent;
+        var parity: Parity;
+        for(vertexEvent of e.detail.VertexEvents) {
+            this.vertices.get(vertexEvent.Index)!.Color = vertexEvent.NewColor;
+        }
+        for(parityEvent of e.detail.ParityEvents) {
+            parity = this.parities[0].get(parityEvent.From)!;
+            parity.To = parityEvent.To;
+            parity.Color = parityEvent.NewColor;
+        }
+
+        this.renderer.createTwoDimView();
+        this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Index))
     }
     HandleLogEntryParityEvent(e : CustomEvent) {
     }
@@ -99,14 +131,13 @@ export class App {
                 });
             } else {
                 parityIndex = parityLabels.indexOf(line.type!)
-                console.log(log.parent, parityLeafIdToCanonIndex[log.parent!])
                 this.parities[parityIndex].set(log.index, {
-                    Index: parityLeafIdToCanonIndex[log.index],
+                    Index: log.index,
                     To: null,
                     Label: log.index.toString(),
                     Adr: log.key,
                     Color: COLORS.GREY,
-                    Parent: log.parent ? parityLeafIdToCanonIndex[log.parent] : 0,
+                    Parent: log.parent || 0,
                     Depth: log.depth,
                     Children: [],
                     DamagedChildren: [],
@@ -123,8 +154,7 @@ export class App {
         for(var parityMap of this.parities) {
             for(var [position, parity] of parityMap.entries()) {
                 if (parity.Parent != 0) {
-                    console.log(parity.Parent)
-                    parityMap.get(parity.Parent)!.Children.push( parityLeafIdToCanonIndex[position] );
+                    parityMap.get(parity.Parent)!.Children.push( parity.Index );
                 }
             }
         }

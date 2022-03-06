@@ -12,6 +12,13 @@ export interface Parity {
     To: number | null,
 }
 
+export interface ParityEvent {
+    From: number,
+    To: number,
+    NewColor: number,
+    Adr: string,
+}
+
 export interface Vertex {
     Color: number,
     Index: number,
@@ -21,6 +28,11 @@ export interface Vertex {
     Parent: number,
     Children: number[],
     DamagedChildren: number[],
+}
+
+export interface VertexEvent {
+    Index: number,
+    NewColor: number,
 }
 
 export interface Keys {

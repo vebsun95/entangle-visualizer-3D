@@ -181,24 +181,26 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.bottom = "0";
     }
 
-    UpdateVertex(vertexIndex: number) {
-        var vertex = this.vertices.get(vertexIndex);
-        if (typeof vertex == "undefined") {
-            return;
-        }
+    UpdateVertex(vertexIndexes: number[]) {
         let ctx = this.latticeCanvas.getContext("2d")!;
-        let col = Math.floor((vertexIndex - 1) / this.s)
-        let row = (vertexIndex - 1) % this.s
-        let color = this.convertHexToStringColor(this.vertices.get(vertexIndex)!.Color);
-        ctx.fillStyle = color;
-        ctx.fillRect(col * this.pixelWidth, row * this.pixelHeight, this.pixelWidth, this.pixelHeight);
-        if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
-            ctx = this.treeCanvases.getContext("2d")!;
-            let dim = this.treeCanvasesLookup.get(vertex.Index)!;
+        for(var vertexIndex of vertexIndexes) {
+            var vertex = this.vertices.get(vertexIndex);
+            if (typeof vertex == "undefined") {
+                return;
+            }
+            let col = Math.floor((vertexIndex - 1) / this.s)
+            let row = (vertexIndex - 1) % this.s
+            let color = this.convertHexToStringColor(this.vertices.get(vertexIndex)!.Color);
             ctx.fillStyle = color;
-            ctx.fillRect(dim.x, dim.y, dim.width, dim.height);
-            ctx.fillStyle = "black";
-            ctx.strokeRect(dim.x, dim.y, dim.width, dim.height);
+            ctx.fillRect(col * this.pixelWidth, row * this.pixelHeight, this.pixelWidth, this.pixelHeight);
+            if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
+                ctx = this.treeCanvases.getContext("2d")!;
+                let dim = this.treeCanvasesLookup.get(vertex.Index)!;
+                ctx.fillStyle = color;
+                ctx.fillRect(dim.x, dim.y, dim.width, dim.height);
+                ctx.fillStyle = "black";
+                ctx.strokeRect(dim.x, dim.y, dim.width, dim.height);
+            }
         }
     }
 
@@ -226,6 +228,12 @@ export class BitMap extends DataContainer {
 
         var vertexIndex = this.getIndexFromCoord(event.offsetX, event.offsetY);
         dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
+    }
+
+    Reset() {
+        let ctx = this.latticeCanvas.getContext("2d")!;
+        ctx.fillStyle = this.convertHexToStringColor(COLORS.GREY);
+        ctx.fillRect(0, 0, this.latticeCanvas.width, this.latticeCanvas.height);
     }
 
     onWindowResize() {
