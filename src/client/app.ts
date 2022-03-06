@@ -6,7 +6,7 @@ import { SideBar } from "./sidebar";
 
 
 import { VertexJSON, ContentJSON, Vertex, ParityJSON, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity } from "./interfaces";
-import { COLORS, MSG, STRANDS } from "./constants";
+import { COLORS, DLStatus, MSG, STRANDS } from "./constants";
 
 
 
@@ -63,7 +63,6 @@ export class App {
         this.renderer.GoTo(e.detail.vertexIndex)
     }
     HandleNewFileUploaded(e : CustomEvent) {
-        console.log("new file uploaded")
         var alpha, s, p, dataElements, lineCounter, parityIndex: number;
         lineCounter = 0;
 
@@ -74,7 +73,8 @@ export class App {
         p = (line.log as DownloadConfigLog).p;
         dataElements = (line.log as DownloadConfigLog).dataElements;
         var parityLabels = (line.log as DownloadConfigLog).parityLabels;
-
+        var dataShiftRegister = (line.log as DownloadConfigLog).dataShiftRegister;
+        var parityLeafIdToCanonIndex = (line.log as DownloadConfigLog).parityLeafIdToCanonIndex
         this.AdrToStrand.clear();
         this.vertices.clear();
         this.parities = Array(alpha);
@@ -88,24 +88,25 @@ export class App {
             log = line.log as TreeLayoutLog;
             if (line.type == "Data") {
                 this.vertices.set(log.index, {
-                    Index: log.index,
+                    Index: dataShiftRegister[log.index],
                     Label: log.index.toString(),
                     Adr: log.key,
                     Color: COLORS.GREY,
-                    Parent: log.parent || 0,
+                    Parent: log.parent ? dataShiftRegister[log.parent] : 0,
                     Depth: log.depth,
                     Children: [],
                     DamagedChildren: [],
                 });
             } else {
                 parityIndex = parityLabels.indexOf(line.type!)
+                console.log(log.parent, parityLeafIdToCanonIndex[log.parent!])
                 this.parities[parityIndex].set(log.index, {
-                    Index: log.index,
+                    Index: parityLeafIdToCanonIndex[log.index],
                     To: null,
                     Label: log.index.toString(),
                     Adr: log.key,
                     Color: COLORS.GREY,
-                    Parent: log.parent || 0,
+                    Parent: log.parent ? parityLeafIdToCanonIndex[log.parent] : 0,
                     Depth: log.depth,
                     Children: [],
                     DamagedChildren: [],
@@ -114,21 +115,38 @@ export class App {
             }
             line = content[lineCounter++] 
         }
-        var vertex: Vertex;
-        for (vertex of this.vertices.values()) {
+        for (var [position, vertex] of this.vertices.entries()) {
             if (vertex.Parent != 0) {
-                this.vertices.get(vertex.Parent)?.Children.push(vertex.Index);
+                this.vertices.get(vertex.Parent)?.Children.push( dataShiftRegister[position]);
             }
         }
         for(var parityMap of this.parities) {
-            for(var parity of parityMap.values()) {
+            for(var [position, parity] of parityMap.entries()) {
                 if (parity.Parent != 0) {
-                    parityMap.get(parity.Parent)!.Children.push(parity.Index);
+                    console.log(parity.Parent)
+                    parityMap.get(parity.Parent)!.Children.push( parityLeafIdToCanonIndex[position] );
                 }
             }
         }
-        this.sideBar.PlayBackEle.LogEntries = (content.slice(lineCounter, content.length - 1).map(c => c.log) as DownloadEntryLog[]) //.sort((a, b) => {return a.downloadStart - b.downloadStart}) ;
+
+        var LogEntries: DownloadEntryLog[] = []
+        var logEntry: DownloadEntryLog;
+        while (line.msg == MSG.DlEntry) {
+
+
+            logEntry = line.log as DownloadEntryLog;
+            line = content[lineCounter++] 
+
+            if (logEntry.downloadStatus == DLStatus.Pending) {
+                continue
+            }
+
+            LogEntries.push(logEntry);
+        }
+        this.sideBar.PlayBackEle.LogEntries = LogEntries;
         this.UpdateData(alpha, s, p);
+
+        console.log(dataShiftRegister[this.vertices.size])
 
     }
     HandleWindowResize() {

@@ -150,6 +150,8 @@ class PlayBack {
             }
         }
     }
+
+
     // https://github.com/racin/entangle-visualizer/blob/master/logparser.go
     private playClicked() {
         if ( this.currentPos < this.LogEntries.length ) {

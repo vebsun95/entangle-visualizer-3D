@@ -1,3 +1,5 @@
+import { Key } from "readline"
+
 export interface Parity {
     Color: number,
     Index: number,
@@ -47,6 +49,11 @@ export interface ContentJSON {
 
 }
 
+interface dataShiftRegister {
+    [Key:number]: number,
+}
+
+
 export interface DownloadConfigLog {
     alpha: number,
     s: number,
@@ -54,7 +61,8 @@ export interface DownloadConfigLog {
     dataElements: number,
     fileSize: number,
     parityLabels: string[]
-    parityLeafIdToCanonIndex: Map<number, number>,  
+    parityLeafIdToCanonIndex: dataShiftRegister,
+    dataShiftRegister: dataShiftRegister,
     parityTreeNumChildren: Map<number, number>,
 }
 

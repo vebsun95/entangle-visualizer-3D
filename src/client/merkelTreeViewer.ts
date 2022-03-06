@@ -168,7 +168,8 @@ export class MerkelTreeViewer extends DataContainer {
             breadCrumb.innerHTML = `>${rootNodeIndex}`
             this.infoGraphic.BreadCrumbs.append(breadCrumb);
         }
-        this.infoGraphic.Text.innerHTML = `Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
+        var currentView = this.currentView == 0 ? "Data" : this.currentView;
+        this.infoGraphic.Text.innerHTML = `Current view. ${currentView} Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
     }
 
     private updateTreeStruct() {
@@ -245,30 +246,30 @@ export class MerkelTreeViewer extends DataContainer {
     }
 
     private tileOnClickHandler(tileIndex: number) {
-        var currentRootNode = this.currentView == 0 ? this.vertices.get(this.currentRootNode)! : this.parities[this.currentView - 1].get(this.currentRootNode)!;
+        var currentRootNode = this.getCurrentRootNode();
         let childIndex = currentRootNode.Children[tileIndex]
-        if (this.vertices.get(childIndex)!.Children.length > 0) {
-            this.currentRootNode = currentRootNode.Children[tileIndex]
+        if (currentRootNode.Children.length > 0) {
+            this.currentRootNode = childIndex
             this.infoGraphic.BreadCrumbsIndex.push(this.currentRootNode);
             // Hide the the mouseOverElement
             this.mouseOverEle.Container.style.display = "none";
             this.updateTreeStruct();
-            this.updateInfoGraphic();
         }
     }
 
     private tileMouseEnterHandler(tileIndex: number) {
-        var currentRootNode = this.currentView == 0 ? this.vertices.get(this.currentRootNode)! : this.parities[this.currentView - 1].get(this.currentRootNode)!;
+        var currentRootNode = this.getCurrentRootNode();
         let childIndex = currentRootNode.Children[tileIndex]
-        if (this.vertices.get(childIndex)!.DamagedChildren.length > 0) {
+        currentRootNode = this.getRootNode(childIndex);
+        if (currentRootNode.DamagedChildren.length > 0) {
             this.mouseOverEle.Container.style.display = "unset";
             this.mouseOverEle.Container.style.left = this.tiles[tileIndex].Container.getAttribute("x") + "px";
             this.mouseOverEle.Container.style.top = this.tiles[tileIndex].Container.getAttribute("y") + "px";
             this.mouseOverEle.List.innerHTML = "";
             var li: HTMLLIElement;
             var vertex: Vertex;
-            for (let i = 0; i < this.vertices.get(childIndex)!.DamagedChildren.length || i < 5; i++) {
-                vertex = this.vertices.get(this.vertices.get(childIndex)!.DamagedChildren[i])!;
+            for (let i = 0; i < currentRootNode.DamagedChildren.length || i < 5; i++) {
+                vertex = this.getRootNode(currentRootNode.DamagedChildren[i]);
                 li = document.createElement("li");
                 li.innerText = `Vertex: ${vertex.Index}. Depth: ${vertex.Depth}`;
                 this.mouseOverEle.List.append(li);
@@ -289,6 +290,8 @@ export class MerkelTreeViewer extends DataContainer {
     }
 
     private viewBtnClickedHandler(view: number) {
+        // Sets this.currentRootNode to root node
+        // Root node will always be the one with the largest index.
         if (view == 0) {
             this.currentRootNode = this.vertices.size;
         } else {
@@ -297,6 +300,20 @@ export class MerkelTreeViewer extends DataContainer {
         this.infoGraphic.BreadCrumbsIndex = [this.currentRootNode];
         this.currentView = view;
         this.updateTreeStruct();
+    }
+
+    private getCurrentRootNode() : Vertex | Parity {
+        if (this.currentView == 0) {
+            return this.vertices.get(this.currentRootNode)!;
+        }
+        return this.parities[this.currentView -1].get(this.currentRootNode)!
+    }
+
+    private getRootNode(index: number) : Vertex | Parity {
+        if (this.currentView == 0) {
+            return this.vertices.get(index)!;
+        }
+        return this.parities[this.currentView -1].get(index)!
     }
 
     private convertHexToStringColor(hexColor: number): string {
