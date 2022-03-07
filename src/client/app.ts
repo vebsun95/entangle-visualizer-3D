@@ -35,6 +35,8 @@ export class App {
         this.merkelTree.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
         this.sideBar.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
 
+        this.vertices.get(25802)?.DamagedChildren.push(129)
+        
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
         this.merkelTree.HandleUpdatedDate();
@@ -63,22 +65,12 @@ export class App {
 
         this.bitMap.Reset();
     }
-
-    HandleLogEntryVertexEvent(e : CustomEvent) {
-        let i = e.detail.index;
-        this.vertices.get(i)!.Color = e.detail.newColor;
-
-        this.renderer.UpdateVertex(i);
-        this.bitMap.UpdateVertex(i);
-        this.merkelTree.UpdateVertex(i);
-
-    }
     HandleLogEntryEvents(e: CustomEvent) {
         var vertexEvent: VertexEvent;
         var parityEvent: ParityEvent;
         var parity: Parity;
         for(vertexEvent of e.detail.VertexEvents) {
-            this.vertices.get(vertexEvent.Index)!.Color = vertexEvent.NewColor;
+            this.vertices.get(vertexEvent.Position)!.Color = vertexEvent.NewColor;
         }
         for(parityEvent of e.detail.ParityEvents) {
             parity = this.parities[0].get(parityEvent.From)!;
@@ -87,9 +79,8 @@ export class App {
         }
 
         this.renderer.createTwoDimView();
-        this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Index))
-    }
-    HandleLogEntryParityEvent(e : CustomEvent) {
+        this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position))
+        this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position))
     }
     HandleBitMapClicked(e : CustomEvent) {
         this.renderer.GoTo(e.detail.vertexIndex)
@@ -146,9 +137,29 @@ export class App {
             }
             line = content[lineCounter++] 
         }
+        var swappedVertex: Vertex;
+        var tempAdr: string;
+        var tempDepth: number;
+        var allReadySwapped: number[] = [];
         for (var [position, vertex] of this.vertices.entries()) {
             if (vertex.Parent != 0) {
                 this.vertices.get(vertex.Parent)?.Children.push( dataShiftRegister[position]);
+            }
+            if (position != vertex.Index && (!allReadySwapped.includes(position) || !allReadySwapped.includes(vertex.Index))) {
+                swappedVertex = this.vertices.get(vertex.Index)!;
+
+                tempAdr = vertex.Adr;
+                vertex.Adr = swappedVertex.Adr;
+                swappedVertex.Adr = tempAdr;
+
+                tempDepth = vertex.Depth;
+                vertex.Depth = swappedVertex.Depth;
+                swappedVertex.Depth = tempDepth;
+
+                this.vertices.set(vertex.Index, swappedVertex);
+                this.vertices.set(position, vertex);
+
+                allReadySwapped.push(position, vertex.Index);
             }
         }
         for(var parityMap of this.parities) {
@@ -175,8 +186,6 @@ export class App {
         }
         this.sideBar.PlayBackEle.LogEntries = LogEntries;
         this.UpdateData(alpha, s, p);
-
-        console.log(dataShiftRegister[this.vertices.size])
 
     }
     HandleWindowResize() {
@@ -1760,6 +1769,6 @@ const devContent = `{"level":"info","msg":"Download Config","log":{"alpha":3,"s"
 {"level":"info","msg":"Download Entry","log":{"parity":false,"position":37,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513371574605,"downloadEnd":1645793513373271554}}
 {"level":"info","msg":"Download Entry","log":{"parity":false,"position":41,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513371565816,"downloadEnd":1645793513373276662}}
 {"level":"info","msg":"Download Entry","log":{"parity":false,"position":62,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513371566637,"downloadEnd":1645793513371580971}}
-{"level":"info","msg":"Download Entry","log":{"parity":true,"left":5,"right":6,"position":5,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513372165988,"downloadEnd":1645793514872430186}}
+{"level":"info","msg":"Download Entry","log":{"parity":true,"left":5,"right":6,"    ":5,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513372165988,"downloadEnd":1645793514872430186}}
 {"level":"info","msg":"Download Entry","log":{"parity":false,"position":5,"hasData":true,"downloadStatus":"DownloadFailed","repairStatus":"RepairSuccess","downloadStart":1645793513371359855,"downloadEnd":1645793513372125199,"repairEnd":1645793514872534092}}
 {"level":"info","msg":"Download Summary","log":{"status":"Download complete.","totalData":259,"totalParity":777,"dataDL":258,"parityDL":3,"dataDLandRep":259,"DLstart":1645793513343868174,"DLend":1645793514872635731}}`

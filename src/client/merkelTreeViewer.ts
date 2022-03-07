@@ -1,3 +1,4 @@
+import * as e from "express";
 import { DataContainer } from "./dataContainer";
 import { Parity, Vertex } from "./interfaces";
 
@@ -62,7 +63,6 @@ export class MerkelTreeViewer extends DataContainer {
         this.currentView = 0;
         this.currentRootNode = this.nrOfVertices;
         this.infoGraphic.BreadCrumbsIndex = [this.currentRootNode]
-        console.log(this.parities[0].get(262)!.Children)
         this.CreateInfoGraphic();
         this.updateInfoGraphic();
         this.updateDynamicAttributes();
@@ -74,7 +74,7 @@ export class MerkelTreeViewer extends DataContainer {
         this.updateTreeStruct();
     }
 
-    UpdateVertex(vertexIndex :number ) {
+    UpdateVertex(vertexIndex :number[] ) {
         if (this.currentView > 0) {
             return
         }
@@ -158,7 +158,7 @@ export class MerkelTreeViewer extends DataContainer {
 
     private updateInfoGraphic() {
         var breadCrumb: HTMLAnchorElement;
-        var currentRootNode = this.currentView == 0 ? this.vertices.get(this.currentRootNode)! : this.parities[this.currentView - 1].get(this.currentRootNode)!;
+        var currentRootNode = this.getCurrentRootNode();
 
         while (this.infoGraphic.BreadCrumbs.children.length > 0) { this.infoGraphic.BreadCrumbs.removeChild(this.infoGraphic.BreadCrumbs.lastChild!) }
         for (let rootNodeIndex of this.infoGraphic.BreadCrumbsIndex) {
@@ -248,8 +248,9 @@ export class MerkelTreeViewer extends DataContainer {
     private tileOnClickHandler(tileIndex: number) {
         var currentRootNode = this.getCurrentRootNode();
         let childIndex = currentRootNode.Children[tileIndex]
+        currentRootNode = this.getRootNode(childIndex);
         if (currentRootNode.Children.length > 0) {
-            this.currentRootNode = childIndex
+            this.currentRootNode = childIndex;
             this.infoGraphic.BreadCrumbsIndex.push(this.currentRootNode);
             // Hide the the mouseOverElement
             this.mouseOverEle.Container.style.display = "none";

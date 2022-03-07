@@ -183,13 +183,13 @@ class PlayBack {
     }
     private parseLogVertexEntry(logEntry: DownloadEntryLog): VertexEvent {
         if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-            return { Index: logEntry.position, NewColor: COLORS.RED }
+            return { Position: logEntry.position, NewColor: COLORS.RED }
         }
         else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-            return { Index: logEntry.position, NewColor: COLORS.BLUE }
+            return { Position: logEntry.position, NewColor: COLORS.BLUE }
         }
         //else if (logEntry.downloadStatus === DLStatus.Success) {
-        return { Index: logEntry.position, NewColor: COLORS.GREEN }
+        return { Position: logEntry.position, NewColor: COLORS.GREEN }
     }
 
     private parseLogParityEvent(logEntry: DownloadEntryLog): ParityEvent {

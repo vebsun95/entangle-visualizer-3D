@@ -31,7 +31,7 @@ export interface Vertex {
 }
 
 export interface VertexEvent {
-    Index: number,
+    Position: number,
     NewColor: number,
 }
 
