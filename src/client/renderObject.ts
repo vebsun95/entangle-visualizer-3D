@@ -25,6 +25,7 @@ export class RendererObject extends DataContainer {
     scale: number = 10;
     radius: number = 2;
     ghostgroupshow: boolean = true;
+    lineGeomIndex = 0;
 
     constructor() {
         super();
@@ -128,7 +129,7 @@ export class RendererObject extends DataContainer {
 
         /* --- Flytter på parity blokkene --- */
         startIndex = this.drawFrom;
-        let lineGeomIndex = 0;
+        this.lineGeomIndex = 0;
         for (let index = 0; index < this.limit; index++) {
             for (var output of this.parities) {
                 let parity = output.get(startIndex) as Parity;
@@ -136,13 +137,12 @@ export class RendererObject extends DataContainer {
                     // Sjekker at RightPos er mindre enn LeftPos og siste kolonne ikke er fylt opp av verticies
                     if (parity.Index < parity.Index && this.nrOfVertices % this.s != 0) {
                         // Gjør avansert logikk her
-                        this.CreateParitiyAdvanced2D(parity, lineGeomIndex);
+                        this.CreateParitiyAdvanced2D(parity);
                     }
                     else {
                         // Gjør basic logikk her
-                        this.CreateParitiyBasic2D(parity, lineGeomIndex);
+                        this.CreateParitiyBasic2D(parity);
                     }
-                    lineGeomIndex++
                 }
             }
             startIndex++
@@ -153,8 +153,9 @@ export class RendererObject extends DataContainer {
         this.ghostGroup.visible = this.ghostgroupshow;
     }
 
-    CreateParitiyAdvanced2D(output: Parity, lineIndex: number) {
-        let line = this.paritiesGroup.children[lineIndex] as THREE.Line;
+    CreateParitiyAdvanced2D(output: Parity) {
+        let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
+        this.lineGeomIndex++;
         let leftPos = this.scene.getObjectByName(output.Index.toString());
         let rightPos = this.scene.getObjectByName(output.To!.toString());
         let nrColumns = Math.floor(this.nrOfVertices / this.s);
@@ -241,8 +242,9 @@ export class RendererObject extends DataContainer {
     }
 
 
-    CreateParitiyBasic2D(output: Parity, lineIndex: number) {
-        let line = this.paritiesGroup.children[lineIndex] as THREE.Line;
+    CreateParitiyBasic2D(output: Parity) {
+        let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
+        this.lineGeomIndex++;
         let leftPos = this.scene.getObjectByName(output.Index.toString());
         let rightPos = this.scene.getObjectByName(output.To!.toString());
         if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
