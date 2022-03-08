@@ -5,8 +5,8 @@ import { SideBar } from "./sidebar";
 
 
 
-import { VertexJSON, ContentJSON, Vertex, ParityJSON, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity } from "./interfaces";
-import { COLORS, MSG, STRANDS } from "./constants";
+import { VertexJSON, ContentJSON, Vertex, ParityJSON, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./interfaces";
+import { COLORS, DLStatus, MSG, STRANDS } from "./constants";
 
 
 
@@ -29,12 +29,14 @@ export class App {
     }
 
     UpdateData(alpha: number, s: number, p: number) {
-        this.parities[0].get(1)!.Color = COLORS.RED;
+
         this.renderer.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
         this.bitMap.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
         this.merkelTree.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
         this.sideBar.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
 
+        this.vertices.get(25802)?.DamagedChildren.push(129)
+        
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
         this.merkelTree.HandleUpdatedDate();
@@ -44,26 +46,46 @@ export class App {
     AddEventListener() {
         window.addEventListener("bitmap-clicked", this.HandleBitMapClicked.bind(this) as EventListener);
         window.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
-        window.addEventListener("logEntryEvent", this.HandleLogEntryEvent.bind(this) as EventListener);
-        window.addEventListener("logEntryParityEvent", this.HandleLogEntryParityEvent.bind(this) as EventListener);
+        window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
+        window.addEventListener("resetEverything", this.HandleResetEverything.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
     }
-    HandleLogEntryEvent(e : CustomEvent) {
-        let i = e.detail.index;
-        this.vertices.get(i)!.Color = e.detail.newColor;
 
-        this.renderer.UpdateVertex(i);
-        this.bitMap.UpdateVertex(i);
-        this.merkelTree.UpdateVertex(i);
+    HandleResetEverything(e : CustomEvent) {
+        for (var vertex of this.vertices.values()) {
+            vertex.Color = COLORS.GREY;
+            vertex.DamagedChildren = []
+        }
+        for(var parityMap of this.parities) {
+            for(var parity of parityMap.values()) {
+                parity.To = null;
+                parity.DamagedChildren = [];
+            }
+        }
 
+        this.bitMap.Reset();
     }
-    HandleLogEntryParityEvent(e : CustomEvent) {
+    HandleLogEntryEvents(e: CustomEvent) {
+        var vertexEvent: VertexEvent;
+        var parityEvent: ParityEvent;
+        var parity: Parity;
+        for(vertexEvent of e.detail.VertexEvents) {
+            this.vertices.get(vertexEvent.Position)!.Color = vertexEvent.NewColor;
+        }
+        for(parityEvent of e.detail.ParityEvents) {
+            parity = this.parities[0].get(parityEvent.From)!;
+            parity.To = parityEvent.To;
+            parity.Color = parityEvent.NewColor;
+        }
+
+        this.renderer.createTwoDimView();
+        this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position))
+        this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position))
     }
     HandleBitMapClicked(e : CustomEvent) {
         this.renderer.GoTo(e.detail.vertexIndex)
     }
     HandleNewFileUploaded(e : CustomEvent) {
-        console.log("new file uploaded")
         var alpha, s, p, dataElements, lineCounter, parityIndex: number;
         lineCounter = 0;
 
@@ -74,7 +96,8 @@ export class App {
         p = (line.log as DownloadConfigLog).p;
         dataElements = (line.log as DownloadConfigLog).dataElements;
         var parityLabels = (line.log as DownloadConfigLog).parityLabels;
-
+        var dataShiftRegister = (line.log as DownloadConfigLog).dataShiftRegister;
+        var parityLeafIdToCanonIndex = (line.log as DownloadConfigLog).parityLeafIdToCanonIndex
         this.AdrToStrand.clear();
         this.vertices.clear();
         this.parities = Array(alpha);
@@ -88,11 +111,11 @@ export class App {
             log = line.log as TreeLayoutLog;
             if (line.type == "Data") {
                 this.vertices.set(log.index, {
-                    Index: log.index,
+                    Index: dataShiftRegister[log.index],
                     Label: log.index.toString(),
                     Adr: log.key,
                     Color: COLORS.GREY,
-                    Parent: log.parent || 0,
+                    Parent: log.parent ? dataShiftRegister[log.parent] : 0,
                     Depth: log.depth,
                     Children: [],
                     DamagedChildren: [],
@@ -114,20 +137,54 @@ export class App {
             }
             line = content[lineCounter++] 
         }
-        var vertex: Vertex;
-        for (vertex of this.vertices.values()) {
+        var swappedVertex: Vertex;
+        var tempAdr: string;
+        var tempDepth: number;
+        var allReadySwapped: number[] = [];
+        for (var [position, vertex] of this.vertices.entries()) {
             if (vertex.Parent != 0) {
-                this.vertices.get(vertex.Parent)?.Children.push(vertex.Index);
+                this.vertices.get(vertex.Parent)?.Children.push( dataShiftRegister[position]);
+            }
+            if (position != vertex.Index && (!allReadySwapped.includes(position) || !allReadySwapped.includes(vertex.Index))) {
+                swappedVertex = this.vertices.get(vertex.Index)!;
+
+                tempAdr = vertex.Adr;
+                vertex.Adr = swappedVertex.Adr;
+                swappedVertex.Adr = tempAdr;
+
+                tempDepth = vertex.Depth;
+                vertex.Depth = swappedVertex.Depth;
+                swappedVertex.Depth = tempDepth;
+
+                this.vertices.set(vertex.Index, swappedVertex);
+                this.vertices.set(position, vertex);
+
+                allReadySwapped.push(position, vertex.Index);
             }
         }
         for(var parityMap of this.parities) {
-            for(var parity of parityMap.values()) {
+            for(var [position, parity] of parityMap.entries()) {
                 if (parity.Parent != 0) {
-                    parityMap.get(parity.Parent)!.Children.push(parity.Index);
+                    parityMap.get(parity.Parent)!.Children.push( parity.Index );
                 }
             }
         }
-        this.sideBar.PlayBackEle.LogEntries = (content.slice(lineCounter, content.length - 1).map(c => c.log) as DownloadEntryLog[]) //.sort((a, b) => {return a.downloadStart - b.downloadStart}) ;
+
+        var LogEntries: DownloadEntryLog[] = []
+        var logEntry: DownloadEntryLog;
+        while (line.msg == MSG.DlEntry) {
+
+
+            logEntry = line.log as DownloadEntryLog;
+            line = content[lineCounter++] 
+
+            if (logEntry.downloadStatus == DLStatus.Pending) {
+                continue
+            }
+
+            LogEntries.push(logEntry);
+        }
+        this.sideBar.PlayBackEle.LogEntries = LogEntries;
         this.UpdateData(alpha, s, p);
 
     }
@@ -1712,6 +1769,6 @@ const devContent = `{"level":"info","msg":"Download Config","log":{"alpha":3,"s"
 {"level":"info","msg":"Download Entry","log":{"parity":false,"position":37,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513371574605,"downloadEnd":1645793513373271554}}
 {"level":"info","msg":"Download Entry","log":{"parity":false,"position":41,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513371565816,"downloadEnd":1645793513373276662}}
 {"level":"info","msg":"Download Entry","log":{"parity":false,"position":62,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513371566637,"downloadEnd":1645793513371580971}}
-{"level":"info","msg":"Download Entry","log":{"parity":true,"left":5,"right":6,"position":5,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513372165988,"downloadEnd":1645793514872430186}}
+{"level":"info","msg":"Download Entry","log":{"parity":true,"left":5,"right":6,"    ":5,"hasData":true,"downloadStatus":"DownloadSuccess","repairStatus":"NoRepair","downloadStart":1645793513372165988,"downloadEnd":1645793514872430186}}
 {"level":"info","msg":"Download Entry","log":{"parity":false,"position":5,"hasData":true,"downloadStatus":"DownloadFailed","repairStatus":"RepairSuccess","downloadStart":1645793513371359855,"downloadEnd":1645793513372125199,"repairEnd":1645793514872534092}}
 {"level":"info","msg":"Download Summary","log":{"status":"Download complete.","totalData":259,"totalParity":777,"dataDL":258,"parityDL":3,"dataDLandRep":259,"DLstart":1645793513343868174,"DLend":1645793514872635731}}`

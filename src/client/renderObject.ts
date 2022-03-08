@@ -493,10 +493,11 @@ export class RendererObject extends DataContainer {
     }
 
     UpdateVertex(vertexIndex: number){
-        var vertex = this.scene.getObjectByName((vertexIndex + 1).toString()) as THREE.Mesh< THREE.BufferGeometry, THREE.MeshBasicMaterial>
+        var vertex = this.scene.getObjectByName((vertexIndex).toString()) as THREE.Mesh< THREE.BufferGeometry, THREE.MeshBasicMaterial>
         if(typeof vertex == "undefined") return
         vertex.material.color.setHex(this.vertices.get(vertexIndex)!.Color)
     }
+
 
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;;

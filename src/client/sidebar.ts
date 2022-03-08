@@ -1,9 +1,10 @@
 import { text } from "express";
+import { type } from "os";
 import { Line } from "three";
 import { threadId } from "worker_threads";
 import { COLORS, DLStatus, RepStatus } from "./constants";
 import { DataContainer } from "./dataContainer";
-import { DownloadEntryLog, Vertex } from "./interfaces";
+import { DownloadEntryLog, Parity, ParityEvent, Vertex, VertexEvent } from "./interfaces";
 
 
 export class SideBar extends DataContainer {
@@ -11,7 +12,7 @@ export class SideBar extends DataContainer {
     private visible: boolean = true;
     private domEle: HTMLDivElement = document.getElementById("side-bar") as HTMLDivElement;
     private statsEle: HTMLUListElement = document.getElementById("side-bar-stats") as HTMLUListElement;
-    private fileInput : HTMLInputElement = document.createElement("input");
+    private fileInput: HTMLInputElement = document.createElement("input");
     PlayBackEle: PlayBack = new PlayBack();
 
     constructor() {
@@ -65,7 +66,7 @@ export class SideBar extends DataContainer {
         li.innerText = "Repaired: " + nrOfRepaired;
         this.statsEle.appendChild(li)
     }
-    
+
     private createFileInput() {
         this.fileInput.type = "file";
         this.fileInput.addEventListener("change", this.handleFileChange as EventListener)
@@ -78,7 +79,7 @@ export class SideBar extends DataContainer {
         fileReader.onload = () => {
             var content: any
             content = JSON.parse("[" + (fileReader.result as string).split("\n").join(",") + "]")
-            dispatchEvent( new CustomEvent("new-file-upload", {detail: {newContent: content}}))
+            dispatchEvent(new CustomEvent("new-file-upload", { detail: { newContent: content } }))
         }
         fileReader.readAsText(file, "UTF-8");
     }
@@ -113,71 +114,94 @@ class PlayBack {
         this.PlayButton.innerHTML = ">";
         this.JumpForwardButton.innerHTML = ">>";
 
-        this.JumpBackButton.addEventListener("click", this.jumpBackClicked.bind(this))
-        this.BackButton.addEventListener("click", this.backClicked.bind(this))
+        this.JumpBackButton.addEventListener("click", () => this.backClicked(10))
+        this.BackButton.addEventListener("click", () => this.backClicked(1))
         this.PlayButton.addEventListener("click", this.playClicked.bind(this))
-        this.JumpForwardButton.addEventListener("click", this.jumpForwardClicked.bind(this))
+        this.JumpForwardButton.addEventListener("click", () => this.jumpForwardClicked(10));
 
         this.Container.append(this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton)
     }
 
-    private jumpBackClicked() {
-        while(this.currentPos > 1) {
-            this.backClicked();
+    private backClicked(n: number) {
+        if (this.currentPos > 0) {
+            dispatchEvent(new Event("resetEverything"));
+            var vertexEvents = [];
+            var parityEvents = [];
+            var newPosition = this.currentPos - n;
+            var logEntry: DownloadEntryLog;
+            this.currentPos = 0;
+            for (; this.currentPos < newPosition; this.currentPos++) {
+                logEntry = this.LogEntries[this.currentPos];
+                if (logEntry.parity) {
+                    parityEvents.push(this.parseLogParityEvent(logEntry))
+                } else {
+                    vertexEvents.push(this.parseLogVertexEntry(logEntry))
+                }
+            }
+            dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
         }
     }
 
-    private backClicked() {
-        if( this.currentPos > 0 ) {
-            this.currentPos--;
-            var logEntry = this.LogEntries[this.currentPos];
-            if (!logEntry.parity) {
-                if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-                    dispatchEvent(new CustomEvent("logEntryEvent", {detail: {index: logEntry.position, newColor: COLORS.RED}}))
-                } 
-                else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-                    dispatchEvent(new CustomEvent("logEntryEvent", {detail: {index: logEntry.position, newColor: COLORS.BLUE}}))
-                }
-                else if (logEntry.downloadStatus === DLStatus.Success) {
-                    dispatchEvent(new CustomEvent("logEntryEvent", {detail: {index: logEntry.position, newColor: COLORS.GREEN}}))
-                }
-            } else {
-                dispatchEvent(new CustomEvent("logEntryParityEvent", {detail: {left: logEntry.left, right: logEntry.right, newColor: COLORS.BLUE}}))
-            }
-            
-            if( logEntry.downloadStatus === DLStatus.Pending ) {
-                this.playClicked();
-            }
-        }
-    }
+
     // https://github.com/racin/entangle-visualizer/blob/master/logparser.go
     private playClicked() {
-        if ( this.currentPos < this.LogEntries.length ) {
-            var logEntry = this.LogEntries[this.currentPos];
-            if (!logEntry.parity) {
-                if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-                    dispatchEvent(new CustomEvent("logEntryEvent", {detail: {index: logEntry.position, newColor: COLORS.RED}}))
-                } 
-                else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-                    dispatchEvent(new CustomEvent("logEntryEvent", {detail: {index: logEntry.position, newColor: COLORS.BLUE}}))
-                }
-                else if (logEntry.downloadStatus === DLStatus.Success) {
-                    dispatchEvent(new CustomEvent("logEntryEvent", {detail: {index: logEntry.position, newColor: COLORS.GREEN}}))
-                }
+        if (this.currentPos < this.LogEntries.length) {
+            var vertexEvents = [];
+            var parityEvents = [];
+            var logEntry: DownloadEntryLog;
+
+            logEntry = this.LogEntries[this.currentPos];
+            if (logEntry.parity) {
+                parityEvents.push(this.parseLogParityEvent(logEntry))
             } else {
-                dispatchEvent(new CustomEvent("logEntryParityEvent", {detail: {left: logEntry.left, right: logEntry.right, newColor: COLORS.BLUE}}))
+                vertexEvents.push(this.parseLogVertexEntry(logEntry))
             }
-            
-            this.currentPos++;
-            if( logEntry.downloadStatus === DLStatus.Pending ) {
-                this.playClicked();
-            }
+
+            this.currentPos++
+
+            dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
         }
     }
 
-    private jumpForwardClicked() {
-        while(this.currentPos < this.LogEntries.length) {
-            this.playClicked();
+    private jumpForwardClicked(n: number) {
+        var vertexEvents = [];
+        var parityEvents = [];
+        var logEntry: DownloadEntryLog;
+        for (let count = 0; count < n && this.currentPos < this.LogEntries.length; count++) {
+
+            logEntry = this.LogEntries[this.currentPos];
+            if (logEntry.parity) {
+                parityEvents.push(this.parseLogParityEvent(logEntry))
+            } else {
+                vertexEvents.push(this.parseLogVertexEntry(logEntry))
+            }
+
+            this.currentPos++
         }
+
+        dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
+    }
+    private parseLogVertexEntry(logEntry: DownloadEntryLog): VertexEvent {
+        if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
+            return { Position: logEntry.position, NewColor: COLORS.RED }
+        }
+        else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
+            return { Position: logEntry.position, NewColor: COLORS.BLUE }
+        }
+        //else if (logEntry.downloadStatus === DLStatus.Success) {
+        return { Position: logEntry.position, NewColor: COLORS.GREEN }
+    }
+
+    private parseLogParityEvent(logEntry: DownloadEntryLog): ParityEvent {
+        if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
+            return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.RED, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
+        }
+        else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
+            return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.BLUE, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
+
+        }
+        //else if (logEntry.downloadStatus === DLStatus.Success) {
+        return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.GREEN, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
+
     }
 }
