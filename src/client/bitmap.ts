@@ -1,4 +1,5 @@
 import { Vec2 } from "three";
+import { threadId } from "worker_threads";
 import { COLORS } from "./constants";
 import { DataContainer } from "./dataContainer";
 import { Vertex } from "./interfaces";
@@ -111,11 +112,11 @@ export class BitMap extends DataContainer {
 
     private toggleVisible() {
         if (this.visible) {
-            this.container.classList.remove("showBitMap")
-            this.container.classList.add("hideBitMap")
+            this.container.classList.remove("showBitMap");
+            this.container.classList.add("hideBitMap");
         } else {
-            this.container.classList.remove("hideBitMap")
-            this.container.classList.add("showBitMap")
+            this.container.classList.remove("hideBitMap");
+            this.container.classList.add("showBitMap");
         }
         this.visible = !this.visible;
     }
@@ -231,11 +232,11 @@ export class BitMap extends DataContainer {
     }
 
     Reset() {
-        let ctx = this.latticeCanvas.getContext("2d")!;
-        ctx.fillStyle = this.convertHexToStringColor(COLORS.GREY);
-        ctx.fillRect(0, 0, this.latticeCanvas.width, this.latticeCanvas.height);
+        this.draw();
     }
 
     onWindowResize() {
+        this.updateDynamicAttributes();
+        this.draw();
     }
 }
