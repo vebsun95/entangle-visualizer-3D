@@ -128,6 +128,9 @@ export class RendererObject extends DataContainer {
         }
 
         /* --- Flytter på parity blokkene --- */
+        for (var par of this.paritiesGroup.children) {
+            par.visible = false;
+        }
         startIndex = this.drawFrom;
         this.lineGeomIndex = 0;
         for (let index = 0; index < this.limit; index++) {
@@ -155,12 +158,13 @@ export class RendererObject extends DataContainer {
 
     CreateParitiyAdvanced2D(output: Parity) {
         let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
-        this.lineGeomIndex++;
         let leftPos = this.scene.getObjectByName(output.Index.toString());
         let rightPos = this.scene.getObjectByName(output.To!.toString());
         let nrColumns = Math.floor(this.nrOfVertices / this.s);
         let currentColumn = Math.floor((output.Index - 1) / this.s);
         if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
+            line.visible = true;
+            this.lineGeomIndex++;
             let array = line.geometry.attributes.position;
             array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
             let strand = this.AdrToStrand.get(output.Adr);
@@ -244,10 +248,11 @@ export class RendererObject extends DataContainer {
 
     CreateParitiyBasic2D(output: Parity) {
         let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
-        this.lineGeomIndex++;
         let leftPos = this.scene.getObjectByName(output.Index.toString());
         let rightPos = this.scene.getObjectByName(output.To!.toString());
         if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
+            line.visible = true;
+            this.lineGeomIndex++;
             let array = line.geometry.attributes.position;
             array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
             let strand = this.AdrToStrand.get(output.Adr);
@@ -281,7 +286,7 @@ export class RendererObject extends DataContainer {
                     break
                 }
                 default: {
-                    console.log("default")
+                    console.log("default", output.Index, output.To)
                     // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
                     array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                 }
