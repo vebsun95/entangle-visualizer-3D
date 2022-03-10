@@ -3,10 +3,8 @@ import { MerkelTreeViewer } from "./merkelTreeViewer";
 import { RendererObject } from "./renderObject";
 import { SideBar } from "./sidebar";
 
-
-
-import { VertexJSON, ContentJSON, Vertex, ParityJSON, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./interfaces";
-import { COLORS, DLStatus, MSG, STRANDS } from "./constants";
+import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./interfaces";
+import { COLORS, DLStatus, MSG } from "./constants";
 
 
 
@@ -15,9 +13,19 @@ export class App {
     bitMap = new BitMap();
     merkelTree = new MerkelTreeViewer();
     sideBar = new SideBar();
+    alpha = 0;
+    s = 0;
+    p = 0;
+    dataElements = 0;
+    nrOfDownload = 0;
+    nrOfRepaired = 0;
+    nrOfUnavailable = 0;
+    LogCursor = 0;
     vertices: Map<number, Vertex> = new Map();
     parities: Map<number, Parity>[] = [];
     AdrToStrand: Map<string, number> = new Map();
+    LogEntries: DownloadEntryLog[] = [];
+    
 
     constructor() {
         this.AddEventListener();
@@ -28,18 +36,16 @@ export class App {
         dispatchEvent(new CustomEvent("new-file-upload", {detail: {newContent: JSON.parse( "[" + devContent.split("\n").join(",")  + "]")}}))
     }
 
-    UpdateData(alpha: number, s: number, p: number) {
+    UpdateData() {
 
-        this.renderer.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
-        this.bitMap.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
-        this.merkelTree.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
-        this.sideBar.UpdateData(alpha, s, p, this.vertices, this.parities, this.AdrToStrand);
-
-        this.vertices.get(25802)?.DamagedChildren.push(129)
+        this.renderer.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.AdrToStrand);
+        this.bitMap.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.AdrToStrand);
+        this.merkelTree.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.AdrToStrand);
         
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
         this.merkelTree.HandleUpdatedDate();
+        this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p, this.dataElements);
 
     }
 
@@ -58,19 +64,50 @@ export class App {
         }
         for(var parityMap of this.parities) {
             for(var parity of parityMap.values()) {
+                parity.Color = COLORS.GREY;
                 parity.To = null;
                 parity.DamagedChildren = [];
             }
         }
+
+        this.nrOfDownload = 0;
+        this.nrOfRepaired = 0;
+        this.nrOfUnavailable = 0;
 
         this.bitMap.Reset();
     }
     HandleLogEntryEvents(e: CustomEvent) {
         var vertexEvent: VertexEvent;
         var parityEvent: ParityEvent;
+        var vertex: Vertex;
         var parity: Parity;
         for(vertexEvent of e.detail.VertexEvents) {
-            this.vertices.get(vertexEvent.Position)!.Color = vertexEvent.NewColor;
+            vertex = this.vertices.get(vertexEvent.Position)!;
+            switch (vertex.Color) {
+                case COLORS.GREEN:
+                    this.nrOfDownload--;
+                    break;
+                case COLORS.RED:
+                    this.nrOfUnavailable--;
+                    break;
+                case COLORS.BLUE:
+                    this.nrOfRepaired--;
+                    break;
+                
+            }
+            switch (vertexEvent.NewColor) {
+                case COLORS.GREEN:
+                    this.nrOfDownload++;
+                    break;
+                case COLORS.RED:
+                    this.nrOfUnavailable++;
+                    break;
+                case COLORS.BLUE:
+                    this.nrOfRepaired++;
+                    break;
+                
+            }
+            vertex.Color = vertexEvent.NewColor;
         }
         for(parityEvent of e.detail.ParityEvents) {
             parity = this.parities[0].get(parityEvent.From)!;
@@ -81,26 +118,30 @@ export class App {
         this.renderer.createTwoDimView();
         this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position))
         this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position))
+        this.sideBar.PlayBackEle.UpdateStats(this.nrOfDownload, this.nrOfUnavailable, this.nrOfRepaired);
     }
     HandleBitMapClicked(e : CustomEvent) {
         this.renderer.GoTo(e.detail.vertexIndex)
     }
     HandleNewFileUploaded(e : CustomEvent) {
-        var alpha, s, p, dataElements, lineCounter, parityIndex: number;
+        var lineCounter, parityIndex: number;
         lineCounter = 0;
 
         let content : ContentJSON[] = e.detail.newContent
         var line: ContentJSON = content[lineCounter++]
-        alpha = (line.log as DownloadConfigLog).alpha;
-        s = (line.log as DownloadConfigLog).s;
-        p = (line.log as DownloadConfigLog).p;
-        dataElements = (line.log as DownloadConfigLog).dataElements;
+        this.alpha = (line.log as DownloadConfigLog).alpha;
+        this.s = (line.log as DownloadConfigLog).s;
+        this.p = (line.log as DownloadConfigLog).p;
+        this.dataElements = (line.log as DownloadConfigLog).dataElements;
+        this.nrOfDownload = 0;
+        this.nrOfRepaired = 0;
+        this.nrOfUnavailable = 0;
         var parityLabels = (line.log as DownloadConfigLog).parityLabels;
         var dataShiftRegister = (line.log as DownloadConfigLog).dataShiftRegister;
         var parityLeafIdToCanonIndex = (line.log as DownloadConfigLog).parityLeafIdToCanonIndex
         this.AdrToStrand.clear();
         this.vertices.clear();
-        this.parities = Array(alpha);
+        this.parities = Array(this.alpha);
         for(let i=0; i < this.parities.length; i++) {
             this.parities[i] = new Map();
         }
@@ -172,6 +213,8 @@ export class App {
 
         var LogEntries: DownloadEntryLog[] = []
         var logEntry: DownloadEntryLog;
+        this.LogCursor = 0;
+        this.LogEntries = [];
         while (line.msg == MSG.DlEntry) {
 
 
@@ -183,9 +226,10 @@ export class App {
             }
 
             LogEntries.push(logEntry);
+            this.LogEntries.push(logEntry);
         }
         this.sideBar.PlayBackEle.LogEntries = LogEntries;
-        this.UpdateData(alpha, s, p);
+        this.UpdateData();
 
     }
     HandleWindowResize() {
