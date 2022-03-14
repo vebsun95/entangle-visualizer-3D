@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Parity, Vertex } from './interfaces'
-import { DIRECTIONS, STRANDS } from './constants';
+import { COLORS, DIRECTIONS, STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
 import { MyControls } from './MyControls';
 import { start } from 'repl';
 import { throws } from 'assert';
+import { Color } from 'three';
 
 
 

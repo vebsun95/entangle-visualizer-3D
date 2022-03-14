@@ -109,6 +109,7 @@ export class App {
             }
             vertex.Color = vertexEvent.NewColor;
         }
+        // TODO FIX
         for(parityEvent of e.detail.ParityEvents) {
             parity = this.parities[0].get(parityEvent.From)!;
             parity.To = parityEvent.To;

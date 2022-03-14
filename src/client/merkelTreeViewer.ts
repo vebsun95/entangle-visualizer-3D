@@ -185,16 +185,28 @@ export class MerkelTreeViewer extends DataContainer {
             currentRootNode = this.parities[this.currentView - 1].get(this.currentRootNode)!;
         }
         nrOfChildren = currentRootNode.Children.length;
-        switch (nrOfChildren) {
-            case 128:
-                nrOfColumns = 16;
-                nrOfRows = 8;
-                break;
-            default:
-                nrOfRows = Math.floor((2 / 3) * Math.sqrt(nrOfChildren)) || 1; // https://www.brilliant.org/bartek_stasiak;
-                nrOfColumns = Math.ceil(nrOfChildren / nrOfRows);
+        // Check if nrOfChildren is a prime
+        if (this.PrimeCheck(nrOfChildren)) {
+            nrOfRows = Math.floor((2 / 3) * Math.sqrt(nrOfChildren)) || 1; // https://www.brilliant.org/bartek_stasiak;
+            nrOfColumns = Math.ceil(nrOfChildren / nrOfRows);
         }
-
+        // If not prime know the product of two numbers will give nrOfChildren
+        else {
+            let combo: [number, number];
+            let listCombinations = []
+            listCombinations.push([1, nrOfChildren]);
+            for (let i = 2; i < nrOfChildren; i++) {
+                if (Number.isInteger(nrOfChildren / i)) {
+                    combo = [i, nrOfChildren/i]
+                    if (listCombinations[listCombinations.length - 1][1] == i) {
+                        break
+                    }
+                    listCombinations.push(combo)
+                }
+            }
+            nrOfRows = listCombinations[listCombinations.length - 1][0]
+            nrOfColumns = listCombinations[listCombinations.length - 1][1]
+        }
 
         tileWidth = Math.ceil((this.svgElement.clientWidth - this.padding * 2) / nrOfColumns);
         tileHeight = Math.ceil((this.svgElement.clientHeight - this.padding * 2) / nrOfRows);
@@ -243,6 +255,18 @@ export class MerkelTreeViewer extends DataContainer {
         }
 
         this.updateInfoGraphic();
+    }
+
+    private PrimeCheck(n: number) {
+        if (n < 4) {
+            return true;
+        }
+        for (let x = 2; x < n; x++) {
+            if (n % x == 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private tileOnClickHandler(tileIndex: number) {
