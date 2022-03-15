@@ -1054,8 +1054,6 @@ onMouseWheel(event : WheelEvent) {
 
 onKeyDown(event : KeyboardEvent) {
 
-	console.log("onKeyDown")
-
 	if (this.enabled === false || this.enablePan === false) return;
 
 	this.handleKeyDown(event);

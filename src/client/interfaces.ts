@@ -1,22 +1,38 @@
+import { Key } from "readline"
+
 export interface Parity {
-    LeftPos: number,
-    RightPos: number,
-    Strand: number,
     Color: number,
-    Fetched: boolean,
+    Index: number,
+    Label: string,
+    Adr: string,
+    Depth: number,
+    Parent: number,
+    Children: number[],
+    DamagedChildren: number[],
+    To: number | null,
+}
+
+export interface ParityEvent {
+    From: number,
+    To: number,
+    NewColor: number,
+    Adr: string,
 }
 
 export interface Vertex {
-    Addr: string,
-    Label: string,
     Color: number,
-    Outputs: Parity[],
     Index: number,
+    Label: string,
+    Adr: string,
     Depth: number,
     Parent: number,
-    Replication: number,
     Children: number[],
     DamagedChildren: number[],
+}
+
+export interface VertexEvent {
+    Position: number,
+    NewColor: number,
 }
 
 export interface Keys {
@@ -38,19 +54,62 @@ export interface Touches {
 }
 
 export interface ContentJSON {
-    config: ConfigJSON
-    dataTree: VertexJSON[],
-    parityTrees: ParityJSON[][],
-    Log: LogEntryJSON,
+    level: string,
+    msg: string,
+    type: string | null,
+    log: DownloadConfigLog | TreeLayoutLog | DownloadEntryLog | DownloadSummaryLog,
+
 }
 
-export interface ConfigJSON {
+interface dataShiftRegister {
+    [Key:number]: number,
+}
+
+
+export interface DownloadConfigLog {
     alpha: number,
     s: number,
     p: number,
     dataElements: number,
     fileSize: number,
     parityLabels: string[]
+    parityLeafIdToCanonIndex: dataShiftRegister,
+    dataShiftRegister: dataShiftRegister,
+    parityTreeNumChildren: Map<number, number>,
+}
+
+export interface TreeLayoutLog {
+    depth: number,
+    length: number,
+    subTreesize: number,
+    key: string,
+    index: number,
+    numChildren: number,
+    parent: number | null,
+}
+
+export interface DownloadEntryLog {
+    parity: boolean,
+    position: number,
+    left: number | null,
+    right: number | null,
+    hasData: boolean,
+    downloadStatus: string,
+    repairStatus: string,
+    downloadStart: number,
+    downloadEnd: number | null,
+    repairEnd: number | null,
+}
+
+export interface DownloadSummaryLog {
+    Status: string,
+    totalData: number,
+    totalParity: number,
+    dataDL: number,
+    parityDL: number,
+    dataDlAndRep: number,
+    DLstart: number,
+    DLend: number,
 }
 
 export interface VertexJSON {

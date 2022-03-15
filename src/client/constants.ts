@@ -22,6 +22,24 @@ export const STATE = {
     TOUCH_DOLLY_ROTATE: 6
 };
 
+export const MSG = {
+    DlConfig: "Download Config",
+    TreeLayout: "Tree Layout",
+    DlEntry: "Download Entry",
+    DlSummary: "Download Summary",
+}
+
+export const DLStatus = {
+    Success: "DownloadSuccess",
+    Pending: "DownloadPending",
+    Failed: "DownloadFailed",
+}
+
+export const RepStatus = {
+    NoRep: "NoRepair",
+    Success: "RepairSuccess",
+}
+
 export enum MOUSE {
     LEFT = 0,
     MIDDLE = 1,
