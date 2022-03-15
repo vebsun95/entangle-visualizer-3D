@@ -47,13 +47,13 @@ export class RendererObject extends DataContainer {
         this.paritiesGroup.clear();
 
         const geometry = new THREE.SphereGeometry(this.radius);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xd1d1d1, linewidth: 2 });
 
         var obj: THREE.Mesh;
         var material: THREE.MeshBasicMaterial;
         var positions: Float32Array;
         var lineGeometry: THREE.BufferGeometry;
         var curveObject: THREE.Line;
+        var lineMaterial: THREE.LineBasicMaterial;
 
         this.limit = 250 + (this.s - (250 % this.s));
 
@@ -75,6 +75,7 @@ export class RendererObject extends DataContainer {
                 positions = new Float32Array(this.pointsPerLine * 3);
 
                 lineGeometry = new THREE.BufferGeometry();
+                lineMaterial = new THREE.LineBasicMaterial({ color: COLORS.GREY, linewidth: 2 });
                 lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
 
                 curveObject = new THREE.Line(lineGeometry, lineMaterial);
@@ -95,7 +96,7 @@ export class RendererObject extends DataContainer {
         var starty = (this.s * this.scale) / 2
         this.verticesGroup.visible = true;
 
-        // TODO: FINN BEDRE LØSNING HER
+        // Moves the verticesGroup instead of making new ones
         for (var v of this.verticesGroup.children) {
             // Give position, label and color to vertex
             v.position.set(
@@ -165,6 +166,8 @@ export class RendererObject extends DataContainer {
         let currentColumn = Math.floor((output.Index - 1) / this.s);
         if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
             line.visible = true;
+            //@ts-ignore
+            line.material.color.setHex(output.Color);
             this.lineGeomIndex++;
             let array = line.geometry.attributes.position;
             array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
@@ -177,7 +180,7 @@ export class RendererObject extends DataContainer {
                     return
                 }
                 case STRANDS.RHStrand: {
-                    // LeftPos and RightPos is on the same row and last column
+                    // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
                     if (output.Index % this.s == output.To! % this.s && currentColumn == nrColumns) {
                         console.log("RHStrand går til samme")
                         // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
@@ -212,7 +215,7 @@ export class RendererObject extends DataContainer {
                         line!.geometry.attributes.position.needsUpdate = true;
                         return
                     }
-                    // LeftPos and RightPos is on the same row and last column
+                    // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
                     else if (output.Index % this.s == output.To! % this.s && currentColumn == nrColumns) {
                         console.log("LHStrand går til samme")
                         // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
@@ -235,7 +238,7 @@ export class RendererObject extends DataContainer {
                     }
                 }
                 default: {
-                    // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
+                    // Default case if alpha > 3
                     array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                     line!.geometry.setDrawRange(0, 2);
                     line!.geometry.attributes.position.needsUpdate = true;
@@ -253,6 +256,8 @@ export class RendererObject extends DataContainer {
         let rightPos = this.scene.getObjectByName(output.To!.toString());
         if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
             line.visible = true;
+            //@ts-ignore
+            line.material.color.setHex(output.Color);
             this.lineGeomIndex++;
             let array = line.geometry.attributes.position;
             array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
@@ -288,7 +293,7 @@ export class RendererObject extends DataContainer {
                 }
                 default: {
                     console.log("default", output.Index, output.To)
-                    // Vet ikke nøyaktig hvor linjen skal gå hvis det er alpha > 3.
+                    // Default case if alpha > 3
                     array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                 }
             } 
@@ -518,7 +523,8 @@ export class RendererObject extends DataContainer {
         requestAnimationFrame(this.animate.bind(this));
         this.controls.update()
         for(var v of this.verticesGroup.children) {
-            v.lookAt( this.camera.position )
+            //var position = new THREE.Vector3(v.position.x , 0, this.camera.position.z)
+            v.lookAt( this.camera.position);
         }
         this.render()
     }
