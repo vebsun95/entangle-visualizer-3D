@@ -1,8 +1,7 @@
 
 import { COLORS, DLStatus, RepStatus } from "./constants";
-import { DataContainer } from "./dataContainer";
 import { DownloadEntryLog, ParityEvent, VertexEvent } from "./interfaces";
-
+import { convertHexToStringColor } from "./utils";
 
 export class SideBar {
 
@@ -55,51 +54,111 @@ interface StatsList {
     repaired: ListItem,
 }
 
-interface ListItem {
-    li: HTMLLIElement;
-    span: HTMLSpanElement;
+interface LogTable {
+    table: HTMLTableElement,
+    rows: LogRow[],
 }
+
+interface LogRow {
+    row: HTMLTableRowElement,
+    logPosition: HTMLTableCellElement,
+    position: HTMLTableCellElement,
+    dlStatus: HTMLTableCellElement,
+    repStatus: HTMLTableCellElement,
+}
+
+interface ListItem {
+    li: HTMLLIElement,
+    countValue: HTMLSpanElement,
+}
+
+interface Slider {
+    container: HTMLDivElement,
+    input: HTMLInputElement,
+    currentPosition: HTMLSpanElement,
+    endPosition: HTMLSpanElement,
+}
+
 
 class PlayBack {
 
     Container: HTMLDivElement = document.createElement("div");
+    LogEntries: DownloadEntryLog[] = [];
     private statsList: StatsList = {
         list: document.createElement("ul"),
         parameters: document.createElement("li"),
         dataElemnts: document.createElement("li"),
         downloaded: {
             li: document.createElement("li"),
-            span: document.createElement("span")},
+            countValue: document.createElement("span")},
         unavailable: {
             li: document.createElement("li"),
-            span: document.createElement("span")},
+            countValue: document.createElement("span")},
         repaired: {
             li: document.createElement("li"),
-            span: document.createElement("span")},
-    };
+            countValue: document.createElement("span")}};
     private JumpBackButton: HTMLButtonElement = document.createElement("button");
     private BackButton: HTMLButtonElement = document.createElement("button");
     private PlayButton: HTMLButtonElement = document.createElement("button");
     private JumpForwardButton: HTMLButtonElement = document.createElement("button");
-    private slider: HTMLInputElement = document.createElement("input");
-    LogEntries: DownloadEntryLog[] = [];
+    private slider: Slider = {
+        container: document.createElement("div"),
+        input: document.createElement("input"),
+        currentPosition: document.createElement("span"),
+        endPosition: document.createElement("span")};
+    private logTable: LogTable = {
+        table: document.createElement("table"),
+        rows: Array(10)};
     private currentPos: number = 0;
 
     constructor() {
         this.createLayout();
     }
 
+    private setCurrentPos(newPos: number) {
+        this.currentPos = newPos;
+        this.slider.input.valueAsNumber = newPos;
+        this.slider.currentPosition.innerText = (newPos).toString();
+        this.updateTable();
+    }
+
+    private updateTable() {
+        var start = Math.max(0, this.currentPos - this.logTable.rows.length / 2);
+        start = Math.min(start, this.LogEntries.length - this.logTable.rows.length);
+        var row: LogRow;
+        var logEntry: DownloadEntryLog;
+        for(var i=0; i<this.logTable.rows.length; i++, start++) {
+            logEntry = this.LogEntries[start];
+            row = this.logTable.rows[i];
+            if (start < this.currentPos) {
+                row.row.style.background = "#00ff0080";
+            } else {
+                row.row.style.background = "#0f0f0f80";
+            }
+            if (logEntry.parity) {
+                row.position.innerText = logEntry.left!.toString() + " -> " + logEntry.right!.toString();
+            } else {
+                row.position.innerText = logEntry.position.toString();
+            }
+            row.logPosition.innerText = start.toString();
+            row.dlStatus.innerText = logEntry.downloadStatus;
+            row.repStatus.innerText = logEntry.repairStatus;
+        }
+
+    }
+
     private createLayout() {
         var sl = this.statsList;
 
-        sl.downloaded.li.innerText = 'Downloaded: ';
-        sl.downloaded.li.append(sl.downloaded.span);
+        sl.downloaded.li.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span>  Downloaded: ';
+        sl.downloaded.li.append(sl.downloaded.countValue);
 
-        sl.unavailable.li.innerText = "Unavailable: ";
-        sl.unavailable.li.append(sl.unavailable.span);
 
-        sl.repaired.li.innerText = "Repaired: ";
-        sl.repaired.li.append(sl.repaired.span);
+        sl.unavailable.li.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.RED) + ';">&#11044;</span>  Unavailable: ';
+        sl.unavailable.li.append(sl.unavailable.countValue);
+
+        sl.repaired.li.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.BLUE) + ';">&#11044;</span>  Repaired: ';
+        sl.repaired.li.append(sl.repaired.countValue);
 
         sl.list.append(
             sl.parameters,
@@ -118,33 +177,49 @@ class PlayBack {
         this.BackButton.addEventListener("click", () => this.backClicked(1));
         this.PlayButton.addEventListener("click", () => this.forwardClicked(1));
         this.JumpForwardButton.addEventListener("click", () => this.forwardClicked(10));
+        this.slider.input.setAttribute("type", "range");
+        this.slider.input.setAttribute("min", "0");
+        this.slider.input.addEventListener("change", this.handleSliderChange.bind(this));
+        this.slider.container.append(this.slider.input, this.slider.currentPosition, this.slider.endPosition);
 
-        this.slider.setAttribute("type", "range");
-        this.slider.setAttribute("min", "0");
-        this.slider.addEventListener("change", this.handleSliderChange.bind(this));
+        var logTableRow: LogRow;
+        for(var i=0; i<this.logTable.rows.length; i++) {
+            logTableRow = {
+                row: document.createElement("tr"),
+                logPosition: document.createElement("td"),
+                dlStatus: document.createElement("td"),
+                repStatus: document.createElement("td"),
+                position: document.createElement("td"),
+            };
+            logTableRow.row.append(logTableRow.logPosition, logTableRow.position, logTableRow.dlStatus, logTableRow.repStatus, );
+            this.logTable.table.append(logTableRow.row);
+            this.logTable.rows[i] = logTableRow;
+        }
 
+        this.logTable.table.classList.add("log-table");
 
-        this.Container.append(this.statsList.list, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider);
+        this.Container.append(this.statsList.list, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
     HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number) {
         this.statsList.parameters.innerHTML = `(${alpha}, ${s}, ${p})`;
         this.statsList.dataElemnts.innerText = `Data Elements: ${dataElements}`;
-        this.slider.valueAsNumber = 0;
-        this.slider.setAttribute("max", this.LogEntries.length.toString());
+        this.slider.input.setAttribute("max", this.LogEntries.length.toString());
+        this.slider.endPosition.innerText = " / " + (this.LogEntries.length).toString();
+        this.setCurrentPos(0);
         this.resetStats();
     }
 
     private resetStats() {
-        this.statsList.downloaded.span.innerText = (0).toString();
-        this.statsList.unavailable.span.innerText = (0).toString();
-        this.statsList.repaired.span.innerText = (0).toString();
+        this.statsList.downloaded.countValue.innerText = (0).toString();
+        this.statsList.unavailable.countValue.innerText = (0).toString();
+        this.statsList.repaired.countValue.innerText = (0).toString();
     }
 
     UpdateStats(downloaded: number, unavailable: number, repaired: number) {
-        this.statsList.downloaded.span.innerText = (downloaded).toString();
-        this.statsList.unavailable.span.innerText = (unavailable).toString();
-        this.statsList.repaired.span.innerText = (repaired).toString();
+        this.statsList.downloaded.countValue.innerText = (downloaded).toString();
+        this.statsList.unavailable.countValue.innerText = (unavailable).toString();
+        this.statsList.repaired.countValue.innerText = (repaired).toString();
     }
 
     private backClicked(n: number) {
@@ -162,16 +237,15 @@ class PlayBack {
         var vertexEvents = [];
         var parityEvents = [];
         var logEntry: DownloadEntryLog;
-        for (let count = 0; count < n && this.currentPos < this.LogEntries.length; count++) {
-            logEntry = this.LogEntries[this.currentPos];
+        for (var count = 0; count < n && this.currentPos + count < this.LogEntries.length; count++) {
+            logEntry = this.LogEntries[this.currentPos + count];
             if (logEntry.parity) {
                 parityEvents.push(this.parseLogParityEvent(logEntry))
             } else {
                 vertexEvents.push(this.parseLogVertexEntry(logEntry))
             }
-            this.currentPos++;
         }
-        this.slider.valueAsNumber = this.currentPos;
+        this.setCurrentPos(this.currentPos + count);
 
         dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
     }
@@ -199,7 +273,7 @@ class PlayBack {
     }
 
     private handleSliderChange() {
-        var newValue: number = this.slider.valueAsNumber;
+        var newValue: number = this.slider.input.valueAsNumber;
         if (newValue < this.currentPos) {
             this.backClicked(this.currentPos - newValue);
         }

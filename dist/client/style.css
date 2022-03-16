@@ -37,8 +37,6 @@ body {
 }
 
 #side-bar {
-    height: 40vh;
-    width: 30vw;
     z-index: 10;
     position: absolute;
     background-color: white;
@@ -119,3 +117,15 @@ body {
     from { max-height: 0;  }
     to   { max-height: 200px;}
 }
+
+.log-table {
+    border-collapse: collapse;
+    width: 100%;
+    border: 1px solid grey;
+}
+
+.log-table td, th {
+  border: 1px solid #999;
+  padding: 0.5rem;
+}
+
