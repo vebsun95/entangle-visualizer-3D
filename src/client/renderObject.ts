@@ -140,7 +140,7 @@ export class RendererObject extends DataContainer {
                 let parity = output.get(startIndex) as Parity;
                 if (index + this.s < this.limit && parity.To != null) {
                     // Sjekker at RightPos er mindre enn LeftPos og siste kolonne ikke er fylt opp av verticies
-                    if (parity.Index < parity.Index && this.nrOfVertices % this.s != 0) {
+                    if (parity.To < parity.Index && this.nrOfVertices % this.s != 0) {
                         // Gjør avansert logikk her
                         this.CreateParitiyAdvanced2D(parity);
                     }
@@ -184,7 +184,7 @@ export class RendererObject extends DataContainer {
                     if (output.Index % this.s == output.To! % this.s && currentColumn == nrColumns) {
                         console.log("RHStrand går til samme")
                         // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
-                        let pointList = this.createEclipseLine(rightPos, leftPos, 1);
+                        let pointList = this.createEllipseLine(rightPos, leftPos, 1);
                         for (let i = 0; i < pointList.length; i++) {
                             array.setXYZ(pointList[i][2], pointList[i][0], pointList[i][1], 0);
                         }
@@ -219,7 +219,7 @@ export class RendererObject extends DataContainer {
                     else if (output.Index % this.s == output.To! % this.s && currentColumn == nrColumns) {
                         console.log("LHStrand går til samme")
                         // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
-                        let pointList = this.createEclipseLine(rightPos, leftPos, -1);
+                        let pointList = this.createEllipseLine(rightPos, leftPos, -1);
                         for (let i = 0; i < pointList.length; i++) {
                             array.setXYZ(pointList[i][2], pointList[i][0], pointList[i][1], 0);
                         }
@@ -302,36 +302,33 @@ export class RendererObject extends DataContainer {
         }
     }
 
+    // Takes in rightPos, LeftPos and Type (1 = RH, -1 = LH)
     // Returns a list with (xPosition, yPosition, counter) in given order.
-    createEclipseLine(rightPos: THREE.Object3D<THREE.Event>, leftPos: THREE.Object3D<THREE.Event>, type: number) {
+    createEllipseLine(rightPos: THREE.Object3D<THREE.Event>, leftPos: THREE.Object3D<THREE.Event>, type: number) {
         let tempList: [number, number, number][] = [];
-        let deltaX = (rightPos!.position.x + leftPos!.position.x) / 2;
-        let deltaY = leftPos!.position.y;
-        let a = rightPos!.position.x - deltaX;
+        let deltaX = (rightPos!.position.x + leftPos!.position.x) / 2;     // https://lexique.netmath.ca/en/half-ellipse-function/#:~:text=Function%20defined%20by%20a%20relation,centered%20on%20the%20origin%20point
+        let deltaY = leftPos!.position.y;                                  
+        let a = rightPos!.position.x - deltaX;                             
         let b = this.scale/3;
         let counter = 1;
         let xPosition = leftPos!.position.x
-        //console.log("Start spot:", leftPos!.position.x, leftPos!.position.y);
-        //console.log("Slutt spot:", rightPos!.position.x, rightPos!.position.y);
         for (let i = a-1; i > 0; i--) {
             xPosition = xPosition + 1;
-            let y = deltaY - (type * ((b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2))));
-            //console.log(xPosition, y, counter);
+            let y = deltaY - (type * ((b/a) * Math.sqrt(Math.pow(a, 2) - Math.pow(i, 2))));
             tempList.push([xPosition, y, counter]);
             counter++;
         }
         for (let i = 0; i < a; i++) {
             xPosition = xPosition + 1;
-            let y = deltaY - (type * ((b/a) * Math.sqrt(Math.pow(a,2) - Math.pow(i, 2))));
-            //console.log(xPosition, y, counter);
+            let y = deltaY - (type * ((b/a) * Math.sqrt(Math.pow(a, 2) - Math.pow(i, 2))));
             tempList.push([xPosition, y, counter]);
             counter++;
         }
-        //console.log(counter);
         return tempList;
     }
         
 
+    // Takes in index, (x,y,z) position and color) and return object
     createGhostVertex(index: string, x: number, y: number, z: number, color: number) {
     
         const geometry = new THREE.SphereGeometry(this.radius);
