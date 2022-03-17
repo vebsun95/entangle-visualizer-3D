@@ -27,6 +27,7 @@ export const MSG = {
     TreeLayout: "Tree Layout",
     DlEntry: "Download Entry",
     DlSummary: "Download Summary",
+    ParityTreeEntry: "Parity Tree Download Entry",
 }
 
 export const DLStatus = {
@@ -38,6 +39,7 @@ export const DLStatus = {
 export const RepStatus = {
     NoRep: "NoRepair",
     Success: "RepairSuccess",
+    Pending: "DownloadPending",
 }
 
 export enum MOUSE {

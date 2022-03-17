@@ -57,7 +57,7 @@ export interface ContentJSON {
     level: string,
     msg: string,
     type: string | null,
-    log: DownloadConfigLog | TreeLayoutLog | DownloadEntryLog | DownloadSummaryLog,
+    log: DownloadConfigLog | TreeLayoutLog | DownloadEntryLog | DownloadSummaryLog | ParityTreeDownloadEntryLog,
 
 }
 
@@ -90,15 +90,20 @@ export interface TreeLayoutLog {
 
 export interface DownloadEntryLog {
     parity: boolean,
-    position: number,
-    left: number | null,
-    right: number | null,
+    position: number | null,
+    start: number | null,
+    end: number | null,
+    key: string,
     hasData: boolean,
     downloadStatus: string,
     repairStatus: string,
     downloadStart: number,
     downloadEnd: number | null,
     repairEnd: number | null,
+}
+
+export interface ParityTreeDownloadEntryLog {
+    log: TreeLayoutLog,
 }
 
 export interface DownloadSummaryLog {

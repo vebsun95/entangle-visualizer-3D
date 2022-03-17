@@ -1,3 +1,4 @@
+import { timeStamp } from "console";
 import * as e from "express";
 import { DataContainer } from "./dataContainer";
 import { Parity, Vertex } from "./interfaces";
@@ -46,6 +47,7 @@ export class MerkelTreeViewer extends DataContainer {
     private tiles: Tile[] = Array(140);
     private currentRootNode: number = 0;
     private currentView: number = 0;
+    private parityLabels: string[] = [];
 
     constructor() {
         super();
@@ -59,10 +61,11 @@ export class MerkelTreeViewer extends DataContainer {
         this.mouseOverEle.Container.append(this.mouseOverEle.List);
     }
 
-    HandleUpdatedDate() {
+    HandleUpdatedDate(parityLabels: string[]) {
         this.currentView = 0;
         this.currentRootNode = this.nrOfVertices;
         this.infoGraphic.BreadCrumbsIndex = [this.currentRootNode]
+        this.parityLabels = parityLabels;
         this.CreateInfoGraphic();
         this.updateInfoGraphic();
         this.updateDynamicAttributes();
@@ -137,16 +140,17 @@ export class MerkelTreeViewer extends DataContainer {
         this.infoGraphic.Text.style.textAlign = "center";
 
         /* Delete old view-buttons */
-        for (var oldBtn of this.infoGraphic.ViewButtonsContainer.children) {
-            oldBtn.parentElement?.removeChild(oldBtn);
+        while (this.infoGraphic.ViewButtonsContainer.children.length > 0) {
+            this.infoGraphic.ViewButtonsContainer.removeChild(this.infoGraphic.ViewButtonsContainer.firstChild!);
         }
+        this.infoGraphic.ViewButtons = [];
 
         var btn: HTMLButtonElement;
 
-        for (let a = 0; a <= this.alpha; a++) {
+        for (let a = 0; a <= this.parityLabels.length; a++) {
             btn = document.createElement("button");
-            btn.innerText = a == 0 ? "Data" : a.toString();
-            btn.addEventListener("click", () => this.viewBtnClickedHandler(a))
+            btn.innerText = a == 0 ? "Data" : this.parityLabels[a-1];
+            btn.addEventListener("click", () => this.viewBtnClickedHandler(a));
             this.infoGraphic.ViewButtonsContainer.append(btn);
         }
         this.infoGraphic.ViewButtonsContainer.style.position = "absolute";
@@ -168,8 +172,8 @@ export class MerkelTreeViewer extends DataContainer {
             breadCrumb.innerHTML = `>${rootNodeIndex}`
             this.infoGraphic.BreadCrumbs.append(breadCrumb);
         }
-        var currentView = this.currentView == 0 ? "Data" : this.currentView;
-        this.infoGraphic.Text.innerHTML = `Current view. ${currentView} Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
+        var currentView = this.currentView == 0 ? "Data" : this.parityLabels[this.currentView -1];
+        this.infoGraphic.Text.innerHTML = `Current view: ${currentView}, Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
     }
 
     private updateTreeStruct() {

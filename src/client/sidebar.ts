@@ -7,31 +7,14 @@ export class SideBar {
 
     private visible: boolean = true;
     private container: HTMLDivElement = document.getElementById("side-bar") as HTMLDivElement;
-    private fileInput: HTMLInputElement = document.createElement("input");
     PlayBackEle: PlayBack = new PlayBack();
+    FileInput: FileInput = new FileInput();
 
     constructor() {
         document.getElementById("toggle-side-bar")?.addEventListener("click", this.toggleVisible.bind(this));
 
-        this.container.append(this.PlayBackEle.Container);
+        this.container.append(this.PlayBackEle.Container, this.FileInput.Container);
 
-        this.createFileInput();
-    }
-    private createFileInput() {
-        this.fileInput.type = "file";
-        this.fileInput.addEventListener("change", this.handleFileChange as EventListener)
-        this.container.append(this.fileInput);
-    }
-
-    private handleFileChange(e: InputEvent) {
-        const fileReader = new FileReader();
-        let file = (e.target as HTMLInputElement).files![0];
-        fileReader.onload = () => {
-            var content: any
-            content = JSON.parse("[" + (fileReader.result as string).split("\n").join(",") + "]")
-            dispatchEvent(new CustomEvent("new-file-upload", { detail: { newContent: content } }))
-        }
-        fileReader.readAsText(file, "UTF-8");
     }
 
     private toggleVisible() {
@@ -43,6 +26,95 @@ export class SideBar {
         this.visible = !this.visible;
     }
 
+}
+
+interface StartPoints {
+    start: number;
+    end: number;
+}
+
+class FileInput {
+    Container: HTMLDivElement = document.createElement("div");
+    private fileInput: HTMLInputElement = document.createElement("input");
+    private fileReader: FileReader = new FileReader();
+    private currentFile: File | null = null;
+    private fileRead: boolean = false;
+    private startPoints: StartPoints[] = [];
+    
+
+    constructor () {
+        this.createFileInput();
+        this.fileReader.onload = this.frOnLoad.bind(this);
+    }
+
+    DevTest(devContent: string) {
+        this.startPoints = [];
+        this.fileRead = false;
+        this.currentFile = new File([devContent], "testDev");
+        this.fileReader.readAsArrayBuffer(this.currentFile);
+    }
+
+    private createFileInput() {
+        this.fileInput.type = "file";
+        this.fileInput.addEventListener("change", this.handleFileChange.bind(this) as EventListener)
+        this.Container.append(this.fileInput);
+    }
+
+    ChangeLog(fileNumber: number) {
+        if (fileNumber > this.startPoints.length) {
+            return
+        }
+        var startpoints = this.startPoints[fileNumber];
+        this.fileReader.readAsText(this.currentFile!.slice(startpoints.start, startpoints.end));
+    }    
+
+    private frOnLoad() {
+        if(this.fileRead) {
+            this.readLog();
+        } else {
+            this.findStartPoints();
+        }
+    }
+
+    private readLog() {
+        var lines = ((this.fileReader.result as string)).split("\n");
+        var logEntries = Array(lines.length);
+        for(var [i, line] of lines.entries()) {
+            logEntries[i] = JSON.parse(line);
+        }
+        dispatchEvent( new CustomEvent("log-changed", {detail: {newContent: logEntries}}) )
+    }
+
+    private findStartPoints() {
+        /* ASCII 
+            \n -> 10
+            {  -> 123
+            -  -> 45
+        */
+        var buffer = new Uint8Array(this.fileReader.result as ArrayBuffer);
+        var start:number | null = null, end: number = 0;
+
+        
+        for(let i=0; i<=buffer.length; i++) {
+            if (!start && buffer[i] == 10 && buffer[i+1] == 123) {
+                start = i + 1;
+            }
+            if (start && buffer[i] == 10 && buffer[i+1] == 45) {
+                end = i
+                this.startPoints.push({start: start, end: end});
+                start = null;
+            }
+        }
+        this.fileRead = true;
+        dispatchEvent( new CustomEvent("new-file-upload", {detail : {fileName: this.currentFile!.name, nrOfLogs: this.startPoints.length}}))
+    }
+
+    private handleFileChange(e: InputEvent) {
+        this.startPoints = [];
+        this.fileRead = false;
+        this.currentFile = (e.target as HTMLInputElement).files![0];
+        this.fileReader.readAsArrayBuffer(this.currentFile);
+    }
 }
 
 interface StatsList {
@@ -110,6 +182,7 @@ class PlayBack {
         table: document.createElement("table"),
         rows: Array(10)};
     private currentPos: number = 0;
+    private changeLogBtns: HTMLButtonElement[] = [];
 
     constructor() {
         this.createLayout();
@@ -136,9 +209,9 @@ class PlayBack {
                 row.row.style.background = "#0f0f0f80";
             }
             if (logEntry.parity) {
-                row.position.innerText = logEntry.left!.toString() + " -> " + logEntry.right!.toString();
+                row.position.innerText = logEntry.start!.toString() + " -> " + logEntry.end!.toString();
             } else {
-                row.position.innerText = logEntry.position.toString();
+                row.position.innerText = logEntry.position!.toString();
             }
             row.logPosition.innerText = start.toString();
             row.dlStatus.innerText = logEntry.downloadStatus;
@@ -201,13 +274,28 @@ class PlayBack {
         this.Container.append(this.statsList.list, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
-    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number) {
+    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number, logEntries: DownloadEntryLog[], nrOfLogs: number) {
+        this.LogEntries = logEntries;
         this.statsList.parameters.innerHTML = `(${alpha}, ${s}, ${p})`;
         this.statsList.dataElemnts.innerText = `Data Elements: ${dataElements}`;
         this.slider.input.setAttribute("max", this.LogEntries.length.toString());
         this.slider.endPosition.innerText = " / " + (this.LogEntries.length).toString();
         this.setCurrentPos(0);
         this.resetStats();
+    }
+
+    CreateChangeLogBtns(nrOfLogs: number) {
+        while (this.changeLogBtns.length > 0) {
+            this.changeLogBtns[0].parentNode!.removeChild(this.changeLogBtns[0]);
+        }
+        this.changeLogBtns.length = nrOfLogs;
+        var btn: HTMLButtonElement;
+        for(let i=0; i < nrOfLogs; i++) {
+            btn = document.createElement("button");
+            btn.innerText = "Log #" + (i+1).toString();
+            btn.addEventListener("click", () => dispatchEvent( new CustomEvent("log-changed-clicked", {detail: {changeToLog: i}}) ))
+            this.Container.append(btn);
+        }
     }
 
     private resetStats() {
@@ -251,25 +339,25 @@ class PlayBack {
     }
     private parseLogVertexEntry(logEntry: DownloadEntryLog): VertexEvent {
         if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-            return { Position: logEntry.position, NewColor: COLORS.RED }
+            return { Position: logEntry.position!, NewColor: COLORS.RED }
         }
         else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-            return { Position: logEntry.position, NewColor: COLORS.BLUE }
+            return { Position: logEntry.position!, NewColor: COLORS.BLUE }
         }
         //else if (logEntry.downloadStatus === DLStatus.Success) {
-        return { Position: logEntry.position, NewColor: COLORS.GREEN }
+        return { Position: logEntry.position!, NewColor: COLORS.GREEN }
     }
 
     private parseLogParityEvent(logEntry: DownloadEntryLog): ParityEvent {
         if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-            return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.RED, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
+            return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.RED, Adr: logEntry.key }
         }
         else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-            return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.BLUE, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
+            return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.BLUE, Adr: logEntry.key }
 
         }
         //else if (logEntry.downloadStatus === DLStatus.Success) {
-        return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.GREEN, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
+        return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.GREEN, Adr: logEntry.key }
     }
 
     private handleSliderChange() {
