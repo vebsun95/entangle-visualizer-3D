@@ -285,8 +285,8 @@ class PlayBack {
     }
 
     CreateChangeLogBtns(nrOfLogs: number) {
-        while (this.changeLogBtns.length > 0) {
-            this.changeLogBtns[0].parentNode!.removeChild(this.changeLogBtns[0]);
+        for(var btn of this.changeLogBtns) {
+            btn.parentNode?.removeChild(btn);
         }
         this.changeLogBtns.length = nrOfLogs;
         var btn: HTMLButtonElement;
@@ -294,6 +294,7 @@ class PlayBack {
             btn = document.createElement("button");
             btn.innerText = "Log #" + (i+1).toString();
             btn.addEventListener("click", () => dispatchEvent( new CustomEvent("log-changed-clicked", {detail: {changeToLog: i}}) ))
+            this.changeLogBtns[i] = btn;
             this.Container.append(btn);
         }
     }
