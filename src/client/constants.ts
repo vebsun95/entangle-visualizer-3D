@@ -1,7 +1,7 @@
 export const STRANDS = {
-    HStrand: 1,
-    LHStrand: 3,
-    RHStrand: 2,
+    HStrand: 0,
+    LHStrand: 2,
+    RHStrand: 1,
 }
 
 export const COLORS = {
@@ -39,7 +39,7 @@ export const DLStatus = {
 export const RepStatus = {
     NoRep: "NoRepair",
     Success: "RepairSuccess",
-    Pending: "DownloadPending",
+    Pending: "RepairPending",
 }
 
 export enum MOUSE {

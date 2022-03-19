@@ -1,6 +1,6 @@
 
-import { COLORS, DLStatus, RepStatus } from "./constants";
-import { DownloadEntryLog, ParityEvent, VertexEvent } from "./interfaces";
+import { COLORS } from "./constants";
+import { ParityEvent, VertexEvent } from "./interfaces";
 import { convertHexToStringColor } from "./utils";
 
 export class SideBar {
@@ -133,10 +133,9 @@ interface LogTable {
 
 interface LogRow {
     row: HTMLTableRowElement,
-    logPosition: HTMLTableCellElement,
+    type: HTMLTableCellElement,
     position: HTMLTableCellElement,
-    dlStatus: HTMLTableCellElement,
-    repStatus: HTMLTableCellElement,
+    newColor: HTMLTableCellElement,
 }
 
 interface ListItem {
@@ -155,7 +154,7 @@ interface Slider {
 class PlayBack {
 
     Container: HTMLDivElement = document.createElement("div");
-    LogEntries: DownloadEntryLog[] = [];
+    LogEntries: (VertexEvent | ParityEvent)[] = [];
     private statsList: StatsList = {
         list: document.createElement("ul"),
         parameters: document.createElement("li"),
@@ -199,7 +198,7 @@ class PlayBack {
         var start = Math.max(0, this.currentPos - this.logTable.rows.length / 2);
         start = Math.min(start, this.LogEntries.length - this.logTable.rows.length);
         var row: LogRow;
-        var logEntry: DownloadEntryLog;
+        var logEntry: VertexEvent | ParityEvent;
         for(var i=0; i<this.logTable.rows.length; i++, start++) {
             logEntry = this.LogEntries[start];
             row = this.logTable.rows[i];
@@ -208,14 +207,20 @@ class PlayBack {
             } else {
                 row.row.style.background = "#0f0f0f80";
             }
-            if (logEntry.parity) {
-                row.position.innerText = logEntry.start!.toString() + " -> " + logEntry.end!.toString();
+            if ( (logEntry as ParityEvent).From) {
+                logEntry as ParityEvent;
+                if( (logEntry as ParityEvent).To == -1 ) {
+                    row.type.innerText = "Internal Parity";
+                    row.position.innerText = (logEntry as ParityEvent).From.toString();
+                } else {
+                    row.type.innerText = "Parity Block";
+                    row.position.innerText = (logEntry as ParityEvent).From.toString() + " -> " + (logEntry as ParityEvent).To.toString();
+                }
             } else {
-                row.position.innerText = logEntry.position!.toString();
+                row.type.innerText = "Data block";
+                row.position.innerText = (logEntry as VertexEvent).Position!.toString();
             }
-            row.logPosition.innerText = start.toString();
-            row.dlStatus.innerText = logEntry.downloadStatus;
-            row.repStatus.innerText = logEntry.repairStatus;
+            row.newColor.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span> '
         }
 
     }
@@ -259,12 +264,11 @@ class PlayBack {
         for(var i=0; i<this.logTable.rows.length; i++) {
             logTableRow = {
                 row: document.createElement("tr"),
-                logPosition: document.createElement("td"),
-                dlStatus: document.createElement("td"),
-                repStatus: document.createElement("td"),
+                type: document.createElement("td"),
+                newColor: document.createElement("td"),
                 position: document.createElement("td"),
             };
-            logTableRow.row.append(logTableRow.logPosition, logTableRow.position, logTableRow.dlStatus, logTableRow.repStatus, );
+            logTableRow.row.append(logTableRow.type, logTableRow.position, logTableRow.newColor );
             this.logTable.table.append(logTableRow.row);
             this.logTable.rows[i] = logTableRow;
         }
@@ -274,7 +278,7 @@ class PlayBack {
         this.Container.append(this.statsList.list, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
-    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number, logEntries: DownloadEntryLog[], nrOfLogs: number) {
+    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number, logEntries: (VertexEvent | ParityEvent)[], nrOfLogs: number) {
         this.LogEntries = logEntries;
         this.statsList.parameters.innerHTML = `(${alpha}, ${s}, ${p})`;
         this.statsList.dataElemnts.innerText = `Data Elements: ${dataElements}`;
@@ -323,42 +327,20 @@ class PlayBack {
 
     // https://github.com/racin/entangle-visualizer/blob/master/logparser.go
     private forwardClicked(n: number) {
-        var vertexEvents = [];
-        var parityEvents = [];
-        var logEntry: DownloadEntryLog;
+        var vertexEvents: VertexEvent[] = [];
+        var parityEvents: ParityEvent[] = [];
+        var logEntry: VertexEvent | ParityEvent;
         for (var count = 0; count < n && this.currentPos + count < this.LogEntries.length; count++) {
             logEntry = this.LogEntries[this.currentPos + count];
-            if (logEntry.parity) {
-                parityEvents.push(this.parseLogParityEvent(logEntry))
+            if ((logEntry as ParityEvent).From) {
+                parityEvents.push(logEntry as ParityEvent);
             } else {
-                vertexEvents.push(this.parseLogVertexEntry(logEntry))
+                vertexEvents.push(logEntry as VertexEvent)
             }
         }
         this.setCurrentPos(this.currentPos + count);
 
         dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
-    }
-    private parseLogVertexEntry(logEntry: DownloadEntryLog): VertexEvent {
-        if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-            return { Position: logEntry.position!, NewColor: COLORS.RED }
-        }
-        else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-            return { Position: logEntry.position!, NewColor: COLORS.BLUE }
-        }
-        //else if (logEntry.downloadStatus === DLStatus.Success) {
-        return { Position: logEntry.position!, NewColor: COLORS.GREEN }
-    }
-
-    private parseLogParityEvent(logEntry: DownloadEntryLog): ParityEvent {
-        if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-            return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.RED, Adr: logEntry.key }
-        }
-        else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-            return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.BLUE, Adr: logEntry.key }
-
-        }
-        //else if (logEntry.downloadStatus === DLStatus.Success) {
-        return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.GREEN, Adr: logEntry.key }
     }
 
     private handleSliderChange() {

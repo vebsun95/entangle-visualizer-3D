@@ -5,6 +5,7 @@ import { SideBar } from "./sidebar";
 
 import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./interfaces";
 import { COLORS, DLStatus, MSG, RepStatus } from "./constants";
+import { parseLogParityEvent, parseLogVertexEntry } from "./utils";
 
 
 
@@ -25,10 +26,10 @@ export class App {
     CurrentFilename: string = "";
     vertices: Map<number, Vertex> = new Map();
     parities: Map<number, Parity>[] = [];
-    AdrToStrand: Map<string, number> = new Map();
-    LogEntries: DownloadEntryLog[] = [];
+    parityShift: Map<number, number> = new Map();
+    LogEntries: (VertexEvent | ParityEvent)[] = [];
     ParityLabels: string[] = [];
-    
+
 
 
     constructor() {
@@ -42,9 +43,9 @@ export class App {
 
     UpdateData() {
 
-        this.renderer.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.AdrToStrand);
-        this.bitMap.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.AdrToStrand);
-        this.merkelTree.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.AdrToStrand);
+        this.renderer.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
+        this.bitMap.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
+        this.merkelTree.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
 
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
@@ -117,10 +118,13 @@ export class App {
         }
         // TODO FIX
         for (parityEvent of e.detail.ParityEvents) {
-            let strand = this.AdrToStrand.get(parityEvent.Adr) || this.alpha - 1;
+            let strand = parityEvent.Strand;
             parity = this.parities[strand].get(parityEvent.From)!;
             parity.To = parityEvent.To;
             parity.Color = parityEvent.NewColor;
+            if (parityEvent.From == 0) {
+                console.log("#asdf")
+            }
         }
 
         this.renderer.createTwoDimView();
@@ -159,8 +163,13 @@ export class App {
         this.nrOfUnavailable = 0;
         this.ParityLabels = (line.log as DownloadConfigLog).parityLabels;
         var dataShiftRegister = (line.log as DownloadConfigLog).dataShiftRegister;
-        var parityLeafIdToCanonIndex = (line.log as DownloadConfigLog).parityLeafIdToCanonIndex
-        this.AdrToStrand.clear();
+        var parityShift = (line.log as DownloadConfigLog).parityLeafIdToCanonIndex;
+        this.parityShift.clear();
+        var a = parityShift[2];
+        for (var value in parityShift) {
+            this.parityShift.set(Number.parseInt(value), parityShift[value]);
+        }
+        var AdrToStrand: Map<string, number> = new Map();
         this.vertices.clear();
         this.parities = Array(this.alpha);
         for (let i = 0; i < this.parities.length; i++) {
@@ -173,7 +182,6 @@ export class App {
             if (line.type == "Data") {
                 this.vertices.set(log.index, {
                     Index: dataShiftRegister[log.index],
-                    Label: log.index.toString(),
                     Adr: log.key,
                     Color: COLORS.GREY,
                     Parent: log.parent ? dataShiftRegister[log.parent] : 0,
@@ -186,7 +194,6 @@ export class App {
                 this.parities[parityIndex].set(log.index, {
                     Index: log.index,
                     To: null,
-                    Label: log.index.toString(),
                     Adr: log.key,
                     Color: COLORS.GREY,
                     Parent: log.parent || 0,
@@ -194,7 +201,7 @@ export class App {
                     Children: [],
                     DamagedChildren: [],
                 });
-                this.AdrToStrand.set(log.key, parityIndex);
+                AdrToStrand.set(log.key, parityIndex);
             }
             line = content[lineCounter++]
         }
@@ -217,9 +224,6 @@ export class App {
                 vertex.Depth = swappedVertex.Depth;
                 swappedVertex.Depth = tempDepth;
 
-                this.vertices.set(vertex.Index, swappedVertex);
-                this.vertices.set(position, vertex);
-
                 allReadySwapped.push(position, vertex.Index);
             }
         }
@@ -231,7 +235,7 @@ export class App {
             }
         }
 
-        var logEntry: DownloadEntryLog;
+        var logEntry: DownloadEntryLog | TreeLayoutLog;
         this.LogCursor = 0;
         this.LogEntries = [];
         while (line.msg == MSG.DlEntry || line.msg == MSG.ParityTreeEntry) {
@@ -243,8 +247,20 @@ export class App {
 
                     continue
                 }
-
-                this.LogEntries.push(logEntry);
+                if (logEntry.parity) {
+                    this.LogEntries.push(parseLogParityEvent(logEntry, AdrToStrand.get(logEntry.key) || 0))
+                } else {
+                    this.LogEntries.push(parseLogVertexEntry(logEntry))
+                }
+            }
+            else if (line.msg == MSG.ParityTreeEntry) {
+                logEntry = line.log as TreeLayoutLog;
+                this.LogEntries.push({
+                    From: logEntry.index,
+                    To: -1,
+                    NewColor: COLORS.GREEN,
+                    Strand: AdrToStrand.get(logEntry.key) || 0,
+                } as ParityEvent)
             }
             line = content[lineCounter++]
         }

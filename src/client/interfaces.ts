@@ -1,9 +1,6 @@
-import { Key } from "readline"
-
 export interface Parity {
     Color: number,
     Index: number,
-    Label: string,
     Adr: string,
     Depth: number,
     Parent: number,
@@ -13,16 +10,15 @@ export interface Parity {
 }
 
 export interface ParityEvent {
+    Strand: number,
     From: number,
     To: number,
     NewColor: number,
-    Adr: string,
 }
 
 export interface Vertex {
     Color: number,
     Index: number,
-    Label: string,
     Adr: string,
     Depth: number,
     Parent: number,
@@ -34,6 +30,7 @@ export interface VertexEvent {
     Position: number,
     NewColor: number,
 }
+
 
 export interface Keys {
     LEFT: string,
@@ -64,7 +61,6 @@ export interface ContentJSON {
 interface dataShiftRegister {
     [Key:number]: number,
 }
-
 
 export interface DownloadConfigLog {
     alpha: number,

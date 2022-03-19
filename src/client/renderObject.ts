@@ -105,7 +105,7 @@ export class RendererObject extends DataContainer {
                 0                                   // z coordination
             )
             let vertexInfo = this.vertices.get(startIndex);
-            v.name = vertexInfo!.Label;
+            v.name = vertexInfo!.Index.toString();
             //@ts-ignore
             v.material.map = this.createTexture(v.name);
             //@ts-ignore
@@ -136,17 +136,18 @@ export class RendererObject extends DataContainer {
         startIndex = this.drawFrom;
         this.lineGeomIndex = 0;
         for (let index = 0; index < this.limit; index++) {
-            for (var output of this.parities) {
-                let parity = output.get(startIndex) as Parity;
+            for (var [strand, output] of this.parities.entries()) {
+                let parityPosition = this.parityShift.get(startIndex)!;
+                let parity = output.get(parityPosition) as Parity;
                 if (index + this.s < this.limit && parity.To != null) {
                     // Sjekker at RightPos er mindre enn LeftPos og siste kolonne ikke er fylt opp av verticies
                     if (parity.To < parity.Index && this.nrOfVertices % this.s != 0) {
                         // Gjør avansert logikk her
-                        this.CreateParitiyAdvanced2D(parity);
+                        this.CreateParitiyAdvanced2D(parity, strand);
                     }
                     else {
                         // Gjør basic logikk her
-                        this.CreateParitiyBasic2D(parity);
+                        this.CreateParitiyBasic2D(parity, strand);
                     }
                 }
             }
@@ -158,7 +159,7 @@ export class RendererObject extends DataContainer {
         this.ghostGroup.visible = this.ghostgroupshow;
     }
 
-    CreateParitiyAdvanced2D(output: Parity) {
+    CreateParitiyAdvanced2D(output: Parity, strand: number) {
         let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
         let leftPos = this.scene.getObjectByName(output.Index.toString());
         let rightPos = this.scene.getObjectByName(output.To!.toString());
@@ -171,7 +172,6 @@ export class RendererObject extends DataContainer {
             this.lineGeomIndex++;
             let array = line.geometry.attributes.position;
             array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
-            let strand = this.AdrToStrand.get(output.Adr);
             switch (strand) {
                 case STRANDS.HStrand: {
                     array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
@@ -250,7 +250,7 @@ export class RendererObject extends DataContainer {
     }
 
 
-    CreateParitiyBasic2D(output: Parity) {
+    CreateParitiyBasic2D(output: Parity, strand: number) {
         let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
         let leftPos = this.scene.getObjectByName(output.Index.toString());
         let rightPos = this.scene.getObjectByName(output.To!.toString());
@@ -261,7 +261,6 @@ export class RendererObject extends DataContainer {
             this.lineGeomIndex++;
             let array = line.geometry.attributes.position;
             array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
-            let strand = this.AdrToStrand.get(output.Adr);
             switch (strand) {
                 case STRANDS.HStrand: {
                     array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);

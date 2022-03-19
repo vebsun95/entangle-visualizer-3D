@@ -219,6 +219,8 @@ export class MerkelTreeViewer extends DataContainer {
         tileCounter = 0;
         row = 0;
         col = 0;
+        console.log(currentRootNode);
+
         for (let childIndex of currentRootNode.Children) {
             if (this.currentView == 0 ){
                 vertex = this.vertices.get(childIndex)!;
