@@ -1,9 +1,6 @@
-import { Key } from "readline"
-
 export interface Parity {
     Color: number,
     Index: number,
-    Label: string,
     Adr: string,
     Depth: number,
     Parent: number,
@@ -13,16 +10,15 @@ export interface Parity {
 }
 
 export interface ParityEvent {
+    Strand: number,
     From: number,
     To: number,
     NewColor: number,
-    Adr: string,
 }
 
 export interface Vertex {
     Color: number,
     Index: number,
-    Label: string,
     Adr: string,
     Depth: number,
     Parent: number,
@@ -34,6 +30,7 @@ export interface VertexEvent {
     Position: number,
     NewColor: number,
 }
+
 
 export interface Keys {
     LEFT: string,
@@ -57,14 +54,13 @@ export interface ContentJSON {
     level: string,
     msg: string,
     type: string | null,
-    log: DownloadConfigLog | TreeLayoutLog | DownloadEntryLog | DownloadSummaryLog,
+    log: DownloadConfigLog | TreeLayoutLog | DownloadEntryLog | DownloadSummaryLog | ParityTreeDownloadEntryLog,
 
 }
 
 interface dataShiftRegister {
     [Key:number]: number,
 }
-
 
 export interface DownloadConfigLog {
     alpha: number,
@@ -90,15 +86,20 @@ export interface TreeLayoutLog {
 
 export interface DownloadEntryLog {
     parity: boolean,
-    position: number,
-    left: number | null,
-    right: number | null,
+    position: number | null,
+    start: number | null,
+    end: number | null,
+    key: string,
     hasData: boolean,
     downloadStatus: string,
     repairStatus: string,
     downloadStart: number,
     downloadEnd: number | null,
     repairEnd: number | null,
+}
+
+export interface ParityTreeDownloadEntryLog {
+    log: TreeLayoutLog,
 }
 
 export interface DownloadSummaryLog {

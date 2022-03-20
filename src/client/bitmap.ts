@@ -1,8 +1,7 @@
 import { Vec2 } from "three";
-import { threadId } from "worker_threads";
-import { COLORS } from "./constants";
 import { DataContainer } from "./dataContainer";
 import { Vertex } from "./interfaces";
+import { convertHexToStringColor } from "./utils";
 
 interface vec2 {
     x: number,
@@ -18,61 +17,70 @@ interface rect {
 
 export class BitMap extends DataContainer {
 
-    private container: HTMLDivElement = document.getElementById("bitmap-canvas-container") as HTMLDivElement;
-    private ruler: HTMLCanvasElement = this.container.appendChild(document.createElement('canvas'));
-    private treeCanvases: HTMLCanvasElement = this.container.appendChild(document.createElement("canvas"));
-    private latticeCanvas: HTMLCanvasElement = this.container.appendChild(document.createElement("canvas"));
-    private containerWidth: number = this.container.clientWidth;
+    public Container: HTMLDivElement = document.createElement("div");
+    private canvasContainer: HTMLDivElement = document.createElement("div");
+    private ruler: HTMLCanvasElement = document.createElement('canvas');
+    private treeCanvases: HTMLCanvasElement = document.createElement("canvas");
+    private latticeCanvas: HTMLCanvasElement = document.createElement("canvas");
+    private containerWidth: number = window.innerWidth;
     private treeCanvasesLookup: Map<number, rect> = new Map();
     private rulerHeight: number = 20;
     private pixelHeight: number = 15;
     private pixelWidth: number = 1;
     private visible: boolean = true;
-    private viewBox: HTMLDivElement = document.getElementById("bitMap-viewBox")! as HTMLDivElement;
-    private viewBoxLocked: HTMLDivElement = document.getElementById("bitMap-viewBox-locked") as HTMLDivElement;
+    private viewBoxContainer: HTMLDivElement = document.createElement("div");
+    private viewBox: HTMLDivElement = document.createElement("div");
+    private viewBoxLocked: HTMLDivElement = document.createElement("div");
     private viewBoxWidth = 0;
-    drawLimit: number = 1;
+    public DrawLimit: number = 1;
 
     constructor() {
         super();
 
-        this.container.addEventListener("mouseenter", this.handleMouseEnter.bind(this));
-        this.container.addEventListener("mouseleave", this.handleMouseLeave.bind(this));
-        this.container.addEventListener("mousemove", (event: MouseEvent) => this.handleMouseMove(event));
-        this.container.addEventListener("mousedown", this.handleMouseDown.bind(this));
-        document.getElementById("toggle-bitmap")?.addEventListener("click", this.toggleVisible.bind(this));
-    }
+        this.createLayout();
 
+    }
+    private createLayout() {
+
+        this.Container.id = "bitmap-container";
+        this.viewBoxContainer.id = "bitmap-viewbox-container";
+        this.viewBox.id = "bitMap-viewBox";
+        this.viewBoxLocked.id ="bitMap-viewBox-locked";
+        this.canvasContainer.id = "bitmap-canvas-container"
+
+        this.Container.addEventListener("mouseenter", this.handleMouseEnter.bind(this));
+        this.Container.addEventListener("mouseleave", this.handleMouseLeave.bind(this));
+        this.Container.addEventListener("mousemove", (event: MouseEvent) => this.handleMouseMove(event));
+        this.Container.addEventListener("mousedown", this.handleMouseDown.bind(this));
+        
+        this.viewBoxContainer.append(this.viewBox, this.viewBoxLocked);
+        this.canvasContainer.append(this.ruler, this.viewBoxContainer, this.treeCanvases, this.latticeCanvas);
+
+        this.Container.append(this.canvasContainer);
+    }
     HandleUpdatedData() {
         this.updateDynamicAttributes();
         this.updateDrawLimit();
+        this.fillLookUpTable();
+        this.createRuler();
         this.draw();
     }
 
     private draw() {
         var row = 0;
         var column = 0;
-        var width = 0;
         var color: string;
-        var rulerStep = 100; // How often do you mark the ruler.
-        var rulerCtx = this.ruler.getContext('2d');
-        var indexCounter: number; // Helper-variable to convert (row,column) to index
+        
         var vertex: Vertex;
-        rulerCtx!.font = "1em white"
-        rulerCtx!.fillStyle = "white";
-        rulerCtx!.textAlign = "center";
-        rulerCtx!.textBaseline = "middle";
+        
 
         var latticeCtx = this.latticeCanvas.getContext("2d")!;
         var treeCtx = this.treeCanvases.getContext("2d")!;
-        var oldPosMap: Map<number, vec2> = new Map();
-        var oldPos: Vec2;
-        for (let depth = 2; depth < this.maxDepth; depth++) {
-            oldPosMap.set(depth, { x: 0, y: this.pixelHeight * (this.maxDepth - depth - 1) })
-        }
-
-        for (var [position, vertex] of [...this.vertices.entries()].sort((a, b) => a[1].Index - b[1].Index)) {
-            color = this.convertHexToStringColor(vertex.Color);
+        
+        for (var [position, vertex] of this.vertices.entries()) {
+            column = Math.floor((position - 1) / this.s)
+            row = (position - 1) % this.s
+            color = convertHexToStringColor(vertex.Color);
             latticeCtx.fillStyle = color;
             latticeCtx.fillRect(
                 column * this.pixelWidth, // X
@@ -80,43 +88,60 @@ export class BitMap extends DataContainer {
                 this.pixelWidth,          // Width
                 this.pixelHeight)         // Height;
             if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
+                let dim = this.treeCanvasesLookup.get(position)!;
+                treeCtx.fillStyle = color;
+                treeCtx.fillRect(dim.x, dim.y, dim.width, dim.height);
+                treeCtx.fillStyle = "black";
+                treeCtx.strokeRect(dim.x, dim.y, dim.width, dim.height);
+            }
+        }
+    }
+
+    private fillLookUpTable() {
+        var oldPosMap: Map<number, vec2> = new Map();
+        var oldPos: Vec2, width: number, row: number = 0, column: number = 0;
+        for (let depth = 2; depth < this.maxDepth; depth++) {
+            oldPosMap.set(depth, { x: 0, y: this.pixelHeight * (this.maxDepth - depth - 1) })
+        }
+
+        this.treeCanvasesLookup.clear();
+        for (var [position, vertex] of [...this.vertices.entries()].sort((a, b) => a[1].Index - b[1].Index)) {
+            if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
                 oldPos = oldPosMap.get(vertex.Depth)!;
                 width = (Math.ceil(vertex.Index  / this.s) * this.pixelWidth) - oldPos.x;
-                treeCtx.fillStyle = color;
-                treeCtx.fillRect(
-                    oldPos.x,
-                    oldPos.y,
-                    width,
-                    this.pixelHeight,
-                )
-                treeCtx.fillStyle = "black";
-                treeCtx.strokeRect(
-                    oldPos.x,
-                    oldPos.y,
-                    width,
-                    this.pixelHeight,
-                )
-
                 oldPosMap.set(vertex.Depth, { x: oldPos.x + width, y: oldPos.y })
                 this.treeCanvasesLookup.set(position, { x: oldPos.x, y: oldPos.y, width: width, height: this.pixelHeight })
-            }
-            if (column % rulerStep == 0 && row == 0) {
-                indexCounter = column * this.s + row;
-                rulerCtx?.fillRect(column, 15, 2, 5)
-                rulerCtx?.fillText(indexCounter.toString(), column, this.ruler.height / 2)
             }
             row = (row + 1) % this.s;
             if (row == 0) column++;
         }
     }
 
+    private createRuler() {
+        var rulerStep = Math.ceil(Math.log10(this.nrOfVertices) * (this.nrOfVertices / 10)); // How often do you mark the ruler.
+        var rulerCtx = this.ruler.getContext('2d')!;
+        var x: number; // Helper-variable to convert (row,column) to index
+        // Clear the old ruler.
+        rulerCtx.clearRect(0, 0,this.ruler.width, this.ruler.height);
+        rulerCtx.font = "1em white"
+        rulerCtx.fillStyle = "white";
+        rulerCtx.textAlign = "center";
+        rulerCtx.textBaseline = "middle";
+        for(var c=0; c < this.nrOfVertices; c += rulerStep) {
+            x = Math.floor(c / this.s) * this.pixelWidth;
+            rulerCtx.fillRect(x * this.pixelWidth, 15, 2, 5)
+            rulerCtx.fillText(c.toString(), x, this.ruler.height / 2)
+        }
+        
+    }
+
     private toggleVisible() {
         if (this.visible) {
-            this.container.classList.remove("showBitMap");
-            this.container.classList.add("hideBitMap");
+            this.Container.classList.remove("showBitMap");
+            this.Container.classList.add("hideBitMap");
         } else {
-            this.container.classList.remove("hideBitMap");
-            this.container.classList.add("showBitMap");
+            this.Container.classList.remove("hideBitMap");
+            this.Container.classList.add("showBitMap");
         }
         this.visible = !this.visible;
     }
@@ -128,14 +153,12 @@ export class BitMap extends DataContainer {
         return column * this.s + row;
     }
 
-    private convertHexToStringColor(hexColor: number): string {
-        let hexColorString = hexColor.toString(16);
-        // 0xFFFFFF
-        while (hexColorString.length < 6) {
-            hexColorString = '0' + hexColorString;
-        }
-        hexColorString = '#' + hexColorString;
-        return hexColorString;
+    private getCoordFromIndex(vertexIndex: number): [number, number] {
+        let row = vertexIndex % this.s;
+        let column = Math.floor(vertexIndex / this.s);
+        let offsetX = column * this.pixelWidth;
+        let offsetY = row * this.pixelHeight;
+        return [offsetX, offsetY];
     }
 
     private updateDynamicAttributes() {
@@ -147,14 +170,12 @@ export class BitMap extends DataContainer {
             this.pixelWidth = 1;
             this.containerWidth = Math.ceil(this.nrOfVertices / this.s) + 1;
         } else {
-            this.pixelWidth = Math.floor(window.innerWidth / Math.ceil(this.nrOfVertices / this.s))
+            this.pixelWidth = Math.ceil(window.innerWidth / Math.ceil(this.nrOfVertices / this.s))
         }
 
         this.treeCanvases.setAttribute("width", this.containerWidth.toString() + "px");
         this.treeCanvases.setAttribute("height", ((this.maxDepth - 2) * this.pixelHeight).toString() + "px");
-        this.treeCanvases.classList.add("bitMapCanvas")
-
-        this.treeCanvasesLookup.clear()
+        this.treeCanvases.classList.add("bitMapCanvas");
 
         this.latticeCanvas.setAttribute("width", this.containerWidth.toString() + "px");
         this.latticeCanvas.setAttribute("height", this.pixelHeight * this.s + "px")
@@ -162,15 +183,15 @@ export class BitMap extends DataContainer {
 
 
         this.ruler.setAttribute("height", this.rulerHeight.toString() + "px");
-        this.ruler.setAttribute("width", (this.nrOfVertices / this.s) + "px");
+        this.ruler.setAttribute("width", (this.containerWidth).toString() + "px");
         this.ruler.classList.add("bitMapCanvas")
 
 
-        document.getElementById("bitmap-viewbox-container")!.style.width = this.containerWidth.toString() + "px";
+        this.viewBoxContainer.style.width = this.containerWidth.toString() + "px";
     }
 
     private updateDrawLimit() {
-        this.viewBoxWidth = this.pixelWidth * (this.drawLimit / this.s);
+        this.viewBoxWidth = this.pixelWidth * (this.DrawLimit / this.s);
 
         this.viewBox.style.display = "none"
         this.viewBox.style.height = this.latticeCanvas.height.toString() + "px";
@@ -182,8 +203,8 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.bottom = "0";
     }
 
-    UpdateVertex(vertexPositions: number[]) {
-        let latticectx = this.latticeCanvas.getContext("2d")!;
+    public UpdateVertex(vertexPositions: number[]) {
+        let latticeCtx = this.latticeCanvas.getContext("2d")!;
         for(var vertexPosition of vertexPositions) {
             var vertex = this.vertices.get(vertexPosition);
             if (typeof vertex == "undefined") {
@@ -191,9 +212,9 @@ export class BitMap extends DataContainer {
             }
             let col = Math.floor((vertexPosition - 1) / this.s)
             let row = (vertexPosition - 1) % this.s
-            let color = this.convertHexToStringColor(vertex.Color);
-            latticectx.fillStyle = color;
-            latticectx.fillRect(col * this.pixelWidth, row * this.pixelHeight, this.pixelWidth, this.pixelHeight);
+            let color = convertHexToStringColor(vertex.Color);
+            latticeCtx.fillStyle = color;
+            latticeCtx.fillRect(col * this.pixelWidth, row * this.pixelHeight, this.pixelWidth, this.pixelHeight);
             if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
                 var treeCtx = this.treeCanvases.getContext("2d")!;
                 let dim = this.treeCanvasesLookup.get(vertexPosition)!;
@@ -231,12 +252,20 @@ export class BitMap extends DataContainer {
         dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
     }
 
-    Reset() {
+    public Reset() {
         this.draw();
     }
 
-    onWindowResize() {
+    public onWindowResize() {
         this.updateDynamicAttributes();
+        this.fillLookUpTable();
         this.draw();
+    }
+
+    public SimulateClick(vertexIndex: number) {
+        let coords = this.getCoordFromIndex(vertexIndex);
+        this.viewBoxLocked.style.left = coords[0].toString() + "px";
+        this.latticeCanvas.scrollTo(coords[0] - window.innerWidth / 2, 0);
+        dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
     }
 }

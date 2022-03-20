@@ -1,4 +1,3 @@
-import * as e from "express";
 import { DataContainer } from "./dataContainer";
 import { Parity, Vertex } from "./interfaces";
 
@@ -19,7 +18,6 @@ interface InfoGraphic {
     ViewButtonsContainer: HTMLDivElement;
 }
 
-
 interface MouseOverElement {
     Container: HTMLDivElement,
     List: HTMLUListElement,
@@ -27,7 +25,7 @@ interface MouseOverElement {
 
 export class MerkelTreeViewer extends DataContainer {
 
-    private container: HTMLDivElement = document.getElementById("tree-container") as HTMLDivElement;
+    public Container: HTMLDivElement = document.createElement("div");
     private infoGraphic: InfoGraphic = {
         Container: document.createElement("div"),
         Text: document.createElement("p"),
@@ -36,9 +34,9 @@ export class MerkelTreeViewer extends DataContainer {
         ViewButtons: [],
         ViewButtonsContainer: document.createElement("div"),
     }
-    private svgElement: SVGElement = document.getElementById("original-merkel-tree") as unknown as SVGElement;
+    private svgElement: SVGElement = document.createElementNS(SVGURL, "svg");
     private mouseOverEle: MouseOverElement = {
-        Container: this.container.appendChild(document.createElement("div")),
+        Container: this.Container.appendChild(document.createElement("div")),
         List: document.createElement("ul")
     };
     private padding = 20;
@@ -46,9 +44,18 @@ export class MerkelTreeViewer extends DataContainer {
     private tiles: Tile[] = Array(140);
     private currentRootNode: number = 0;
     private currentView: number = 0;
+    private parityLabels: string[] = [];
 
     constructor() {
         super();
+        this.createLayout();
+        
+    }
+
+    private createLayout() {
+
+        this.Container.id = "tree-container";
+        this.svgElement.id = "original-merkel-tree";
         this.createTileElements();
 
         this.mouseOverEle.Container.style.position = "absolute";
@@ -57,31 +64,35 @@ export class MerkelTreeViewer extends DataContainer {
         this.mouseOverEle.Container.setAttribute("display", "none")
         this.mouseOverEle.Container.style.pointerEvents = "none";
         this.mouseOverEle.Container.append(this.mouseOverEle.List);
+
+        this.Container.append(this.infoGraphic.Container, this.svgElement);
+
     }
 
-    HandleUpdatedDate() {
+    public HandleUpdatedDate(parityLabels: string[]) {
         this.currentView = 0;
         this.currentRootNode = this.nrOfVertices;
         this.infoGraphic.BreadCrumbsIndex = [this.currentRootNode]
+        this.parityLabels = parityLabels;
         this.CreateInfoGraphic();
         this.updateInfoGraphic();
         this.updateDynamicAttributes();
         this.updateTreeStruct();
     }
 
-    onWindowResize() {
+    public onWindowResize() {
         this.updateDynamicAttributes();
         this.updateTreeStruct();
     }
 
-    UpdateVertex(vertexIndex :number[] ) {
+    public UpdateVertex(vertexIndex :number[] ) {
         if (this.currentView > 0) {
             return
         }
         this.updateTreeStruct();
     }
 
-    UpdateParity(vertexIndex: number, strand: number) {
+    public UpdateParity(vertexIndex: number, strand: number) {
         if (this.currentView != strand) {
             return
         }
@@ -95,9 +106,7 @@ export class MerkelTreeViewer extends DataContainer {
         this.infoGraphic.Container.setAttribute("height", (window.innerHeight * 0.2).toString());
         this.infoGraphic.Container.setAttribute("width", (window.innerWidth).toString());
     }
-
     
-
     private createTileElements() {
         var tile: Tile
 
@@ -137,23 +146,23 @@ export class MerkelTreeViewer extends DataContainer {
         this.infoGraphic.Text.style.textAlign = "center";
 
         /* Delete old view-buttons */
-        for (var oldBtn of this.infoGraphic.ViewButtonsContainer.children) {
-            oldBtn.parentElement?.removeChild(oldBtn);
+        while (this.infoGraphic.ViewButtonsContainer.children.length > 0) {
+            this.infoGraphic.ViewButtonsContainer.removeChild(this.infoGraphic.ViewButtonsContainer.firstChild!);
         }
+        this.infoGraphic.ViewButtons = [];
 
         var btn: HTMLButtonElement;
 
-        for (let a = 0; a <= this.alpha; a++) {
+        for (let a = 0; a <= this.parityLabels.length; a++) {
             btn = document.createElement("button");
-            btn.innerText = a == 0 ? "Data" : a.toString();
-            btn.addEventListener("click", () => this.viewBtnClickedHandler(a))
+            btn.innerText = a == 0 ? "Data" : this.parityLabels[a-1];
+            btn.addEventListener("click", () => this.viewBtnClickedHandler(a));
             this.infoGraphic.ViewButtonsContainer.append(btn);
         }
         this.infoGraphic.ViewButtonsContainer.style.position = "absolute";
         this.infoGraphic.ViewButtonsContainer.style.right = "0";
 
         this.infoGraphic.Container.append(this.infoGraphic.BreadCrumbs, this.infoGraphic.Text, this.infoGraphic.ViewButtonsContainer);
-        this.container.insertBefore(this.infoGraphic.Container, this.svgElement);
     }
 
     private updateInfoGraphic() {
@@ -168,8 +177,8 @@ export class MerkelTreeViewer extends DataContainer {
             breadCrumb.innerHTML = `>${rootNodeIndex}`
             this.infoGraphic.BreadCrumbs.append(breadCrumb);
         }
-        var currentView = this.currentView == 0 ? "Data" : this.currentView;
-        this.infoGraphic.Text.innerHTML = `Current view. ${currentView} Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
+        var currentView = this.currentView == 0 ? "Data" : this.parityLabels[this.currentView -1];
+        this.infoGraphic.Text.innerHTML = `Current view: ${currentView}, Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
     }
 
     private updateTreeStruct() {
@@ -215,6 +224,8 @@ export class MerkelTreeViewer extends DataContainer {
         tileCounter = 0;
         row = 0;
         col = 0;
+        console.log(currentRootNode);
+
         for (let childIndex of currentRootNode.Children) {
             if (this.currentView == 0 ){
                 vertex = this.vertices.get(childIndex)!;

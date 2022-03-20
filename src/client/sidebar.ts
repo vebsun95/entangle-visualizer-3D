@@ -1,48 +1,126 @@
 
-import { COLORS, DLStatus, RepStatus } from "./constants";
-import { DownloadEntryLog, ParityEvent, VertexEvent } from "./interfaces";
+import { COLORS } from "./constants";
+import { ParityEvent, VertexEvent } from "./interfaces";
 import { convertHexToStringColor } from "./utils";
 
 export class SideBar {
 
     private visible: boolean = true;
-    private container: HTMLDivElement = document.getElementById("side-bar") as HTMLDivElement;
-    private fileInput: HTMLInputElement = document.createElement("input");
+    Container: HTMLDivElement = document.createElement("div");
     PlayBackEle: PlayBack = new PlayBack();
+    FileInput: FileInput = new FileInput();
 
     constructor() {
         document.getElementById("toggle-side-bar")?.addEventListener("click", this.toggleVisible.bind(this));
 
-        this.container.append(this.PlayBackEle.Container);
+        this.createLayout();
 
-        this.createFileInput();
-    }
-    private createFileInput() {
-        this.fileInput.type = "file";
-        this.fileInput.addEventListener("change", this.handleFileChange as EventListener)
-        this.container.append(this.fileInput);
+
     }
 
-    private handleFileChange(e: InputEvent) {
-        const fileReader = new FileReader();
-        let file = (e.target as HTMLInputElement).files![0];
-        fileReader.onload = () => {
-            var content: any
-            content = JSON.parse("[" + (fileReader.result as string).split("\n").join(",") + "]")
-            dispatchEvent(new CustomEvent("new-file-upload", { detail: { newContent: content } }))
-        }
-        fileReader.readAsText(file, "UTF-8");
+    private createLayout() {
+        this.Container.id = "side-bar";
+        this.Container.append(this.PlayBackEle.Container, this.FileInput.Container);
     }
 
     private toggleVisible() {
         if (this.visible) {
-            this.container.style.width = "1em";
+            this.Container.style.width = "1em";
         } else {
-            this.container.style.width = "";
+            this.Container.style.width = "";
         }
         this.visible = !this.visible;
     }
 
+}
+
+interface StartPoints {
+    start: number;
+    end: number;
+}
+
+class FileInput {
+    Container: HTMLDivElement = document.createElement("div");
+    private fileInput: HTMLInputElement = document.createElement("input");
+    private fileReader: FileReader = new FileReader();
+    private currentFile: File | null = null;
+    private fileRead: boolean = false;
+    private startPoints: StartPoints[] = [];
+    
+
+    constructor () {
+        this.createFileInput();
+        this.fileReader.onload = this.frOnLoad.bind(this);
+    }
+
+    DevTest(devContent: string) {
+        this.startPoints = [];
+        this.fileRead = false;
+        this.currentFile = new File([devContent], "testDev");
+        this.fileReader.readAsArrayBuffer(this.currentFile);
+    }
+
+    private createFileInput() {
+        this.fileInput.type = "file";
+        this.fileInput.addEventListener("change", this.handleFileChange.bind(this) as EventListener)
+        this.Container.append(this.fileInput);
+    }
+
+    ChangeLog(fileNumber: number) {
+        if (fileNumber > this.startPoints.length) {
+            return
+        }
+        var startpoints = this.startPoints[fileNumber];
+        this.fileReader.readAsText(this.currentFile!.slice(startpoints.start, startpoints.end));
+    }    
+
+    private frOnLoad() {
+        if(this.fileRead) {
+            this.readLog();
+        } else {
+            this.findStartPoints();
+        }
+    }
+
+    private readLog() {
+        var lines = ((this.fileReader.result as string)).split("\n");
+        var logEntries = Array(lines.length);
+        for(var [i, line] of lines.entries()) {
+            logEntries[i] = JSON.parse(line);
+        }
+        dispatchEvent( new CustomEvent("log-changed", {detail: {newContent: logEntries}}) )
+    }
+
+    private findStartPoints() {
+        /* ASCII 
+            \n -> 10
+            {  -> 123
+            -  -> 45
+        */
+        var buffer = new Uint8Array(this.fileReader.result as ArrayBuffer);
+        var start:number | null = null, end: number = 0;
+
+        
+        for(let i=0; i<=buffer.length; i++) {
+            if (!start && buffer[i] == 10 && buffer[i+1] == 123) {
+                start = i + 1;
+            }
+            if (start && buffer[i] == 10 && buffer[i+1] == 45) {
+                end = i
+                this.startPoints.push({start: start, end: end});
+                start = null;
+            }
+        }
+        this.fileRead = true;
+        dispatchEvent( new CustomEvent("new-file-upload", {detail : {fileName: this.currentFile!.name, nrOfLogs: this.startPoints.length}}))
+    }
+
+    private handleFileChange(e: InputEvent) {
+        this.startPoints = [];
+        this.fileRead = false;
+        this.currentFile = (e.target as HTMLInputElement).files![0];
+        this.fileReader.readAsArrayBuffer(this.currentFile);
+    }
 }
 
 interface StatsList {
@@ -61,10 +139,9 @@ interface LogTable {
 
 interface LogRow {
     row: HTMLTableRowElement,
-    logPosition: HTMLTableCellElement,
+    type: HTMLTableCellElement,
     position: HTMLTableCellElement,
-    dlStatus: HTMLTableCellElement,
-    repStatus: HTMLTableCellElement,
+    newColor: HTMLTableCellElement,
 }
 
 interface ListItem {
@@ -83,7 +160,7 @@ interface Slider {
 class PlayBack {
 
     Container: HTMLDivElement = document.createElement("div");
-    LogEntries: DownloadEntryLog[] = [];
+    LogEntries: (VertexEvent | ParityEvent)[] = [];
     private statsList: StatsList = {
         list: document.createElement("ul"),
         parameters: document.createElement("li"),
@@ -110,6 +187,7 @@ class PlayBack {
         table: document.createElement("table"),
         rows: Array(10)};
     private currentPos: number = 0;
+    private changeLogBtns: HTMLButtonElement[] = [];
 
     constructor() {
         this.createLayout();
@@ -126,7 +204,7 @@ class PlayBack {
         var start = Math.max(0, this.currentPos - this.logTable.rows.length / 2);
         start = Math.min(start, this.LogEntries.length - this.logTable.rows.length);
         var row: LogRow;
-        var logEntry: DownloadEntryLog;
+        var logEntry: VertexEvent | ParityEvent;
         for(var i=0; i<this.logTable.rows.length; i++, start++) {
             logEntry = this.LogEntries[start];
             row = this.logTable.rows[i];
@@ -135,14 +213,20 @@ class PlayBack {
             } else {
                 row.row.style.background = "#0f0f0f80";
             }
-            if (logEntry.parity) {
-                row.position.innerText = logEntry.left!.toString() + " -> " + logEntry.right!.toString();
+            if ( (logEntry as ParityEvent).From) {
+                logEntry as ParityEvent;
+                if( (logEntry as ParityEvent).To == -1 ) {
+                    row.type.innerText = "Internal Parity";
+                    row.position.innerText = (logEntry as ParityEvent).From.toString();
+                } else {
+                    row.type.innerText = "Parity Block";
+                    row.position.innerText = (logEntry as ParityEvent).From.toString() + " -> " + (logEntry as ParityEvent).To.toString();
+                }
             } else {
-                row.position.innerText = logEntry.position.toString();
+                row.type.innerText = "Data block";
+                row.position.innerText = (logEntry as VertexEvent).Position!.toString();
             }
-            row.logPosition.innerText = start.toString();
-            row.dlStatus.innerText = logEntry.downloadStatus;
-            row.repStatus.innerText = logEntry.repairStatus;
+            row.newColor.innerHTML = '<span style="color:' + convertHexToStringColor(logEntry.NewColor) + ';">&#11044;</span> '
         }
 
     }
@@ -169,7 +253,7 @@ class PlayBack {
         );
 
         this.JumpBackButton.innerHTML = "<<";
-        this.BackButton.innerHTML = "<";
+        this.BackButton.innerHTML = "<kbd>←</kbd>";
         this.PlayButton.innerHTML = ">";
         this.JumpForwardButton.innerHTML = ">>";
 
@@ -186,12 +270,11 @@ class PlayBack {
         for(var i=0; i<this.logTable.rows.length; i++) {
             logTableRow = {
                 row: document.createElement("tr"),
-                logPosition: document.createElement("td"),
-                dlStatus: document.createElement("td"),
-                repStatus: document.createElement("td"),
+                type: document.createElement("td"),
+                newColor: document.createElement("td"),
                 position: document.createElement("td"),
             };
-            logTableRow.row.append(logTableRow.logPosition, logTableRow.position, logTableRow.dlStatus, logTableRow.repStatus, );
+            logTableRow.row.append(logTableRow.type, logTableRow.position, logTableRow.newColor );
             this.logTable.table.append(logTableRow.row);
             this.logTable.rows[i] = logTableRow;
         }
@@ -201,13 +284,29 @@ class PlayBack {
         this.Container.append(this.statsList.list, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
-    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number) {
+    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number, logEntries: (VertexEvent | ParityEvent)[], nrOfLogs: number) {
+        this.LogEntries = logEntries;
         this.statsList.parameters.innerHTML = `(${alpha}, ${s}, ${p})`;
         this.statsList.dataElemnts.innerText = `Data Elements: ${dataElements}`;
         this.slider.input.setAttribute("max", this.LogEntries.length.toString());
         this.slider.endPosition.innerText = " / " + (this.LogEntries.length).toString();
         this.setCurrentPos(0);
         this.resetStats();
+    }
+
+    CreateChangeLogBtns(nrOfLogs: number) {
+        for(var btn of this.changeLogBtns) {
+            btn.parentNode?.removeChild(btn);
+        }
+        this.changeLogBtns.length = nrOfLogs;
+        var btn: HTMLButtonElement;
+        for(let i=0; i < nrOfLogs; i++) {
+            btn = document.createElement("button");
+            btn.innerText = "Log #" + (i+1).toString();
+            btn.addEventListener("click", () => dispatchEvent( new CustomEvent("log-changed-clicked", {detail: {changeToLog: i}}) ))
+            this.changeLogBtns[i] = btn;
+            this.Container.append(btn);
+        }
     }
 
     private resetStats() {
@@ -234,42 +333,23 @@ class PlayBack {
 
     // https://github.com/racin/entangle-visualizer/blob/master/logparser.go
     private forwardClicked(n: number) {
-        var vertexEvents = [];
-        var parityEvents = [];
-        var logEntry: DownloadEntryLog;
-        for (var count = 0; count < n && this.currentPos + count < this.LogEntries.length; count++) {
-            logEntry = this.LogEntries[this.currentPos + count];
-            if (logEntry.parity) {
-                parityEvents.push(this.parseLogParityEvent(logEntry))
-            } else {
-                vertexEvents.push(this.parseLogVertexEntry(logEntry))
+        if (this.currentPos + n <= this.LogEntries.length) {
+            var vertexEvents: VertexEvent[] = [];
+            var parityEvents: ParityEvent[] = [];
+            var logEntry: VertexEvent | ParityEvent;
+            for (var count = 0; count < n && this.currentPos + count < this.LogEntries.length; count++) {
+                logEntry = this.LogEntries[this.currentPos + count];
+                if ((logEntry as ParityEvent).From) {
+                    parityEvents.push(logEntry as ParityEvent);
+                } else {
+                    vertexEvents.push(logEntry as VertexEvent)
+                }
             }
+            this.setCurrentPos(this.currentPos + count);
+    
+            dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
         }
-        this.setCurrentPos(this.currentPos + count);
-
-        dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
-    }
-    private parseLogVertexEntry(logEntry: DownloadEntryLog): VertexEvent {
-        if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-            return { Position: logEntry.position, NewColor: COLORS.RED }
-        }
-        else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-            return { Position: logEntry.position, NewColor: COLORS.BLUE }
-        }
-        //else if (logEntry.downloadStatus === DLStatus.Success) {
-        return { Position: logEntry.position, NewColor: COLORS.GREEN }
-    }
-
-    private parseLogParityEvent(logEntry: DownloadEntryLog): ParityEvent {
-        if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-            return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.RED, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
-        }
-        else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-            return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.BLUE, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
-
-        }
-        //else if (logEntry.downloadStatus === DLStatus.Success) {
-        return { From: logEntry.left!, To: logEntry.right!, NewColor: COLORS.GREEN, Adr: "a390e628aa1c57e8bc5d587de82a6779882e11cd033196a16e1d8d275808d0fc" }
+        
     }
 
     private handleSliderChange() {
@@ -280,5 +360,18 @@ class PlayBack {
         else if( newValue > this.currentPos) {
             this.forwardClicked(newValue - this.currentPos);
         }
+    }
+
+    public SimulateClick(n: number) {
+        if (n > 0) {
+            this.forwardClicked(n);
+        } else if(n < 0) {
+            this.backClicked(Math.abs(n));
+        }
+    }
+
+    public GetLatestEvent(): number {
+        let latestEvent = this.LogEntries[this.currentPos - 1] || this.LogEntries[this.currentPos];
+        return (latestEvent as VertexEvent).Position || (latestEvent as ParityEvent).From;
     }
 }

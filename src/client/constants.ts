@@ -1,7 +1,7 @@
 export const STRANDS = {
-    HStrand: 1,
-    LHStrand: 3,
-    RHStrand: 2,
+    HStrand: 0,
+    LHStrand: 2,
+    RHStrand: 1,
 }
 
 export const COLORS = {
@@ -27,6 +27,7 @@ export const MSG = {
     TreeLayout: "Tree Layout",
     DlEntry: "Download Entry",
     DlSummary: "Download Summary",
+    ParityTreeEntry: "Parity Tree Download Entry",
 }
 
 export const DLStatus = {
@@ -38,6 +39,7 @@ export const DLStatus = {
 export const RepStatus = {
     NoRep: "NoRepair",
     Success: "RepairSuccess",
+    Pending: "RepairPending",
 }
 
 export enum MOUSE {
