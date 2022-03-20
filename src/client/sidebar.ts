@@ -6,22 +6,28 @@ import { convertHexToStringColor } from "./utils";
 export class SideBar {
 
     private visible: boolean = true;
-    private container: HTMLDivElement = document.getElementById("side-bar") as HTMLDivElement;
+    Container: HTMLDivElement = document.createElement("div");
     PlayBackEle: PlayBack = new PlayBack();
     FileInput: FileInput = new FileInput();
 
     constructor() {
         document.getElementById("toggle-side-bar")?.addEventListener("click", this.toggleVisible.bind(this));
 
-        this.container.append(this.PlayBackEle.Container, this.FileInput.Container);
+        this.createLayout();
 
+
+    }
+
+    private createLayout() {
+        this.Container.id = "side-bar";
+        this.Container.append(this.PlayBackEle.Container, this.FileInput.Container);
     }
 
     private toggleVisible() {
         if (this.visible) {
-            this.container.style.width = "1em";
+            this.Container.style.width = "1em";
         } else {
-            this.container.style.width = "";
+            this.Container.style.width = "";
         }
         this.visible = !this.visible;
     }
@@ -220,7 +226,7 @@ class PlayBack {
                 row.type.innerText = "Data block";
                 row.position.innerText = (logEntry as VertexEvent).Position!.toString();
             }
-            row.newColor.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span> '
+            row.newColor.innerHTML = '<span style="color:' + convertHexToStringColor(logEntry.NewColor) + ';">&#11044;</span> '
         }
 
     }
@@ -247,7 +253,7 @@ class PlayBack {
         );
 
         this.JumpBackButton.innerHTML = "<<";
-        this.BackButton.innerHTML = "<";
+        this.BackButton.innerHTML = "<kbd>←</kbd>";
         this.PlayButton.innerHTML = ">";
         this.JumpForwardButton.innerHTML = ">>";
 
@@ -327,20 +333,23 @@ class PlayBack {
 
     // https://github.com/racin/entangle-visualizer/blob/master/logparser.go
     private forwardClicked(n: number) {
-        var vertexEvents: VertexEvent[] = [];
-        var parityEvents: ParityEvent[] = [];
-        var logEntry: VertexEvent | ParityEvent;
-        for (var count = 0; count < n && this.currentPos + count < this.LogEntries.length; count++) {
-            logEntry = this.LogEntries[this.currentPos + count];
-            if ((logEntry as ParityEvent).From) {
-                parityEvents.push(logEntry as ParityEvent);
-            } else {
-                vertexEvents.push(logEntry as VertexEvent)
+        if (this.currentPos + n <= this.LogEntries.length) {
+            var vertexEvents: VertexEvent[] = [];
+            var parityEvents: ParityEvent[] = [];
+            var logEntry: VertexEvent | ParityEvent;
+            for (var count = 0; count < n && this.currentPos + count < this.LogEntries.length; count++) {
+                logEntry = this.LogEntries[this.currentPos + count];
+                if ((logEntry as ParityEvent).From) {
+                    parityEvents.push(logEntry as ParityEvent);
+                } else {
+                    vertexEvents.push(logEntry as VertexEvent)
+                }
             }
+            this.setCurrentPos(this.currentPos + count);
+    
+            dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
         }
-        this.setCurrentPos(this.currentPos + count);
-
-        dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
+        
     }
 
     private handleSliderChange() {
@@ -351,5 +360,18 @@ class PlayBack {
         else if( newValue > this.currentPos) {
             this.forwardClicked(newValue - this.currentPos);
         }
+    }
+
+    public SimulateClick(n: number) {
+        if (n > 0) {
+            this.forwardClicked(n);
+        } else if(n < 0) {
+            this.backClicked(Math.abs(n));
+        }
+    }
+
+    public GetLatestEvent(): number {
+        let latestEvent = this.LogEntries[this.currentPos - 1] || this.LogEntries[this.currentPos];
+        return (latestEvent as VertexEvent).Position || (latestEvent as ParityEvent).From;
     }
 }

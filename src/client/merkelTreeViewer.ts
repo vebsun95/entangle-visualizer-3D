@@ -1,5 +1,3 @@
-import { timeStamp } from "console";
-import * as e from "express";
 import { DataContainer } from "./dataContainer";
 import { Parity, Vertex } from "./interfaces";
 
@@ -20,7 +18,6 @@ interface InfoGraphic {
     ViewButtonsContainer: HTMLDivElement;
 }
 
-
 interface MouseOverElement {
     Container: HTMLDivElement,
     List: HTMLUListElement,
@@ -28,7 +25,7 @@ interface MouseOverElement {
 
 export class MerkelTreeViewer extends DataContainer {
 
-    private container: HTMLDivElement = document.getElementById("tree-container") as HTMLDivElement;
+    public Container: HTMLDivElement = document.createElement("div");
     private infoGraphic: InfoGraphic = {
         Container: document.createElement("div"),
         Text: document.createElement("p"),
@@ -37,9 +34,9 @@ export class MerkelTreeViewer extends DataContainer {
         ViewButtons: [],
         ViewButtonsContainer: document.createElement("div"),
     }
-    private svgElement: SVGElement = document.getElementById("original-merkel-tree") as unknown as SVGElement;
+    private svgElement: SVGElement = document.createElementNS(SVGURL, "svg");
     private mouseOverEle: MouseOverElement = {
-        Container: this.container.appendChild(document.createElement("div")),
+        Container: this.Container.appendChild(document.createElement("div")),
         List: document.createElement("ul")
     };
     private padding = 20;
@@ -51,6 +48,14 @@ export class MerkelTreeViewer extends DataContainer {
 
     constructor() {
         super();
+        this.createLayout();
+        
+    }
+
+    private createLayout() {
+
+        this.Container.id = "tree-container";
+        this.svgElement.id = "original-merkel-tree";
         this.createTileElements();
 
         this.mouseOverEle.Container.style.position = "absolute";
@@ -59,9 +64,12 @@ export class MerkelTreeViewer extends DataContainer {
         this.mouseOverEle.Container.setAttribute("display", "none")
         this.mouseOverEle.Container.style.pointerEvents = "none";
         this.mouseOverEle.Container.append(this.mouseOverEle.List);
+
+        this.Container.append(this.infoGraphic.Container, this.svgElement);
+
     }
 
-    HandleUpdatedDate(parityLabels: string[]) {
+    public HandleUpdatedDate(parityLabels: string[]) {
         this.currentView = 0;
         this.currentRootNode = this.nrOfVertices;
         this.infoGraphic.BreadCrumbsIndex = [this.currentRootNode]
@@ -72,19 +80,19 @@ export class MerkelTreeViewer extends DataContainer {
         this.updateTreeStruct();
     }
 
-    onWindowResize() {
+    public onWindowResize() {
         this.updateDynamicAttributes();
         this.updateTreeStruct();
     }
 
-    UpdateVertex(vertexIndex :number[] ) {
+    public UpdateVertex(vertexIndex :number[] ) {
         if (this.currentView > 0) {
             return
         }
         this.updateTreeStruct();
     }
 
-    UpdateParity(vertexIndex: number, strand: number) {
+    public UpdateParity(vertexIndex: number, strand: number) {
         if (this.currentView != strand) {
             return
         }
@@ -98,9 +106,7 @@ export class MerkelTreeViewer extends DataContainer {
         this.infoGraphic.Container.setAttribute("height", (window.innerHeight * 0.2).toString());
         this.infoGraphic.Container.setAttribute("width", (window.innerWidth).toString());
     }
-
     
-
     private createTileElements() {
         var tile: Tile
 
@@ -157,7 +163,6 @@ export class MerkelTreeViewer extends DataContainer {
         this.infoGraphic.ViewButtonsContainer.style.right = "0";
 
         this.infoGraphic.Container.append(this.infoGraphic.BreadCrumbs, this.infoGraphic.Text, this.infoGraphic.ViewButtonsContainer);
-        this.container.insertBefore(this.infoGraphic.Container, this.svgElement);
     }
 
     private updateInfoGraphic() {

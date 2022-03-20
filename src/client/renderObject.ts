@@ -105,7 +105,7 @@ export class RendererObject extends DataContainer {
                 0                                   // z coordination
             )
             let vertexInfo = this.vertices.get(startIndex);
-            v.name = vertexInfo!.Index.toString();
+            v.name = startIndex.toString();
             //@ts-ignore
             v.material.map = this.createTexture(v.name);
             //@ts-ignore

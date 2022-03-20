@@ -10,6 +10,7 @@ import { parseLogParityEvent, parseLogVertexEntry } from "./utils";
 
 
 export class App {
+    Container = document.body.appendChild( document.createElement("div"));
     renderer = new RendererObject();
     bitMap = new BitMap();
     merkelTree = new MerkelTreeViewer();
@@ -33,7 +34,13 @@ export class App {
 
 
     constructor() {
-        this.AddEventListener();
+        this.AddEventListeners();
+        this.createLayout();
+    }
+
+    createLayout() {
+        this.Container.id = "overlay-layout";
+        this.Container.append(this.merkelTree.Container, this.sideBar.Container, this.bitMap.Container);
     }
 
     TestDev() {
@@ -54,7 +61,7 @@ export class App {
 
     }
 
-    AddEventListener() {
+    AddEventListeners() {
         window.addEventListener("bitmap-clicked", this.HandleBitMapClicked.bind(this) as EventListener);
         window.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
         window.addEventListener("log-changed-clicked", this.HandleLogChangedClicked.bind(this) as EventListener);
@@ -62,6 +69,30 @@ export class App {
         window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
         window.addEventListener("resetEverything", this.HandleResetEverything.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
+        window.addEventListener("keydown", this.HandleKeyDown.bind(this))
+    }
+
+    HandleKeyDown(e: KeyboardEvent) {
+        e.preventDefault();
+        console.log(e.key,e.metaKey, e.code)
+        if (e.ctrlKey) {
+
+        } 
+        else {
+            if (e.key == "ArrowLeft") {
+                this.sideBar.PlayBackEle.SimulateClick(-1);
+            } else if (e.key == "ArrowRight") {
+                this.sideBar.PlayBackEle.SimulateClick(1);
+            } else if (e.key == "ArrowDown") {
+                this.sideBar.PlayBackEle.SimulateClick(-10);
+            } else if (e.key == "ArrowUp") {
+                this.sideBar.PlayBackEle.SimulateClick(10);
+            } else if(e.code == "Space") {
+                let latestEvent = this.sideBar.PlayBackEle.GetLatestEvent();
+                this.bitMap.SimulateClick(latestEvent);
+                console.log(latestEvent )
+            }
+        }
     }
 
     HandleResetEverything(e: CustomEvent) {
