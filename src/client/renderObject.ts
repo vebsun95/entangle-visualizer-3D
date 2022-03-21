@@ -94,7 +94,9 @@ export class RendererObject extends DataContainer {
         var startIndex = this.drawFrom;
         var row = 0;
         var starty = (this.s * this.scale) / 2
-        this.verticesGroup.visible = true;
+        for (var vertex of this.verticesGroup.children) {
+            vertex.visible = true;
+        }
 
         // Moves the verticesGroup instead of making new ones
         for (var v of this.verticesGroup.children) {
@@ -137,8 +139,9 @@ export class RendererObject extends DataContainer {
         this.lineGeomIndex = 0;
         for (let index = 0; index < this.limit; index++) {
             for (var [strand, output] of this.parities.entries()) {
+                // TODO: Fix når parity har fått lattice index
                 let parityPosition = this.parityShift.get(startIndex)!;
-                let parity = output.get(parityPosition) as Parity;
+                let parity = output.get(startIndex) as Parity;
                 if (index + this.s < this.limit && parity.To != null) {
                     // Sjekker at RightPos er mindre enn LeftPos og siste kolonne ikke er fylt opp av verticies
                     if (parity.To < parity.Index && this.nrOfVertices % this.s != 0) {
@@ -207,8 +210,8 @@ export class RendererObject extends DataContainer {
                     // If top row and second last column
                     if (output.Index % this.s == 1 && currentColumn < nrColumns) {
                         console.log("Skal lage ghost vertex for:", output.Index, output.To);
-                        let name = this.parities[2].get(output.To!)!.Index.toString();
-                        let color = this.parities[2].get(output.To!)!.Color;
+                        let name = this.vertices.get(output.To!)!.Index.toString();
+                        let color = this.vertices.get(output.To!)!.Color;
                         var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
                         array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
                         line!.geometry.setDrawRange(0, 2);
@@ -268,8 +271,8 @@ export class RendererObject extends DataContainer {
                 }
                 case STRANDS.RHStrand: {
                     if (output.To! % this.s == 1) {
-                        let name = this.parities[1].get(output.To!)!.Index.toString();
-                        let color = this.parities[1].get(output.To!)!.Color;
+                        let name = this.vertices.get(output.To!)!.Index.toString();
+                        let color = this.vertices.get(output.To!)!.Color;
                         var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
                         array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
                     }
@@ -280,8 +283,8 @@ export class RendererObject extends DataContainer {
                 }
                 case STRANDS.LHStrand: {
                     if (output.To! % this.s == 0) {
-                        let name = this.parities[2].get(output.To!)!.Index.toString();
-                        let color = this.parities[2].get(output.To!)!.Color;
+                        let name = this.vertices.get(output.To!)!.Index.toString();
+                        let color = this.vertices.get(output.To!)!.Color;
                         var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
                         array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
                     }
