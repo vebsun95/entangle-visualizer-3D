@@ -1,29 +1,29 @@
 export interface Parity {
     Color: number,
     Index: number,
-    Adr: string,
     Depth: number,
     Parent: number,
     Children: number[],
-    DamagedChildren: number[],
+    DamagedChildren: number,
+    From: number | null,
     To: number | null,
 }
 
 export interface ParityEvent {
+    Index: number,
     Strand: number,
-    From: number,
-    To: number,
+    From: number | null,
+    To: number | null,
     NewColor: number,
 }
 
 export interface Vertex {
     Color: number,
     Index: number,
-    Adr: string,
     Depth: number,
     Parent: number,
     Children: number[],
-    DamagedChildren: number[],
+    DamagedChildren: number,
 }
 
 export interface VertexEvent {
@@ -90,6 +90,7 @@ export interface DownloadEntryLog {
     start: number | null,
     end: number | null,
     key: string,
+    class: string,
     hasData: boolean,
     downloadStatus: string,
     repairStatus: string,

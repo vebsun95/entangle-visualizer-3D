@@ -1,5 +1,6 @@
 
-import { COLORS } from "./constants";
+import { table } from "console";
+import { COLORS, DLStatus } from "./constants";
 import { ParityEvent, VertexEvent } from "./interfaces";
 import { convertHexToStringColor } from "./utils";
 
@@ -46,9 +47,9 @@ class FileInput {
     private currentFile: File | null = null;
     private fileRead: boolean = false;
     private startPoints: StartPoints[] = [];
-    
 
-    constructor () {
+
+    constructor() {
         this.createFileInput();
         this.fileReader.onload = this.frOnLoad.bind(this);
     }
@@ -72,10 +73,10 @@ class FileInput {
         }
         var startpoints = this.startPoints[fileNumber];
         this.fileReader.readAsText(this.currentFile!.slice(startpoints.start, startpoints.end));
-    }    
+    }
 
     private frOnLoad() {
-        if(this.fileRead) {
+        if (this.fileRead) {
             this.readLog();
         } else {
             this.findStartPoints();
@@ -85,10 +86,10 @@ class FileInput {
     private readLog() {
         var lines = ((this.fileReader.result as string)).split("\n");
         var logEntries = Array(lines.length);
-        for(var [i, line] of lines.entries()) {
+        for (var [i, line] of lines.entries()) {
             logEntries[i] = JSON.parse(line);
         }
-        dispatchEvent( new CustomEvent("log-changed", {detail: {newContent: logEntries}}) )
+        dispatchEvent(new CustomEvent("log-changed", { detail: { newContent: logEntries } }))
     }
 
     private findStartPoints() {
@@ -98,21 +99,21 @@ class FileInput {
             -  -> 45
         */
         var buffer = new Uint8Array(this.fileReader.result as ArrayBuffer);
-        var start:number | null = null, end: number = 0;
+        var start: number | null = null, end: number = 0;
 
-        
-        for(let i=0; i<=buffer.length; i++) {
-            if (!start && buffer[i] == 10 && buffer[i+1] == 123) {
+
+        for (let i = 0; i <= buffer.length; i++) {
+            if (!start && buffer[i] == 10 && buffer[i + 1] == 123) {
                 start = i + 1;
             }
-            if (start && buffer[i] == 10 && buffer[i+1] == 45) {
+            if (start && buffer[i] == 10 && buffer[i + 1] == 45) {
                 end = i
-                this.startPoints.push({start: start, end: end});
+                this.startPoints.push({ start: start, end: end });
                 start = null;
             }
         }
         this.fileRead = true;
-        dispatchEvent( new CustomEvent("new-file-upload", {detail : {fileName: this.currentFile!.name, nrOfLogs: this.startPoints.length}}))
+        dispatchEvent(new CustomEvent("new-file-upload", { detail: { fileName: this.currentFile!.name, nrOfLogs: this.startPoints.length } }))
     }
 
     private handleFileChange(e: InputEvent) {
@@ -123,13 +124,28 @@ class FileInput {
     }
 }
 
-interface StatsList {
-    list: HTMLUListElement,
-    parameters: HTMLLIElement,
-    dataElemnts: HTMLLIElement,
-    downloaded: ListItem,
-    unavailable: ListItem,
-    repaired: ListItem,
+interface ChangeViewsButtons {
+    container: HTMLDivElement,
+    logsDD: HTMLSelectElement,
+    twoDView: HTMLButtonElement,
+    cylinderView: HTMLButtonElement,
+    tortoisView: HTMLButtonElement,
+}
+
+interface StatsTable {
+    table: HTMLTableElement,
+    header: HTMLTableRowElement,
+    dlRow: StatsRow,
+    repRow: StatsRow,
+    failedRow: StatsRow,
+}
+
+
+interface StatsRow {
+    row: HTMLTableRowElement,
+    type: HTMLTableCellElement,
+    dataValue: HTMLTableCellElement,
+    parityValue: HTMLTableCellElement,
 }
 
 interface LogTable {
@@ -144,15 +160,10 @@ interface LogRow {
     newColor: HTMLTableCellElement,
 }
 
-interface ListItem {
-    li: HTMLLIElement,
-    countValue: HTMLSpanElement,
-}
-
 interface Slider {
     container: HTMLDivElement,
     input: HTMLInputElement,
-    currentPosition: HTMLSpanElement,
+    currentPosition: HTMLInputElement,
     endPosition: HTMLSpanElement,
 }
 
@@ -161,19 +172,25 @@ class PlayBack {
 
     Container: HTMLDivElement = document.createElement("div");
     LogEntries: (VertexEvent | ParityEvent)[] = [];
-    private statsList: StatsList = {
-        list: document.createElement("ul"),
-        parameters: document.createElement("li"),
-        dataElemnts: document.createElement("li"),
-        downloaded: {
-            li: document.createElement("li"),
-            countValue: document.createElement("span")},
-        unavailable: {
-            li: document.createElement("li"),
-            countValue: document.createElement("span")},
-        repaired: {
-            li: document.createElement("li"),
-            countValue: document.createElement("span")}};
+    private statsTable: StatsTable = {
+        table: document.createElement("table"),
+        header: document.createElement("tr"),
+        dlRow: {
+            row: document.createElement("tr"),
+            type: document.createElement("td"),
+            dataValue: document.createElement("td"),
+            parityValue: document.createElement("td")},
+        repRow: {
+            row: document.createElement("tr"),
+            type: document.createElement("td"),
+            dataValue: document.createElement("td"),
+            parityValue: document.createElement("td")},
+        failedRow: {
+            row: document.createElement("tr"),
+            type: document.createElement("td"),
+            dataValue: document.createElement("td"),
+            parityValue: document.createElement("td")},
+    }
     private JumpBackButton: HTMLButtonElement = document.createElement("button");
     private BackButton: HTMLButtonElement = document.createElement("button");
     private PlayButton: HTMLButtonElement = document.createElement("button");
@@ -181,13 +198,22 @@ class PlayBack {
     private slider: Slider = {
         container: document.createElement("div"),
         input: document.createElement("input"),
-        currentPosition: document.createElement("span"),
-        endPosition: document.createElement("span")};
+        currentPosition: document.createElement("input"),
+        endPosition: document.createElement("span")
+    };
     private logTable: LogTable = {
         table: document.createElement("table"),
-        rows: Array(10)};
+        rows: Array(10)
+    };
     private currentPos: number = 0;
-    private changeLogBtns: HTMLButtonElement[] = [];
+    private changeLogDropDown: HTMLSelectElement = document.createElement("select");
+    private changeButtons: ChangeViewsButtons = {
+        container: document.createElement("div"),
+        logsDD: document.createElement("select"),
+        twoDView: document.createElement("button"),
+        cylinderView: document.createElement("button"),
+        tortoisView: document.createElement("button"),
+    }
 
     constructor() {
         this.createLayout();
@@ -196,7 +222,8 @@ class PlayBack {
     private setCurrentPos(newPos: number) {
         this.currentPos = newPos;
         this.slider.input.valueAsNumber = newPos;
-        this.slider.currentPosition.innerText = (newPos).toString();
+        this.slider.currentPosition.setAttribute("placeholder", (newPos).toString());
+        this.slider.currentPosition.value = "";
         this.updateTable();
     }
 
@@ -205,25 +232,26 @@ class PlayBack {
         start = Math.min(start, this.LogEntries.length - this.logTable.rows.length);
         var row: LogRow;
         var logEntry: VertexEvent | ParityEvent;
-        for(var i=0; i<this.logTable.rows.length; i++, start++) {
+        for (var i = 0; i < this.logTable.rows.length; i++, start++) {
             logEntry = this.LogEntries[start];
             row = this.logTable.rows[i];
             if (start < this.currentPos) {
-                row.row.style.background = "#00ff0080";
+                row.row.style.background = "pink";
             } else {
                 row.row.style.background = "#0f0f0f80";
             }
-            if ( (logEntry as ParityEvent).From) {
+            if ((logEntry as ParityEvent).Index) {
                 logEntry as ParityEvent;
-                if( (logEntry as ParityEvent).To == -1 ) {
-                    row.type.innerText = "Internal Parity";
-                    row.position.innerText = (logEntry as ParityEvent).From.toString();
+                if (!(logEntry as ParityEvent).To) {
+                    row.type.innerText = "IParity";
+                    row.position.innerText = "...";
                 } else {
-                    row.type.innerText = "Parity Block";
-                    row.position.innerText = (logEntry as ParityEvent).From.toString() + " -> " + (logEntry as ParityEvent).To.toString();
+                    row.type.innerText = "Parity";
+                    row.position.innerText = (logEntry as ParityEvent).From!.toString() + " -> " + (logEntry as ParityEvent).To!.toString();
+                    row.position.innerText = `(${(logEntry as ParityEvent).From}, ${(logEntry as ParityEvent).To})`;
                 }
             } else {
-                row.type.innerText = "Data block";
+                row.type.innerText = "Data";
                 row.position.innerText = (logEntry as VertexEvent).Position!.toString();
             }
             row.newColor.innerHTML = '<span style="color:' + convertHexToStringColor(logEntry.NewColor) + ';">&#11044;</span> '
@@ -232,25 +260,54 @@ class PlayBack {
     }
 
     private createLayout() {
-        var sl = this.statsList;
+        this.changeButtons.twoDView.innerText = "2D view";
+        this.changeButtons.twoDView.addEventListener("click", () => {
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 0 }}));
+        });
+        this.changeButtons.cylinderView.innerText = "Cylinder View";
+        this.changeButtons.cylinderView.addEventListener("click", () => {
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 1 }}));
+        });
+        this.changeButtons.tortoisView.innerText = "Tortois View";
+        this.changeButtons.tortoisView.addEventListener("click", () => {
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 2 }}));
+        });
 
-        sl.downloaded.li.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span>  Downloaded: ';
-        sl.downloaded.li.append(sl.downloaded.countValue);
+        this.changeButtons.container.append(this.changeButtons.twoDView, this.changeButtons.cylinderView, this.changeButtons.tortoisView);
 
 
-        sl.unavailable.li.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.RED) + ';">&#11044;</span>  Unavailable: ';
-        sl.unavailable.li.append(sl.unavailable.countValue);
+        this.changeLogDropDown.addEventListener("change", () => {
+            var value = parseInt(this.changeLogDropDown.value)
+            dispatchEvent( new CustomEvent("log-changed-clicked", { detail: { changeToLog: value } }));
+        });
 
-        sl.repaired.li.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.BLUE) + ';">&#11044;</span>  Repaired: ';
-        sl.repaired.li.append(sl.repaired.countValue);
+        var sv = this.statsTable;
 
-        sl.list.append(
-            sl.parameters,
-            sl.dataElemnts,
-            sl.downloaded.li,
-            sl.unavailable.li,
-            sl.repaired.li,
-        );
+        var headerCell: HTMLTableCellElement = document.createElement("td");
+        sv.header.append(headerCell);
+        headerCell = document.createElement("td");
+        headerCell.innerText = "Data";
+        sv.header.append(headerCell);
+        headerCell = document.createElement("td");
+        headerCell.innerText = "Parity";
+        sv.header.append(headerCell);
+
+        sv.dlRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span> Downloaded: ';
+        sv.dlRow.dataValue.innerHTML = "0";
+        sv.dlRow.parityValue.innerHTML = "0";
+        sv.dlRow.row.append(sv.dlRow.type, sv.dlRow.dataValue, sv.dlRow.parityValue);
+
+        sv.repRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.BLUE) + ';">&#11044;</span> Repaired: ';
+        sv.repRow.dataValue.innerHTML = "0";
+        sv.repRow.parityValue.innerHTML = "0";
+        sv.repRow.row.append(sv.repRow.type, sv.repRow.dataValue, sv.repRow.parityValue);
+
+        sv.failedRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.RED) + ';">&#11044;</span> Unavailable: ';
+        sv.failedRow.dataValue.innerHTML = "0";
+        sv.failedRow.parityValue.innerHTML = "0";
+        sv.failedRow.row.append(sv.failedRow.type, sv.failedRow.dataValue, sv.failedRow.parityValue);
+
+        sv.table.append(sv.header, sv.dlRow.row, sv.repRow.row, sv.failedRow.row);
 
         this.JumpBackButton.innerHTML = "<<";
         this.BackButton.innerHTML = "<kbd>←</kbd>";
@@ -259,35 +316,39 @@ class PlayBack {
 
         this.JumpBackButton.addEventListener("click", () => this.backClicked(10));
         this.BackButton.addEventListener("click", () => this.backClicked(1));
-        this.PlayButton.addEventListener("click", () => this.forwardClicked(1));
-        this.JumpForwardButton.addEventListener("click", () => this.forwardClicked(10));
+        this.PlayButton.addEventListener("click", () => this.simulate(1));
+        this.JumpForwardButton.addEventListener("click", () => this.simulate(10));
+
+        this.slider.currentPosition.id = "input-currentpos"
+        this.slider.currentPosition.addEventListener("change", () => {
+            var value = parseInt(this.slider.currentPosition.value);
+            this.handleSliderChange(value);
+        });
         this.slider.input.setAttribute("type", "range");
         this.slider.input.setAttribute("min", "0");
-        this.slider.input.addEventListener("change", this.handleSliderChange.bind(this));
+        this.slider.input.addEventListener("change", () => this.handleSliderChange());
         this.slider.container.append(this.slider.input, this.slider.currentPosition, this.slider.endPosition);
 
         var logTableRow: LogRow;
-        for(var i=0; i<this.logTable.rows.length; i++) {
+        for (var i = 0; i < this.logTable.rows.length; i++) {
             logTableRow = {
                 row: document.createElement("tr"),
                 type: document.createElement("td"),
                 newColor: document.createElement("td"),
                 position: document.createElement("td"),
             };
-            logTableRow.row.append(logTableRow.type, logTableRow.position, logTableRow.newColor );
+            logTableRow.row.append(logTableRow.type, logTableRow.position, logTableRow.newColor);
             this.logTable.table.append(logTableRow.row);
             this.logTable.rows[i] = logTableRow;
         }
 
         this.logTable.table.classList.add("log-table");
 
-        this.Container.append(this.statsList.list, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
+        this.Container.append(this.changeButtons.container, this.changeLogDropDown, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
     HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number, logEntries: (VertexEvent | ParityEvent)[], nrOfLogs: number) {
         this.LogEntries = logEntries;
-        this.statsList.parameters.innerHTML = `(${alpha}, ${s}, ${p})`;
-        this.statsList.dataElemnts.innerText = `Data Elements: ${dataElements}`;
         this.slider.input.setAttribute("max", this.LogEntries.length.toString());
         this.slider.endPosition.innerText = " / " + (this.LogEntries.length).toString();
         this.setCurrentPos(0);
@@ -295,83 +356,92 @@ class PlayBack {
     }
 
     CreateChangeLogBtns(nrOfLogs: number) {
-        for(var btn of this.changeLogBtns) {
-            btn.parentNode?.removeChild(btn);
+        while (this.changeLogDropDown.children.length > 0) {
+            this.changeLogDropDown.removeChild(this.changeLogDropDown.firstChild!);
         }
-        this.changeLogBtns.length = nrOfLogs;
-        var btn: HTMLButtonElement;
-        for(let i=0; i < nrOfLogs; i++) {
-            btn = document.createElement("button");
-            btn.innerText = "Log #" + (i+1).toString();
-            btn.addEventListener("click", () => dispatchEvent( new CustomEvent("log-changed-clicked", {detail: {changeToLog: i}}) ))
-            this.changeLogBtns[i] = btn;
-            this.Container.append(btn);
+        var option: HTMLOptionElement;
+        for(var i=0; i < nrOfLogs; i++) {
+            option = document.createElement("option");
+            option.innerText = "Log #" + (i+1).toString();
+            option.setAttribute("value", (i).toString());
+            this.changeLogDropDown.append(option);
+            
         }
     }
 
     private resetStats() {
-        this.statsList.downloaded.countValue.innerText = (0).toString();
-        this.statsList.unavailable.countValue.innerText = (0).toString();
-        this.statsList.repaired.countValue.innerText = (0).toString();
+        this.statsTable.dlRow.dataValue.innerText = (0).toString();
+        this.statsTable.failedRow.dataValue.innerText = (0).toString();
+        this.statsTable.repRow.dataValue.innerText = (0).toString();
     }
 
     UpdateStats(downloaded: number, unavailable: number, repaired: number) {
-        this.statsList.downloaded.countValue.innerText = (downloaded).toString();
-        this.statsList.unavailable.countValue.innerText = (unavailable).toString();
-        this.statsList.repaired.countValue.innerText = (repaired).toString();
+        this.statsTable.dlRow.dataValue.innerText = (downloaded).toString();
+        this.statsTable.failedRow.dataValue.innerText = (unavailable).toString();
+        this.statsTable.repRow.dataValue.innerText = (repaired).toString();
     }
 
     private backClicked(n: number) {
         if (this.currentPos > 0) {
-            dispatchEvent(new Event("resetEverything"));
-            this.resetStats();
             var oldpos = this.currentPos;
             this.currentPos = 0;
-            this.forwardClicked(Math.max(oldpos - n, 0));
+            this.simulate(Math.max(oldpos - n, 0), true);
         }
     }
 
     // https://github.com/racin/entangle-visualizer/blob/master/logparser.go
-    private forwardClicked(n: number) {
-        if (this.currentPos + n <= this.LogEntries.length) {
+    private simulate(n: number, needsReset: boolean = false) {
+        if (this.currentPos > 0 || this.currentPos < this.LogEntries.length - 1) {
             var vertexEvents: VertexEvent[] = [];
             var parityEvents: ParityEvent[] = [];
             var logEntry: VertexEvent | ParityEvent;
             for (var count = 0; count < n && this.currentPos + count < this.LogEntries.length; count++) {
                 logEntry = this.LogEntries[this.currentPos + count];
-                if ((logEntry as ParityEvent).From) {
+                if ((logEntry as ParityEvent).Index) {
                     parityEvents.push(logEntry as ParityEvent);
                 } else {
                     vertexEvents.push(logEntry as VertexEvent)
                 }
             }
             this.setCurrentPos(this.currentPos + count);
-    
-            dispatchEvent(new CustomEvent("logEntryEvents", { detail: { ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
+
+            dispatchEvent(new CustomEvent("logEntryEvents", { detail: { NeedsReset: needsReset, ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
         }
-        
+
     }
 
-    private handleSliderChange() {
-        var newValue: number = this.slider.input.valueAsNumber;
+    private handleSliderChange(optValue: number | null = null) {
+        var newValue: number = optValue != null ? optValue : this.slider.input.valueAsNumber;
         if (newValue < this.currentPos) {
             this.backClicked(this.currentPos - newValue);
         }
-        else if( newValue > this.currentPos) {
-            this.forwardClicked(newValue - this.currentPos);
+        else if (newValue > this.currentPos) {
+            this.simulate(newValue - this.currentPos);
         }
     }
 
     public SimulateClick(n: number) {
         if (n > 0) {
-            this.forwardClicked(n);
-        } else if(n < 0) {
+            this.simulate(n);
+        } else if (n < 0) {
             this.backClicked(Math.abs(n));
         }
     }
 
     public GetLatestEvent(): number {
         let latestEvent = this.LogEntries[this.currentPos - 1] || this.LogEntries[this.currentPos];
-        return (latestEvent as VertexEvent).Position || (latestEvent as ParityEvent).From;
+        return (latestEvent as VertexEvent).Position || (latestEvent as ParityEvent).From!;
+    }
+
+    public GoToStart() {
+        this.backClicked(this.currentPos);
+    }
+
+    public GoToEnd() {
+        this.simulate(this.LogEntries.length - this.currentPos);
+    }
+
+    public FocusInput() {
+        this.slider.currentPosition.focus();
     }
 }

@@ -3,14 +3,32 @@ body {
     margin: 0px;
 }
 
-.overlay-layout {
-    z-index: 10;
+#overlay-layout {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+}
+
+#overlay-layout > * {
+    pointer-events: all;
 }
 
 .btn-overlay {
     z-index: 10;
     position: absolute;
     color: red;
+}
+
+#tree-container {
+    background-color:tomato;
+}
+
+#input-currentpos {
+    width: 3em;
+    border: none;
+    font-size: 1em;
+
 }
 
 #btn-lattice {

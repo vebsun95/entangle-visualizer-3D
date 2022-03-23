@@ -161,6 +161,7 @@ export class MerkelTreeViewer extends DataContainer {
         }
         this.infoGraphic.ViewButtonsContainer.style.position = "absolute";
         this.infoGraphic.ViewButtonsContainer.style.right = "0";
+        this.infoGraphic.ViewButtonsContainer.style.top = "0";
 
         this.infoGraphic.Container.append(this.infoGraphic.BreadCrumbs, this.infoGraphic.Text, this.infoGraphic.ViewButtonsContainer);
     }
@@ -215,7 +216,6 @@ export class MerkelTreeViewer extends DataContainer {
         }
         nrOfRows = listCombinations[listCombinations.length - 1][0]
         nrOfColumns = listCombinations[listCombinations.length - 1][1]
-        console.log(nrOfRows, nrOfColumns);
 
         tileWidth = Math.ceil((this.svgElement.clientWidth - this.padding * 2) / nrOfColumns);
         tileHeight = Math.ceil((this.svgElement.clientHeight - this.padding * 2) / nrOfRows);
@@ -224,21 +224,15 @@ export class MerkelTreeViewer extends DataContainer {
         tileCounter = 0;
         row = 0;
         col = 0;
-        console.log(currentRootNode);
 
         for (let childIndex of currentRootNode.Children) {
-            if (this.currentView == 0 ){
-                vertex = this.vertices.get(childIndex)!;
-            }
-            else {
-                vertex = this.parities[this.currentView - 1].get(childIndex)!;
-            }
+            vertex = this.getRootNode(childIndex);
             tile = this.tiles[tileCounter];
 
-            if (vertex.DamagedChildren.length > 0 && vertex.Depth > 1) {
+            if (vertex.DamagedChildren > 0 && vertex.Depth > 1) {
                 tile.Rect.setAttribute("stroke", "red");
             } else {
-                tile.Rect.setAttribute("stroke", this.convertHexToStringColor(0x000000));
+                tile.Rect.setAttribute("stroke", "none");
             }
 
             tile.Container.setAttribute("x", (col * tileWidth + this.padding).toString());
@@ -294,23 +288,24 @@ export class MerkelTreeViewer extends DataContainer {
     }
 
     private tileMouseEnterHandler(tileIndex: number) {
-        var currentRootNode = this.getCurrentRootNode();
-        let childIndex = currentRootNode.Children[tileIndex]
-        currentRootNode = this.getRootNode(childIndex);
-        if (currentRootNode.DamagedChildren.length > 0) {
-            this.mouseOverEle.Container.style.display = "unset";
-            this.mouseOverEle.Container.style.left = this.tiles[tileIndex].Container.getAttribute("x") + "px";
-            this.mouseOverEle.Container.style.top = this.tiles[tileIndex].Container.getAttribute("y") + "px";
-            this.mouseOverEle.List.innerHTML = "";
-            var li: HTMLLIElement;
-            var vertex: Vertex;
-            for (let i = 0; i < currentRootNode.DamagedChildren.length || i < 5; i++) {
-                vertex = this.getRootNode(currentRootNode.DamagedChildren[i]);
-                li = document.createElement("li");
-                li.innerText = `Vertex: ${vertex.Index}. Depth: ${vertex.Depth}`;
-                this.mouseOverEle.List.append(li);
-            }
-        }
+        return ;
+        // var currentRootNode = this.getCurrentRootNode();
+        // let childIndex = currentRootNode.Children[tileIndex]
+        // currentRootNode = this.getRootNode(childIndex);
+        // if (currentRootNode.DamagedChildren.length > 0) {
+        //     this.mouseOverEle.Container.style.display = "unset";
+        //     this.mouseOverEle.Container.style.left = this.tiles[tileIndex].Container.getAttribute("x") + "px";
+        //     this.mouseOverEle.Container.style.top = this.tiles[tileIndex].Container.getAttribute("y") + "px";
+        //     this.mouseOverEle.List.innerHTML = "";
+        //     var li: HTMLLIElement;
+        //     var vertex: Vertex;
+        //     for (let i = 0; i < currentRootNode.DamagedChildren.length && i < 5; i++) {
+        //         vertex = this.getRootNode(currentRootNode.DamagedChildren[i]);
+        //         li = document.createElement("li");
+        //         li.innerText = `Vertex: ${vertex.Index}. Depth: ${vertex.Depth}`;
+        //         this.mouseOverEle.List.append(li);
+        //     }
+        // }
     }
 
     private tileMouseLeaveHandler() {

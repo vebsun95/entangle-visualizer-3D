@@ -22,14 +22,14 @@ export function parseLogVertexEntry(logEntry: DownloadEntryLog): VertexEvent {
     return { Position: logEntry.position!, NewColor: COLORS.GREEN }
 }
 
-export function parseLogParityEvent(logEntry: DownloadEntryLog, strand: number): ParityEvent {
-    if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
-        return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.RED, Strand: strand }
-    }
-    else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-        return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.BLUE, Strand: strand }
+// export function parseLogParityEvent(logEntry: DownloadEntryLog, strand: number): ParityEvent {
+//     if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
+//         return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.RED, Strand: strand }
+//     }
+//     else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
+//         return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.BLUE, Strand: strand }
 
-    }
-    //else if (logEntry.downloadStatus === DLStatus.Success) {
-    return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.GREEN, Strand: strand }
-}
+//     }
+//     //else if (logEntry.downloadStatus === DLStatus.Success) {
+//     return { From: logEntry.start!, To: logEntry.end!, NewColor: COLORS.GREEN, Strand: strand }
+// }
