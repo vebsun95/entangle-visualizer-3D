@@ -40,7 +40,7 @@ export class MerkelTreeViewer extends DataContainer {
         List: document.createElement("ul")
     };
     private padding = 20;
-    private borderSize = 3;
+    private borderSize = 4;
     private tiles: Tile[] = Array(140);
     private currentRootNode: number = 0;
     private currentView: number = 0;

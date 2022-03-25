@@ -214,6 +214,7 @@ class PlayBack {
         cylinderView: document.createElement("button"),
         tortoisView: document.createElement("button"),
     }
+    private strandLabels: string[] = [];
 
     constructor() {
         this.createLayout();
@@ -248,7 +249,7 @@ class PlayBack {
                 } else {
                     row.type.innerText = "Parity";
                     row.position.innerText = (logEntry as ParityEvent).From!.toString() + " -> " + (logEntry as ParityEvent).To!.toString();
-                    row.position.innerText = `(${(logEntry as ParityEvent).From}, ${(logEntry as ParityEvent).To})`;
+                    row.position.innerText = `${this.strandLabels[(logEntry as ParityEvent).Strand + 1]}(${(logEntry as ParityEvent).From}, ${(logEntry as ParityEvent).To})`;
                 }
             } else {
                 row.type.innerText = "Data";
@@ -273,7 +274,7 @@ class PlayBack {
             dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 2 }}));
         });
 
-        this.changeButtons.container.append(this.changeButtons.twoDView, this.changeButtons.cylinderView, this.changeButtons.tortoisView);
+        this.changeButtons.container.append(this.changeLogDropDown, this.changeButtons.twoDView, this.changeButtons.cylinderView, this.changeButtons.tortoisView);
 
 
         this.changeLogDropDown.addEventListener("change", () => {
@@ -344,18 +345,21 @@ class PlayBack {
 
         this.logTable.table.classList.add("log-table");
 
-        this.Container.append(this.changeButtons.container, this.changeLogDropDown, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
+        this.Container.append(this.changeButtons.container, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
-    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number, logEntries: (VertexEvent | ParityEvent)[], nrOfLogs: number) {
+    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number, logEntries: (VertexEvent | ParityEvent)[], nrOfLogs: number, strandLabels: string[]) {
         this.LogEntries = logEntries;
         this.slider.input.setAttribute("max", this.LogEntries.length.toString());
         this.slider.endPosition.innerText = " / " + (this.LogEntries.length).toString();
+        this.strandLabels = ["D", ... strandLabels.map( (s) => {return s[0]} )];
+        console.log(this.strandLabels)
         this.setCurrentPos(0);
+        this.createChangeLogBtns(nrOfLogs);
         this.resetStats();
     }
 
-    CreateChangeLogBtns(nrOfLogs: number) {
+    private createChangeLogBtns(nrOfLogs: number) {
         while (this.changeLogDropDown.children.length > 0) {
             this.changeLogDropDown.removeChild(this.changeLogDropDown.firstChild!);
         }
@@ -375,10 +379,13 @@ class PlayBack {
         this.statsTable.repRow.dataValue.innerText = (0).toString();
     }
 
-    UpdateStats(downloaded: number, unavailable: number, repaired: number) {
+    UpdateStats(downloaded: number, unavailable: number, repaired: number,parityDownload: number, parityUnavailable: number, parityRepaired: number) {
         this.statsTable.dlRow.dataValue.innerText = (downloaded).toString();
         this.statsTable.failedRow.dataValue.innerText = (unavailable).toString();
         this.statsTable.repRow.dataValue.innerText = (repaired).toString();
+        this.statsTable.dlRow.parityValue.innerText = (parityDownload).toString();
+        this.statsTable.failedRow.parityValue.innerText = (parityUnavailable).toString();
+        this.statsTable.repRow.parityValue.innerText = (parityRepaired).toString();
     }
 
     private backClicked(n: number) {

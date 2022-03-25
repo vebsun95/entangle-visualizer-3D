@@ -6,8 +6,6 @@ import { SideBar } from "./sidebar";
 import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./interfaces";
 import { COLORS, DLStatus, MSG, RepStatus } from "./constants";
 import { parseLogVertexEntry } from "./utils";
-import * as THREE from "three";
-import { threadId } from "worker_threads";
 
 
 
@@ -21,9 +19,12 @@ export class App {
     s = 0;
     p = 0;
     dataElements = 0;
-    nrOfDownload = 0;
-    nrOfRepaired = 0;
-    nrOfUnavailable = 0;
+    dataDownload = 0;
+    dataRepaired = 0;
+    dataUnavailable = 0;
+    parityDownload = 0;
+    parityRepaired = 0;
+    parityUnavailable = 0;
     NrOfLogs: number = 0;
     CurrentFilename: string = "";
     vertices: Map<number, Vertex> = new Map();
@@ -59,7 +60,7 @@ export class App {
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
         this.merkelTree.HandleUpdatedDate(this.ParityLabels);
-        this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p, this.dataElements, this.LogEntries, this.NrOfLogs);
+        this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p, this.dataElements, this.LogEntries, this.NrOfLogs, this.ParityLabels);
 
     }
 
@@ -80,15 +81,19 @@ export class App {
 
     HandleKeyUp(e: KeyboardEvent) {
         if (e.ctrlKey) {
-            if (e.key == "ArrowRight") {
-                this.renderer.PanRight = false;
-            } else if (e.key == "ArrowLeft") {
-                this.renderer.PanLeft = false;
-            } else if (e.key == "ArrowDown") {
-                this.renderer.PanDown = false;
-            } else if (e.key == "ArrowUp") {
-                this.renderer.PanUp = false;
-            }
+            this.renderer.PanRight = false;
+            this.renderer.PanLeft = false;
+            this.renderer.PanUp = false;
+            this.renderer.PanDown = false;
+            // if (e.key == "ArrowRight") {
+            //     this.renderer.PanRight = false;
+            // } else if (e.key == "ArrowLeft") {
+            //     this.renderer.PanLeft = false;
+            // } else if (e.key == "ArrowDown") {
+            //     this.renderer.PanDown = false;
+            // } else if (e.key == "ArrowUp") {
+            //     this.renderer.PanUp = false;
+            // }
         }
     }
     HandleKeyDown(e: KeyboardEvent) {
@@ -145,9 +150,12 @@ export class App {
                 }
             }
     
-            this.nrOfDownload = 0;
-            this.nrOfRepaired = 0;
-            this.nrOfUnavailable = 0;
+            this.dataDownload = 0;
+            this.dataRepaired = 0;
+            this.dataUnavailable = 0;
+            this.parityDownload = 0;
+            this.parityRepaired = 0;
+            this.parityUnavailable = 0;
     
             this.bitMap.Reset();
         }
@@ -155,25 +163,25 @@ export class App {
             vertex = this.vertices.get(vertexEvent.Position)!;
             switch (vertex.Color) {
                 case COLORS.GREEN:
-                    this.nrOfDownload--;
+                    this.dataDownload--;
                     break;
                 case COLORS.RED:
-                    this.nrOfUnavailable--;
+                    this.dataUnavailable--;
                     break;
                 case COLORS.BLUE:
-                    this.nrOfRepaired--;
+                    this.dataRepaired--;
                     break;
 
             }
             switch (vertexEvent.NewColor) {
                 case COLORS.GREEN:
-                    this.nrOfDownload++;
+                    this.dataDownload++;
                     break;
                 case COLORS.RED:
-                    this.nrOfUnavailable++;
+                    this.dataUnavailable++;
                     break;
                 case COLORS.BLUE:
-                    this.nrOfRepaired++;
+                    this.dataRepaired++;
                 break;
 
             }
@@ -191,6 +199,29 @@ export class App {
         for (parityEvent of e.detail.ParityEvents) {
             let strand = parityEvent.Strand;
             parity = this.parities[strand].get(parityEvent.Index)!;
+            switch (parity.Color) {
+                case COLORS.GREEN:
+                    this.parityDownload--;
+                    break;
+                case COLORS.RED:
+                    this.parityUnavailable--;
+                    break;
+                case COLORS.BLUE:
+                    this.parityRepaired--;
+                    break;
+
+            }
+            switch (parityEvent.NewColor) {
+                case COLORS.GREEN:
+                    this.parityDownload++;
+                    break;
+                case COLORS.RED:
+                    this.parityUnavailable++;
+                    break;
+                case COLORS.BLUE:
+                    this.parityRepaired++;
+                break;
+            }
             parity.From = parityEvent.From;
             parity.To = parityEvent.To;
             oldColor = parity.Color;
@@ -206,9 +237,9 @@ export class App {
         }
 
         this.renderer.Draw();
-        this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position))
-        this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position))
-        this.sideBar.PlayBackEle.UpdateStats(this.nrOfDownload, this.nrOfUnavailable, this.nrOfRepaired);
+        this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
+        this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
+        this.sideBar.PlayBackEle.UpdateStats(this.dataDownload, this.dataUnavailable, this.dataRepaired, this.parityDownload, this.parityUnavailable, this.parityRepaired);
     }
     HandleBitMapClicked(e: CustomEvent) {
         this.renderer.GoTo(e.detail.vertexIndex)
@@ -216,7 +247,6 @@ export class App {
     HandleNewFileUploaded(e: CustomEvent) {
         this.CurrentFilename = e.detail.fileName;
         this.NrOfLogs = e.detail.nrOfLogs;
-        this.sideBar.PlayBackEle.CreateChangeLogBtns(this.NrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);
     }
     HandleLogChangedClicked(e: CustomEvent) {
@@ -236,9 +266,9 @@ export class App {
         this.s = (line.log as DownloadConfigLog).s;
         this.p = (line.log as DownloadConfigLog).p;
         this.dataElements = (line.log as DownloadConfigLog).dataElements;
-        this.nrOfDownload = 0;
-        this.nrOfRepaired = 0;
-        this.nrOfUnavailable = 0;
+        this.dataDownload = 0;
+        this.dataRepaired = 0;
+        this.dataUnavailable = 0;
         this.ParityLabels = (line.log as DownloadConfigLog).parityLabels;
         var dataShiftRegister = (line.log as DownloadConfigLog).dataShiftRegister;
         var parityShift = (line.log as DownloadConfigLog).parityLeafIdToCanonIndex;

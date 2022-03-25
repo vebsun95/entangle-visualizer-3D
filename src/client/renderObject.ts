@@ -3,6 +3,7 @@ import { Parity, Vertex } from './interfaces'
 import { COLORS, STRANDS } from './constants';
 import { DataContainer } from './dataContainer';
 import { MyControls } from './MyControls';
+import { convertHexToStringColor } from './utils';
 
 
 
@@ -19,17 +20,31 @@ export class RendererObject extends DataContainer {
     private verticesGroup: THREE.Group = new THREE.Group();
     private paritiesGroup: THREE.Group = new THREE.Group();
     private ghostGroup: THREE.Group = new THREE.Group();
+    private iNodeGroup: THREE.Group = new THREE.Group();
     private scale: number = 10;
     private radius: number = 2;
     private ghostgroupshow: boolean = true;
     private lineGeomIndex = 0;
+    private ghostIndex = 0;
     private view: number = 0;
 
     public set View(newView: number) {
-        if (newView != this.view) {
-            this.view = newView;
-            this.Draw();
+        switch (this.view) {
+            case 0:
+                this.view = newView;
+                break;
+            case 1:
+                this.view = newView;
+                
+                break;
+            case 2:
+                if (this.nrOfVertices <= this.limit) {
+                    this.view = newView;
+                }
+            default:
+                this.view = 0;
         }
+        this.Draw();
     }
 
     constructor() {
@@ -69,10 +84,16 @@ export class RendererObject extends DataContainer {
 
         // Lager n-antall verticies + parity
         for (var index = 0; index < this.limit; index++) {
+            var ctx = document.createElement("canvas").getContext("2d")!;
+            ctx.canvas.width = 256;
+            ctx.canvas.height = 128;
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, 256, 128);
             material = new THREE.MeshBasicMaterial({
-                color: 0xfff00,
+                map: new THREE.CanvasTexture(ctx.canvas)
             });
             obj = new THREE.Mesh(geometry, material);
+            obj.userData.ctx = ctx;
             this.verticesGroup.add(obj);
 
             for (let i = 0; i < this.alpha; i++) {
@@ -87,38 +108,124 @@ export class RendererObject extends DataContainer {
                 curveObject.geometry.attributes.position.needsUpdate;
                 this.paritiesGroup.add(curveObject);
             }
+            if (index % this.s == 0 || index % this.s == this.s - 1) {
+                var ctx = document.createElement("canvas").getContext("2d")!;
+                ctx.canvas.width = 256;
+                ctx.canvas.height = 128;
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, 256, 128);
+                material = new THREE.MeshBasicMaterial({
+                    map: new THREE.CanvasTexture(ctx.canvas)
+                });
+                obj = new THREE.Mesh(geometry, material);
+                obj.userData.ctx = ctx;
+                this.ghostGroup.add(obj);
+            }
         }
 
         this.scene.add(this.verticesGroup);
         this.scene.add(this.paritiesGroup);
+        this.scene.add(this.ghostGroup);
+        this.scene.add(this.iNodeGroup);
+    }
+
+    private createMoreInode() {
+        const geometry = new THREE.BoxGeometry(this.radius * 2, this.radius * 2, this.radius * 2);
+        for (var n = 0; n < 10; n++) {
+            var ctx = document.createElement("canvas").getContext("2d")!;
+            ctx.canvas.width = 256;
+            ctx.canvas.height = 128;
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, 256, 128);
+            var material = new THREE.MeshBasicMaterial({
+                map: new THREE.CanvasTexture(ctx.canvas)
+            });
+            var obj = new THREE.Mesh(geometry, material);
+            obj.userData.ctx = ctx;
+            this.iNodeGroup.add(obj);
+        }
+    }
+
+    private updateLabel(newLabel: string, ctx: CanvasRenderingContext2D, backgroundColor: number, isInode: boolean) {
+        let x = ctx.canvas.width / 4;
+        let y = ctx.canvas.height / 2;
+        let fontSize = 24;
+        if (isInode) {
+            x *= 2;
+            fontSize *= 2;
+        }
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = "normal " + fontSize + "px sarif";
+        switch (backgroundColor) {
+            case COLORS.GREY:
+                ctx.fillStyle = convertHexToStringColor(COLORS.BLUE);
+                break;
+            case COLORS.GREEN:
+                ctx.fillStyle = convertHexToStringColor(COLORS.RED);
+                break;
+            case COLORS.BLUE:
+                ctx.fillStyle = convertHexToStringColor(COLORS.GREY);
+                break;
+            case COLORS.RED:
+                ctx.fillStyle = convertHexToStringColor(COLORS.GREEN);
+                break;
+            default:
+                ctx.fillStyle = "black";
+        }
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "center";
+        if (newLabel.length > 4) {
+            let l = newLabel.length
+            ctx.fillText(newLabel.slice(0, l - 3), x, y - fontSize / 2);
+            ctx.fillText(newLabel.slice(l - 3, l), x, y + fontSize / 2);
+
+        } else {
+            ctx.fillText(newLabel, x, y);
+        }
     }
 
     private createTwoDimView() {
-        this.ghostGroup.clear();
-        var column = - ((this.limit / 2) / this.s)
+        var column = 0
         var startIndex = this.drawFrom;
         var row = 0;
         var starty = (this.s * this.scale) / 2
-        for (var vertex of this.verticesGroup.children) {
-            vertex.visible = true;
+        var vertex: Vertex;
+        var obj: THREE.Object3D<THREE.Event>;
+        var inNodeCount = 0;
+
+        for (var v of this.verticesGroup.children) {
+            v.visible = true;
+            v.name = "";
+        }
+        for (var ghostVertx of this.ghostGroup.children) {
+            ghostVertx.visible = false;
         }
 
-        // Moves the verticesGroup instead of making new ones
-        for (var v of this.verticesGroup.children) {
-            // Give position, label and color to vertex
-            v.position.set(
+        for (var i = 0; i < this.limit; i++) {
+            vertex = this.vertices.get(startIndex)!;
+            if (vertex.Depth > 1) {
+                this.verticesGroup.children[i].visible = false;
+                if (inNodeCount >= this.iNodeGroup.children.length - 1) {
+                    this.createMoreInode();
+                }
+                obj = this.iNodeGroup.children[inNodeCount++]!;
+                this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, true);
+                obj.visible = true;
+            } else {
+                obj = this.verticesGroup.children[i];
+                this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, false);
+            }
+            obj.position.set(
                 this.scale * column,                // x coordination
                 starty - (this.scale * row) + 5,    // y coordination
                 0                                   // z coordination
             )
-            let vertexInfo = this.vertices.get(startIndex);
-            v.name = startIndex.toString();
             //@ts-ignore
-            v.material.map = this.createTexture(v.name);
+            obj.material.color.setHex(vertex!.Color);
             //@ts-ignore
-            v.material.color.setHex(vertexInfo!.Color);
-            v.rotateY(0.9)
-
+            obj.material.map.needsUpdate = true;
+            obj.name = startIndex.toString();
             startIndex++;
             if (startIndex > this.nrOfVertices) {
                 let remainder = this.s - (this.nrOfVertices % this.s);
@@ -131,19 +238,22 @@ export class RendererObject extends DataContainer {
             }
 
             row = (row + 1) % this.s;
-            if (row == 0 && startIndex > 1) {
+            if (row == 0) {
                 column++;
             }
         }
+        for (; inNodeCount < this.iNodeGroup.children.length; inNodeCount++) {
+            this.iNodeGroup.children[inNodeCount].visible = false;
+            this.iNodeGroup.children[inNodeCount].name = "";
+        }
 
         /* --- Flytter på parity blokkene --- */
-        for (var par of this.paritiesGroup.children) {
-            par.visible = false;
-        }
         startIndex = this.drawFrom;
         this.lineGeomIndex = 0;
+        this.ghostIndex = 0;
         for (let index = 0; index < this.limit; index++) {
             for (var [strand, output] of this.parities.entries()) {
+                this.paritiesGroup.children[this.lineGeomIndex].visible = false;
                 // TODO: Fix når parity har fått lattice index
                 let parityPosition = this.parityShift.get(startIndex)!;
                 let parity = output.get(parityPosition) as Parity;
@@ -158,6 +268,7 @@ export class RendererObject extends DataContainer {
                         this.CreateParitiyBasic2D(parity, strand);
                     }
                 }
+                this.lineGeomIndex++;
             }
             startIndex++
             if (startIndex > this.nrOfVertices) {
@@ -177,7 +288,6 @@ export class RendererObject extends DataContainer {
             line.visible = true;
             //@ts-ignore
             line.material.color.setHex(output.Color);
-            this.lineGeomIndex++;
             let array = line.geometry.attributes.position;
             array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
             switch (strand) {
@@ -266,7 +376,6 @@ export class RendererObject extends DataContainer {
             line.visible = true;
             //@ts-ignore
             line.material.color.setHex(output.Color);
-            this.lineGeomIndex++;
             let array = line.geometry.attributes.position;
             array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
             switch (strand) {
@@ -338,16 +447,9 @@ export class RendererObject extends DataContainer {
     // Takes in index, (x,y,z) position and color) and return object
     private createGhostVertex(index: string, x: number, y: number, z: number, color: number) {
 
-        const geometry = new THREE.SphereGeometry(this.radius);
-
-        var obj: THREE.Mesh;
-        var material: THREE.MeshBasicMaterial;
-
-        // Lager enkel ghost vertex
-        material = new THREE.MeshBasicMaterial();
-        obj = new THREE.Mesh(geometry, material);
+        var obj = this.ghostGroup.children[this.ghostIndex];
         //@ts-ignore
-        obj.material.map = this.createTexture(index);
+        this.updateLabel(index, obj.userData.ctx);
         //@ts-ignore
         obj.material.color.setHex(color);
         obj.position.set(x, y, z);
@@ -355,9 +457,10 @@ export class RendererObject extends DataContainer {
         obj.material.opacity = 0.3
         //@ts-ignore
         obj.material.transparent = true;
-        this.ghostGroup.add(obj)
+        obj.visible = true;
 
-        this.scene.add(this.ghostGroup);
+        this.ghostIndex++;
+
 
         return obj
     }
@@ -368,40 +471,65 @@ export class RendererObject extends DataContainer {
     }
 
     private createLattice() {
-
-        this.ghostGroup.clear();
-
         var deltaPi: number = (2 * Math.PI) / this.s;
         var column = - Math.ceil((this.limit / 2) / this.s)
         var row = 0;
         var startIndex = this.drawFrom;
-        var data: Vertex;
+        var vertex: Vertex;
         var parity: Parity;
+        var obj: THREE.Object3D<THREE.Event>;
         var line: THREE.Line<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
+        var inNodeCount = 0;
 
-        for (var vertex of this.verticesGroup.children) {
-            vertex.position.set(
+        for (var v of this.verticesGroup.children) {
+            v.visible = true;
+            v.name = "";
+        }
+        for (var ghostVertx of this.ghostGroup.children) {
+            ghostVertx.visible = false;
+        }
+
+        for (var i = 0; i < this.limit; i++) {
+            vertex = this.vertices.get(startIndex)!;
+            if (vertex.Depth > 1) {
+                this.verticesGroup.children[i].visible = false;
+                if (inNodeCount >= this.iNodeGroup.children.length - 1) {
+                    this.createMoreInode();
+                }
+                obj = this.iNodeGroup.children[inNodeCount++]!;
+                this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, true);
+                obj.visible = true;
+            } else {
+                obj = this.verticesGroup.children[i];
+                this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, false);
+            }
+            obj.position.set(
                 this.scale * column,
                 this.scale * Math.cos(deltaPi * row),
                 this.scale * Math.sin(deltaPi * row)
-            );
-            data = this.vertices.get(startIndex)!;
-            vertex.name = data.Index.toString();
+            )
             //@ts-ignore
-            vertex.material.map = this.createTexture(vertex.name);
+            obj.material.color.setHex(vertex!.Color);
             //@ts-ignore
-            vertex.material.color.setHex(data.Color);
-
-
+            obj.material.map.needsUpdate = true;
+            obj.name = startIndex.toString();
             startIndex++;
+            
+            row = (row + 1) % this.s;
+            if (row == 0) {
+                column++;
+            }
             if (startIndex > this.nrOfVertices) {
                 startIndex = 1;
-            }
-            row = (row + 1) % this.s;
-            if (row == 0 && startIndex > this.drawFrom) {
-                column++
+                column += 2;
+                row = 0;
             }
         }
+        for (; inNodeCount < this.iNodeGroup.children.length; inNodeCount++) {
+            this.iNodeGroup.children[inNodeCount].visible = false;
+            this.iNodeGroup.children[inNodeCount].name = "";
+        }
+
 
         for (var par of this.paritiesGroup.children) {
             par.visible = false;
@@ -411,9 +539,9 @@ export class RendererObject extends DataContainer {
         for (let index = 0; index < this.limit; index++) {
             for (var [strand, parityMap] of this.parities.entries()) {
                 let parityPosition = this.parityShift.get(startIndex)!;
-                let parity = parityMap.get(parityPosition) as Parity;
+                parity = parityMap.get(parityPosition) as Parity;
                 if (index + this.s < this.limit && parity.To != null && parity.From != null) {
-                    let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
+                    line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
                     let leftPos = this.scene.getObjectByName(parity.From!.toString());
                     let rightPos = this.scene.getObjectByName(parity.To!.toString());
                     if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
@@ -436,36 +564,54 @@ export class RendererObject extends DataContainer {
         }
     }
     private createTorus() {
+        var vertex: Vertex;
         var parity: Parity;
         var line: THREE.Line<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
-        var deltaPi = (2 * Math.PI) / (this.nrOfVertices / this.s)
+        var obj: THREE.Object3D<THREE.Event>;
+        var nrPerRings = this.nrOfVertices / this.s;
+        var deltaPi = (2 * Math.PI) / nrPerRings
         var deltaPi1 = (2 * Math.PI) / this.s
-        var counter, vertexIndex = 1;
-        const R = 3 * 10;
-        const r = 2 * 5;
-        var startIndex = 1;
+        var counter, inNodeCount = 0, lineGeomIndex = 0;
+        const R = 3 * this.scale * this.s;
+        const r = (this.scale / 4) * nrPerRings;
 
-        for (let i = 0, c = 1; i <= 2 * Math.PI; i += deltaPi1, c++) {
+        for (let i = 0, c = 1; i < 2 * Math.PI; i += deltaPi1, c++) {
             counter = c
-            for (let j = 0; j <= 2 * Math.PI; j += deltaPi) {
-                var obj = this.scene.getObjectByName(counter.toString())
-                if (typeof obj != "undefined") {
-                    obj?.position.set(
-                        ((R + r * Math.cos(j)) * Math.cos(i)),
-                        ((R + r * Math.cos(j)) * Math.sin(i)),
-                        (r * Math.sin(j))
-                    );
-                    counter += this.s
+            for (let j = 0; j < 2 * Math.PI; j += deltaPi) {
+                if (counter > this.vertices.size) {
+                    continue
                 }
-                else { console.log(counter) }
+                vertex = this.vertices.get(counter)!;
+                if (vertex.Depth > 1) {
+                    this.verticesGroup.children[counter - 1].visible = false;
+                    if (inNodeCount >= this.iNodeGroup.children.length - 1) {
+                        this.createMoreInode();
+                    }
+                    obj = this.iNodeGroup.children[inNodeCount++]!;
+                    this.updateLabel(counter.toString(), obj.userData.ctx, vertex.Color, true);
+                    obj.visible = true;
+                } else {
+                    obj = this.verticesGroup.children[counter - 1];
+                    this.updateLabel(counter.toString(), obj.userData.ctx, vertex.Color, false);
+                }
+                obj.position.set(
+                    ((R + r * Math.cos(j)) * Math.cos(i)),
+                    ((R + r * Math.cos(j)) * Math.sin(i)),
+                    (r * Math.sin(j))
+                );
+                obj.name = counter.toString();
+                //@ts-ignore
+                obj.material.color.setHex(vertex.Color);
+
+                counter += this.s
             }
         }
-        this.lineGeomIndex = 0;
-        for (let index = 0; index < this.limit; index++) {
+
+        for (let index = 1; index <= this.limit; index++) {
             for (var [strand, parityMap] of this.parities.entries()) {
-                let parityPosition = this.parityShift.get(startIndex)!;
-                let parity = parityMap.get(parityPosition) as Parity;
-                let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
+                let parityPosition = this.parityShift.get(index)!;
+                parity = parityMap.get(parityPosition) as Parity;
+                line = this.paritiesGroup.children[lineGeomIndex] as THREE.Line;
                 if (index + this.s < this.limit && parity.To != null && parity.From != null) {
                     let leftPos = this.scene.getObjectByName(parity.From!.toString());
                     let rightPos = this.scene.getObjectByName(parity.To!.toString());
@@ -473,7 +619,6 @@ export class RendererObject extends DataContainer {
                         line.visible = true;
                         //@ts-ignore
                         line.material.color.setHex(parity.Color);
-                        this.lineGeomIndex++;
                         let array = line.geometry.attributes.position;
                         array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
                         array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
@@ -483,29 +628,9 @@ export class RendererObject extends DataContainer {
                 } else {
                     line.visible = false;
                 }
-                startIndex++
-                if (startIndex > this.nrOfVertices) {
-                    startIndex = 1;
-                }
+                    lineGeomIndex++;
             }
         }
-    }
-
-    private createTexture(text: string) {
-        let c = document.createElement("canvas");
-        c.width = Math.pow(2, 8) * this.radius;
-        c.height = Math.pow(2, 7) * this.radius;
-
-        let step = c.width / 3
-        let ctx = c.getContext("2d");
-        ctx!.fillStyle = "white";
-        ctx!.fillRect(0, 0, c.width, c.height);
-        ctx!.font = this.radius * 3 + "em black";
-        ctx!.fillStyle = "black";
-        ctx!.textBaseline = "middle";
-        ctx!.textAlign = "center"
-        ctx!.fillText(text, c.width / 4, step * 0.8);
-        return new THREE.CanvasTexture(c);
     }
 
     public GoTo(vertexIndex: number) {
@@ -518,7 +643,7 @@ export class RendererObject extends DataContainer {
         if (this.drawFrom >= this.nrOfVertices) {
             this.drawFrom = 1;
         }
-        this.createTwoDimView();
+        this.Draw();
     }
 
     public UpdateVertex(vertexIndex: number) {
@@ -541,6 +666,9 @@ export class RendererObject extends DataContainer {
         for (var v of this.verticesGroup.children) {
             v.lookAt(this.camera.position);
         }
+        for (var gv of this.ghostGroup.children.filter((gv) => gv.visible)) {
+            gv.lookAt(this.camera.position);
+        }
         this.render()
     }
 
@@ -560,7 +688,7 @@ export class RendererObject extends DataContainer {
     public set PanDown(value: boolean) {
         this.controls.panDown = value;
     }
-    
+
     public Draw() {
         switch (this.view) {
             case 0:
@@ -570,10 +698,13 @@ export class RendererObject extends DataContainer {
                 this.createLattice();
                 break;
             case 2:
-                if(this.nrOfVertices <= this.limit) {
+                if (this.nrOfVertices <= this.limit) {
                     this.createTorus();
                 }
                 break;
+            default:
+                this.view = 0;
+                this.createTwoDimView();
         }
     }
 }
