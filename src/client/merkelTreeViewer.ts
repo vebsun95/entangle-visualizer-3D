@@ -1,5 +1,6 @@
 import { DataContainer } from "./dataContainer";
 import { Parity, Vertex } from "./interfaces";
+import { convertHexToStringColor } from "./utils";
 
 const SVGURL = "http://www.w3.org/2000/svg";
 
@@ -44,7 +45,7 @@ export class MerkelTreeViewer extends DataContainer {
     private tiles: Tile[] = Array(140);
     private currentRootNode: number = 0;
     private currentView: number = 0;
-    private parityLabels: string[] = [];
+    public StrandLabels: string[] = [];
 
     constructor() {
         super();
@@ -69,11 +70,10 @@ export class MerkelTreeViewer extends DataContainer {
 
     }
 
-    public HandleUpdatedDate(parityLabels: string[]) {
+    public HandleUpdatedDate() {
         this.currentView = 0;
         this.currentRootNode = this.nrOfVertices;
         this.infoGraphic.BreadCrumbsIndex = [this.currentRootNode]
-        this.parityLabels = parityLabels;
         this.CreateInfoGraphic();
         this.updateInfoGraphic();
         this.updateDynamicAttributes();
@@ -153,9 +153,9 @@ export class MerkelTreeViewer extends DataContainer {
 
         var btn: HTMLButtonElement;
 
-        for (let a = 0; a <= this.parityLabels.length; a++) {
+        for (let a = 0; a <= this.StrandLabels.length; a++) {
             btn = document.createElement("button");
-            btn.innerText = a == 0 ? "Data" : this.parityLabels[a-1];
+            btn.innerText = a == 0 ? "Data" : this.StrandLabels[a-1];
             btn.addEventListener("click", () => this.viewBtnClickedHandler(a));
             this.infoGraphic.ViewButtonsContainer.append(btn);
         }
@@ -178,7 +178,7 @@ export class MerkelTreeViewer extends DataContainer {
             breadCrumb.innerHTML = `>${rootNodeIndex}`
             this.infoGraphic.BreadCrumbs.append(breadCrumb);
         }
-        var currentView = this.currentView == 0 ? "Data" : this.parityLabels[this.currentView -1];
+        var currentView = this.currentView == 0 ? "Data" : this.StrandLabels[this.currentView -1];
         this.infoGraphic.Text.innerHTML = `Current view: ${currentView}, Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
     }
 
@@ -186,14 +186,8 @@ export class MerkelTreeViewer extends DataContainer {
         var vertex: Vertex | Parity;
         var tile: Tile;
         var nrOfChildren, nrOfRows, nrOfColumns, tileWidth, tileHeight, tileCounter, row, col: number;
-        var currentRootNode : Vertex | Parity;
-
-        if (this.currentView == 0 ){
-            currentRootNode = this.vertices.get(this.currentRootNode)!;
-        }
-        else {
-            currentRootNode = this.parities[this.currentView - 1].get(this.currentRootNode)!;
-        }
+        var currentRootNode : Vertex | Parity = this.getCurrentRootNode();
+        
         nrOfChildren = currentRootNode.Children.length;
         // Check if nrOfChildren is a prime and increase nrOfChildren by 1 if prime
         if (this.PrimeCheck(nrOfChildren) && nrOfChildren > 5) {
@@ -243,7 +237,7 @@ export class MerkelTreeViewer extends DataContainer {
 
             tile.Rect.setAttribute("width", (tileWidth).toString());
             tile.Rect.setAttribute("height", (tileHeight).toString());
-            tile.Rect.setAttribute("fill", this.convertHexToStringColor(vertex.Color));
+            tile.Rect.setAttribute("fill", convertHexToStringColor(vertex.Color));
 
             tile.Text.setAttribute("x", (tileWidth / 2).toString());
             tile.Text.setAttribute("y", (tileHeight / 2 + 2).toString());
@@ -345,15 +339,5 @@ export class MerkelTreeViewer extends DataContainer {
             return this.vertices.get(index)!;
         }
         return this.parities[this.currentView -1].get(index)!
-    }
-
-    private convertHexToStringColor(hexColor: number): string {
-        // eg. 16 base 10 -> '10' base 16
-        let hexColorString = hexColor.toString(16);
-        while (hexColorString.length < 6) {
-            hexColorString = '0' + hexColorString;
-        }
-        hexColorString = '#' + hexColorString;
-        return hexColorString;
     }
 }
