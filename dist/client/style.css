@@ -147,3 +147,6 @@ body {
   padding: 0.5rem;
 }
 
+.stats-table {
+    width: 100%;
+}

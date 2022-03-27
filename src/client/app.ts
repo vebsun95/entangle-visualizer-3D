@@ -18,20 +18,9 @@ export class App {
     alpha = 0;
     s = 0;
     p = 0;
-    dataElements = 0;
-    dataDownload = 0;
-    dataRepaired = 0;
-    dataUnavailable = 0;
-    parityDownload = 0;
-    parityRepaired = 0;
-    parityUnavailable = 0;
-    NrOfLogs: number = 0;
-    CurrentFilename: string = "";
     vertices: Map<number, Vertex> = new Map();
     parities: Map<number, Parity>[] = [];
     parityShift: Map<number, number> = new Map();
-    LogEntries: (VertexEvent | ParityEvent)[] = [];
-    ParityLabels: string[] = [];
 
 
 
@@ -41,7 +30,6 @@ export class App {
     }
 
     createLayout() {
-        document.body.setAttribute("tabindex", "-1");
         this.Container.id = "overlay-layout";
         this.Container.append(this.merkelTree.Container, this.sideBar.Container, this.bitMap.Container);
     }
@@ -59,8 +47,8 @@ export class App {
 
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
-        this.merkelTree.HandleUpdatedDate(this.ParityLabels);
-        this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p, this.dataElements, this.LogEntries, this.NrOfLogs, this.ParityLabels);
+        this.merkelTree.HandleUpdatedDate();
+        this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p);
 
     }
 
@@ -136,7 +124,9 @@ export class App {
         var vertex: Vertex;
         var parity: Parity;
         var oldColor: number;
+        var deltaDDL= 0, deltaDRep = 0, deltaDUna = 0, deltaPDL = 0, deltaPRep = 0, deltaPUna = 0;
         if (e.detail.NeedsReset) {
+            // If true sets all state variables back to default.
             for (var vertex of this.vertices.values()) {
                 vertex.Color = COLORS.GREY;
                 vertex.DamagedChildren = 0
@@ -150,12 +140,12 @@ export class App {
                 }
             }
     
-            this.dataDownload = 0;
-            this.dataRepaired = 0;
-            this.dataUnavailable = 0;
-            this.parityDownload = 0;
-            this.parityRepaired = 0;
-            this.parityUnavailable = 0;
+            this.sideBar.PlayBackEle.NrOfDataDl = 0;
+            this.sideBar.PlayBackEle.NrOfDataRep = 0;
+            this.sideBar.PlayBackEle.NrOfDataUna = 0;
+            this.sideBar.PlayBackEle.NrOfParityDl = 0;
+            this.sideBar.PlayBackEle.NrOfParityRep = 0;
+            this.sideBar.PlayBackEle.NrOfParityUna = 0;
     
             this.bitMap.Reset();
         }
@@ -163,27 +153,26 @@ export class App {
             vertex = this.vertices.get(vertexEvent.Position)!;
             switch (vertex.Color) {
                 case COLORS.GREEN:
-                    this.dataDownload--;
+                    deltaDDL--;
                     break;
                 case COLORS.RED:
-                    this.dataUnavailable--;
+                    deltaDUna--;
                     break;
                 case COLORS.BLUE:
-                    this.dataRepaired--;
+                    deltaDRep--;
                     break;
 
             }
             switch (vertexEvent.NewColor) {
                 case COLORS.GREEN:
-                    this.dataDownload++;
+                    deltaDDL++;
                     break;
                 case COLORS.RED:
-                    this.dataUnavailable++;
+                    deltaDUna++;
                     break;
                 case COLORS.BLUE:
-                    this.dataRepaired++;
+                    deltaDRep++
                 break;
-
             }
             oldColor = vertex.Color;
             vertex.Color = vertexEvent.NewColor;
@@ -195,31 +184,30 @@ export class App {
                 vertex.DamagedChildren--;
             }
         }
-        // TODO FIX
         for (parityEvent of e.detail.ParityEvents) {
             let strand = parityEvent.Strand;
             parity = this.parities[strand].get(parityEvent.Index)!;
             switch (parity.Color) {
                 case COLORS.GREEN:
-                    this.parityDownload--;
+                    deltaPDL--
                     break;
                 case COLORS.RED:
-                    this.parityUnavailable--;
+                    deltaPUna--;
                     break;
                 case COLORS.BLUE:
-                    this.parityRepaired--;
+                    deltaPRep--
                     break;
 
             }
             switch (parityEvent.NewColor) {
                 case COLORS.GREEN:
-                    this.parityDownload++;
+                    deltaPDL++
                     break;
                 case COLORS.RED:
-                    this.parityUnavailable++;
+                    deltaPUna++
                     break;
                 case COLORS.BLUE:
-                    this.parityRepaired++;
+                    deltaPRep++
                 break;
             }
             parity.From = parityEvent.From;
@@ -235,25 +223,28 @@ export class App {
             }
 
         }
+        this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL;
+        this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep;
+        this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna;
+
+        this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL;
+        this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep;
+        this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna;
 
         this.renderer.Draw();
         this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
         this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
-        this.sideBar.PlayBackEle.UpdateStats(this.dataDownload, this.dataUnavailable, this.dataRepaired, this.parityDownload, this.parityUnavailable, this.parityRepaired);
     }
     HandleBitMapClicked(e: CustomEvent) {
         this.renderer.GoTo(e.detail.vertexIndex)
     }
     HandleNewFileUploaded(e: CustomEvent) {
-        this.CurrentFilename = e.detail.fileName;
-        this.NrOfLogs = e.detail.nrOfLogs;
+        this.sideBar.PlayBackEle.Filename = e.detail.fileName;
+        this.sideBar.PlayBackEle.CreateChangeLogBtns(e.detail.nrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);
     }
-    HandleLogChangedClicked(e: CustomEvent) {
+    HandleLogChangedClicked(e: CustomEvent) {        
         let newLog = e.detail.changeToLog;
-        if (newLog < 0 || newLog > this.NrOfLogs) {
-            return
-        }
         this.sideBar.FileInput.ChangeLog(newLog);
     }
     HandleLogChanged(e: CustomEvent) {
@@ -265,11 +256,8 @@ export class App {
         this.alpha = (line.log as DownloadConfigLog).alpha;
         this.s = (line.log as DownloadConfigLog).s;
         this.p = (line.log as DownloadConfigLog).p;
-        this.dataElements = (line.log as DownloadConfigLog).dataElements;
-        this.dataDownload = 0;
-        this.dataRepaired = 0;
-        this.dataUnavailable = 0;
-        this.ParityLabels = (line.log as DownloadConfigLog).parityLabels;
+        this.sideBar.PlayBackEle.Config = line.log as DownloadConfigLog;
+        var ParityLabels = (line.log as DownloadConfigLog).parityLabels;
         var dataShiftRegister = (line.log as DownloadConfigLog).dataShiftRegister;
         var parityShift = (line.log as DownloadConfigLog).parityLeafIdToCanonIndex;
         this.parityShift.clear();
@@ -296,7 +284,7 @@ export class App {
                     DamagedChildren: 0,
                 });
             } else {
-                parityIndex = this.ParityLabels.indexOf(line.type!)
+                parityIndex = ParityLabels.indexOf(line.type!)
                 this.parities[parityIndex].set(log.index, {
                     Index: log.index,
                     From: null,
@@ -339,7 +327,7 @@ export class App {
 
         var logEntry: DownloadEntryLog | TreeLayoutLog;
         var color: number, strand: number, from: number, to: number;
-        this.LogEntries = [];
+        var LogEntries = [];
         while (line.msg == MSG.DlEntry || line.msg == MSG.ParityTreeEntry) {
             if (line.msg == MSG.DlEntry) {
                 logEntry = line.log as DownloadEntryLog;
@@ -351,7 +339,7 @@ export class App {
                     continue
                 }
                 if (logEntry.parity) {
-                    strand = this.ParityLabels.indexOf(logEntry.class);
+                    strand = ParityLabels.indexOf(logEntry.class);
                     from = this.parityShift.get(logEntry.start!)!;
                     to = this.parityShift.get(logEntry.end!)!;
                     if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
@@ -363,7 +351,7 @@ export class App {
                     else {
                         color = COLORS.GREEN;
                     }
-                    this.LogEntries.push({
+                    LogEntries.push({
                         Index: this.parityShift.get(logEntry.start!)!,
                         Strand: strand,
                         From: logEntry.start!,
@@ -371,12 +359,12 @@ export class App {
                         NewColor: color
                     });
                 } else {
-                    this.LogEntries.push(parseLogVertexEntry(logEntry))
+                    LogEntries.push(parseLogVertexEntry(logEntry))
                 }
             }
             else if (line.msg == MSG.ParityTreeEntry) {
                 logEntry = line.log as TreeLayoutLog;
-                this.LogEntries.push({
+                LogEntries.push({
                     Index: logEntry.index,
                     From: null,
                     To: null,
@@ -386,6 +374,9 @@ export class App {
             }
             line = content[lineCounter++]
         }
+        this.merkelTree.StrandLabels = ParityLabels;
+        this.sideBar.PlayBackEle.StrandLabels = ParityLabels;
+        this.sideBar.PlayBackEle.LogEntries = LogEntries;
         this.UpdateData();
 
     }

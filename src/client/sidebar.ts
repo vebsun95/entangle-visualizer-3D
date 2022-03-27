@@ -1,7 +1,6 @@
 
-import { table } from "console";
-import { COLORS, DLStatus } from "./constants";
-import { ParityEvent, VertexEvent } from "./interfaces";
+import { COLORS } from "./constants";
+import { DownloadConfigLog, ParityEvent, VertexEvent } from "./interfaces";
 import { convertHexToStringColor } from "./utils";
 
 export class SideBar {
@@ -12,11 +11,7 @@ export class SideBar {
     FileInput: FileInput = new FileInput();
 
     constructor() {
-        document.getElementById("toggle-side-bar")?.addEventListener("click", this.toggleVisible.bind(this));
-
         this.createLayout();
-
-
     }
 
     private createLayout() {
@@ -32,7 +27,6 @@ export class SideBar {
         }
         this.visible = !this.visible;
     }
-
 }
 
 interface StartPoints {
@@ -134,18 +128,19 @@ interface ChangeViewsButtons {
 
 interface StatsTable {
     table: HTMLTableElement,
+    config: HTMLTableRowElement,
+    fileName: HTMLTableRowElement,
     header: HTMLTableRowElement,
     dlRow: StatsRow,
     repRow: StatsRow,
     failedRow: StatsRow,
 }
 
-
 interface StatsRow {
     row: HTMLTableRowElement,
     type: HTMLTableCellElement,
-    dataValue: HTMLTableCellElement,
-    parityValue: HTMLTableCellElement,
+    dataCell: HTMLTableCellElement,
+    parityCell: HTMLTableCellElement,
 }
 
 interface LogTable {
@@ -170,26 +165,28 @@ interface Slider {
 
 class PlayBack {
 
-    Container: HTMLDivElement = document.createElement("div");
-    LogEntries: (VertexEvent | ParityEvent)[] = [];
+    public Container: HTMLDivElement = document.createElement("div");
+    public LogEntries: (VertexEvent | ParityEvent)[] = [];
     private statsTable: StatsTable = {
         table: document.createElement("table"),
+        config: document.createElement("tr"),
+        fileName: document.createElement("tr"),
         header: document.createElement("tr"),
         dlRow: {
             row: document.createElement("tr"),
             type: document.createElement("td"),
-            dataValue: document.createElement("td"),
-            parityValue: document.createElement("td")},
+            dataCell: document.createElement("td"),
+            parityCell: document.createElement("td")},
         repRow: {
             row: document.createElement("tr"),
             type: document.createElement("td"),
-            dataValue: document.createElement("td"),
-            parityValue: document.createElement("td")},
+            dataCell: document.createElement("td"),
+            parityCell: document.createElement("td")},
         failedRow: {
             row: document.createElement("tr"),
             type: document.createElement("td"),
-            dataValue: document.createElement("td"),
-            parityValue: document.createElement("td")},
+            dataCell: document.createElement("td"),
+            parityCell: document.createElement("td")},
     }
     private JumpBackButton: HTMLButtonElement = document.createElement("button");
     private BackButton: HTMLButtonElement = document.createElement("button");
@@ -257,7 +254,6 @@ class PlayBack {
             }
             row.newColor.innerHTML = '<span style="color:' + convertHexToStringColor(logEntry.NewColor) + ';">&#11044;</span> '
         }
-
     }
 
     private createLayout() {
@@ -282,33 +278,34 @@ class PlayBack {
             dispatchEvent( new CustomEvent("log-changed-clicked", { detail: { changeToLog: value } }));
         });
 
-        var sv = this.statsTable;
+        var st = this.statsTable;
+        st.table.classList.add("stats-table")
 
         var headerCell: HTMLTableCellElement = document.createElement("td");
-        sv.header.append(headerCell);
+        st.header.append(headerCell);
         headerCell = document.createElement("td");
         headerCell.innerText = "Data";
-        sv.header.append(headerCell);
+        st.header.append(headerCell);
         headerCell = document.createElement("td");
         headerCell.innerText = "Parity";
-        sv.header.append(headerCell);
+        st.header.append(headerCell);
 
-        sv.dlRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span> Downloaded: ';
-        sv.dlRow.dataValue.innerHTML = "0";
-        sv.dlRow.parityValue.innerHTML = "0";
-        sv.dlRow.row.append(sv.dlRow.type, sv.dlRow.dataValue, sv.dlRow.parityValue);
+        st.dlRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span> Downloaded: ';
+        st.dlRow.dataCell.innerHTML = "0";
+        st.dlRow.parityCell.innerHTML = "0";
+        st.dlRow.row.append(st.dlRow.type, st.dlRow.dataCell, st.dlRow.parityCell);
 
-        sv.repRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.BLUE) + ';">&#11044;</span> Repaired: ';
-        sv.repRow.dataValue.innerHTML = "0";
-        sv.repRow.parityValue.innerHTML = "0";
-        sv.repRow.row.append(sv.repRow.type, sv.repRow.dataValue, sv.repRow.parityValue);
+        st.repRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.BLUE) + ';">&#11044;</span> Repaired: ';
+        st.repRow.dataCell.innerHTML = "0";
+        st.repRow.parityCell.innerHTML = "0";
+        st.repRow.row.append(st.repRow.type, st.repRow.dataCell, st.repRow.parityCell);
 
-        sv.failedRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.RED) + ';">&#11044;</span> Unavailable: ';
-        sv.failedRow.dataValue.innerHTML = "0";
-        sv.failedRow.parityValue.innerHTML = "0";
-        sv.failedRow.row.append(sv.failedRow.type, sv.failedRow.dataValue, sv.failedRow.parityValue);
+        st.failedRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.RED) + ';">&#11044;</span> Unavailable: ';
+        st.failedRow.dataCell.innerHTML = "0";
+        st.failedRow.parityCell.innerHTML = "0";
+        st.failedRow.row.append(st.failedRow.type, st.failedRow.dataCell, st.failedRow.parityCell);
 
-        sv.table.append(sv.header, sv.dlRow.row, sv.repRow.row, sv.failedRow.row);
+        st.table.append(st.fileName, st.config, st.header, st.dlRow.row, st.repRow.row, st.failedRow.row);
 
         this.JumpBackButton.innerHTML = "<<";
         this.BackButton.innerHTML = "<kbd>←</kbd>";
@@ -348,18 +345,15 @@ class PlayBack {
         this.Container.append(this.changeButtons.container, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
-    HandleUpdatedData(alpha: number, s: number, p: number, dataElements: number, logEntries: (VertexEvent | ParityEvent)[], nrOfLogs: number, strandLabels: string[]) {
-        this.LogEntries = logEntries;
+    public HandleUpdatedData(alpha: number, s: number, p: number) {
         this.slider.input.setAttribute("max", this.LogEntries.length.toString());
         this.slider.endPosition.innerText = " / " + (this.LogEntries.length).toString();
-        this.strandLabels = ["D", ... strandLabels.map( (s) => {return s[0]} )];
-        console.log(this.strandLabels)
         this.setCurrentPos(0);
-        this.createChangeLogBtns(nrOfLogs);
         this.resetStats();
     }
 
-    private createChangeLogBtns(nrOfLogs: number) {
+    public CreateChangeLogBtns(nrOfLogs: number) {
+        // Delete the old buttons
         while (this.changeLogDropDown.children.length > 0) {
             this.changeLogDropDown.removeChild(this.changeLogDropDown.firstChild!);
         }
@@ -374,18 +368,12 @@ class PlayBack {
     }
 
     private resetStats() {
-        this.statsTable.dlRow.dataValue.innerText = (0).toString();
-        this.statsTable.failedRow.dataValue.innerText = (0).toString();
-        this.statsTable.repRow.dataValue.innerText = (0).toString();
-    }
-
-    UpdateStats(downloaded: number, unavailable: number, repaired: number,parityDownload: number, parityUnavailable: number, parityRepaired: number) {
-        this.statsTable.dlRow.dataValue.innerText = (downloaded).toString();
-        this.statsTable.failedRow.dataValue.innerText = (unavailable).toString();
-        this.statsTable.repRow.dataValue.innerText = (repaired).toString();
-        this.statsTable.dlRow.parityValue.innerText = (parityDownload).toString();
-        this.statsTable.failedRow.parityValue.innerText = (parityUnavailable).toString();
-        this.statsTable.repRow.parityValue.innerText = (parityRepaired).toString();
+        this.NrOfDataDl = 0;
+        this.NrOfDataRep = 0;
+        this.NrOfDataUna = 0;
+        this.NrOfParityDl = 0;
+        this.NrOfParityRep = 0;
+        this.NrOfParityUna = 0;
     }
 
     private backClicked(n: number) {
@@ -451,4 +439,75 @@ class PlayBack {
     public FocusInput() {
         this.slider.currentPosition.focus();
     }
+    public set StrandLabels(newLabels: string[]) {
+        this.strandLabels = ["D", ... newLabels.map( (s) => {return s[0]} )];
+    }
+
+    public set Filename (newFilename: string) {
+        this.statsTable.fileName.innerText = newFilename;
+    }
+
+    public set Config (newConfig: DownloadConfigLog) {
+        this.statsTable.config.innerText = `(${newConfig.alpha}, ${newConfig.s}, ${newConfig.p})\t #${newConfig.dataElements}`
+    }
+
+    // DATA Download
+    public set NrOfDataDl(value: number) {
+        this.statsTable.dlRow.dataCell.innerText = value.toString();
+    }
+    
+    public get NrOfDataDl(): number {
+        return parseInt(this.statsTable.dlRow.dataCell.innerText)
+    }
+    // ----
+    
+    // DATA Repaired
+    public set NrOfDataRep(value: number) {
+        this.statsTable.repRow.dataCell.innerText = value.toString();
+    }
+    
+    public get NrOfDataRep(): number {
+        return parseInt(this.statsTable.repRow.dataCell.innerText)
+    }
+    // ----
+
+    // DATA Unavailable
+    public set NrOfDataUna(value: number) {
+        this.statsTable.failedRow.dataCell.innerText = value.toString();
+    }
+    
+    public get NrOfDataUna(): number {
+        return parseInt(this.statsTable.failedRow.dataCell.innerText)
+    }
+    // -----
+
+    // Parity Download
+    public set NrOfParityDl(value: number) {
+        this.statsTable.dlRow.parityCell.innerText = value.toString();
+    }
+    
+    public get NrOfParityDl(): number {
+        return parseInt(this.statsTable.dlRow.parityCell.innerText)
+    }
+    // ----
+    
+    // Parity Repaired
+    public set NrOfParityRep(value: number) {
+        this.statsTable.repRow.parityCell.innerText = value.toString();
+    }
+    
+    public get NrOfParityRep(): number {
+        return parseInt(this.statsTable.repRow.parityCell.innerText)
+    }
+    // ----
+
+    // Parity Unavailable
+    public set NrOfParityUna(value: number) {
+        this.statsTable.failedRow.parityCell.innerText = value.toString();
+    }
+    
+    public get NrOfParityUna(): number {
+        return parseInt(this.statsTable.failedRow.parityCell.innerText)
+    }
+    // ----
 }
