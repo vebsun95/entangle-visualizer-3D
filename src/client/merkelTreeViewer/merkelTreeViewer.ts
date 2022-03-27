@@ -1,29 +1,9 @@
-import { DataContainer } from "./dataContainer";
-import { Parity, Vertex } from "./interfaces";
-import { convertHexToStringColor } from "./utils";
+import { DataContainer } from "../SharedKernel/dataContainer";
+import { Parity, Vertex } from "../SharedKernel/interfaces";
+import { convertHexToStringColor } from "../SharedKernel/utils";
+import { InfoGraphic, MouseOverElement, Tile } from "./interfaces/interfaces";
 
 const SVGURL = "http://www.w3.org/2000/svg";
-
-interface Tile {
-    Container: SVGElement,
-    Rect: SVGRectElement,
-    Text: SVGTextElement,
-}
-
-interface InfoGraphic {
-    Container: HTMLDivElement;
-    Text: HTMLParagraphElement;
-    BreadCrumbs: HTMLParagraphElement;
-    BreadCrumbsIndex: number[];
-    ViewButtons: HTMLButtonElement[];
-    ViewButtonsContainer: HTMLDivElement;
-}
-
-interface MouseOverElement {
-    Container: HTMLDivElement,
-    List: HTMLUListElement,
-}
-
 export class MerkelTreeViewer extends DataContainer {
 
     public Container: HTMLDivElement = document.createElement("div");

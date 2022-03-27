@@ -1,9 +1,13 @@
 import * as THREE from 'three';
-import { Parity, Vertex } from './interfaces'
-import { COLORS, STRANDS } from './constants';
-import { DataContainer } from './dataContainer';
+import { Parity, Vertex } from '../SharedKernel/interfaces'
+import { COLORS, STRANDS } from '../SharedKernel/constants';
+import { DataContainer } from '../SharedKernel/dataContainer';
 import { MyControls } from './MyControls';
-import { convertHexToStringColor } from './utils';
+import { convertHexToStringColor } from '../SharedKernel/utils';
+import { TwoDView } from './views/twoDview';
+import { View } from './interfaces/interfaces';
+
+
 
 
 
@@ -26,25 +30,10 @@ export class RendererObject extends DataContainer {
     private ghostgroupshow: boolean = true;
     private lineGeomIndex = 0;
     private ghostIndex = 0;
-    private view: number = 0;
+    private view: View = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.limit, this.scene);
 
     public set View(newView: number) {
-        switch (this.view) {
-            case 0:
-                this.view = newView;
-                break;
-            case 1:
-                this.view = newView;
-                
-                break;
-            case 2:
-                if (this.nrOfVertices <= this.limit) {
-                    this.view = newView;
-                }
-            default:
-                this.view = 0;
-        }
-        this.Draw();
+        this.Update();
     }
 
     constructor() {
@@ -56,8 +45,9 @@ export class RendererObject extends DataContainer {
     }
 
     public HandleUpdatedData() {
+        this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
         this.initObjects();
-        this.createTwoDimView();
+        this.Update();
     }
 
     private initObjects() {
@@ -514,7 +504,7 @@ export class RendererObject extends DataContainer {
             obj.material.map.needsUpdate = true;
             obj.name = startIndex.toString();
             startIndex++;
-            
+
             row = (row + 1) % this.s;
             if (row == 0) {
                 column++;
@@ -628,13 +618,13 @@ export class RendererObject extends DataContainer {
                 } else {
                     line.visible = false;
                 }
-                    lineGeomIndex++;
+                lineGeomIndex++;
             }
         }
     }
 
-    public GoTo(vertexIndex: number) {
-        this.drawFrom = vertexIndex - (this.limit / 2);
+    public GoTo(position: number) {
+        this.drawFrom = position - (this.limit / 2);
         if (this.drawFrom < 1) {
             this.drawFrom = this.nrOfVertices + this.drawFrom;
         }
@@ -643,7 +633,9 @@ export class RendererObject extends DataContainer {
         if (this.drawFrom >= this.nrOfVertices) {
             this.drawFrom = 1;
         }
-        this.Draw();
+        this.camera.position.set(this.view.StartCamera.x, this.view.StartCamera.y, this.view.StartCamera.z);
+        this.camera.lookAt(this.view.StartCamera.x, this.view.StartCamera.y, 0 )
+        this.Update();
     }
 
     public UpdateVertex(vertexIndex: number) {
@@ -689,22 +681,11 @@ export class RendererObject extends DataContainer {
         this.controls.panDown = value;
     }
 
-    public Draw() {
-        switch (this.view) {
-            case 0:
-                this.createTwoDimView();
-                break;
-            case 1:
-                this.createLattice();
-                break;
-            case 2:
-                if (this.nrOfVertices <= this.limit) {
-                    this.createTorus();
-                }
-                break;
-            default:
-                this.view = 0;
-                this.createTwoDimView();
-        }
+    public Update() {
+        this.view.Update();
     }
 }
+
+
+
+

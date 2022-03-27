@@ -1,19 +1,9 @@
 import { Vec2 } from "three";
-import { DataContainer } from "./dataContainer";
-import { Vertex } from "./interfaces";
-import { convertHexToStringColor } from "./utils";
+import { DataContainer } from "../SharedKernel/dataContainer";
+import { Vertex } from "../SharedKernel/interfaces";
+import { convertHexToStringColor } from "../SharedKernel/utils";
+import { rect, vec2 } from "./interfaces/interfaces";
 
-interface vec2 {
-    x: number,
-    y: number,
-}
-
-interface rect {
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-}
 
 export class BitMap extends DataContainer {
 

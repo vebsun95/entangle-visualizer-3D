@@ -1,11 +1,11 @@
-import { BitMap } from "./bitmap";
-import { MerkelTreeViewer } from "./merkelTreeViewer";
-import { RendererObject } from "./renderObject";
-import { SideBar } from "./sidebar";
+import { BitMap } from "./bitmap/bitmap";
+import { MerkelTreeViewer } from "./merkelTreeViewer/merkelTreeViewer";
+import { RendererObject } from "./renderer/renderObject";
+import { SideBar } from "./sidebar/sidebar";
 
-import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./interfaces";
-import { COLORS, DLStatus, MSG, RepStatus } from "./constants";
-import { parseLogVertexEntry } from "./utils";
+import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./SharedKernel/interfaces";
+import { COLORS, DLStatus, MSG, RepStatus } from "./SharedKernel/constants";
+import { parseLogVertexEntry } from "./SharedKernel/utils";
 
 
 
@@ -231,7 +231,7 @@ export class App {
         this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep;
         this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna;
 
-        this.renderer.Draw();
+        this.renderer.Update();
         this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
         this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
     }

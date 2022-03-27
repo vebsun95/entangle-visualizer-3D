@@ -9,8 +9,8 @@ import {
 	Vector3
 } from 'three';
 
-import { STATE } from './constants';
-import { Keys, MouseButtons, Touches } from './interfaces';
+import { STATE } from '../SharedKernel/constants';
+import { Keys, MouseButtons, Touches } from '../SharedKernel/interfaces';
 
 
 
