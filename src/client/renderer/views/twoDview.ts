@@ -3,10 +3,12 @@ import { STRANDS } from "../../SharedKernel/constants";
 import { DataContainer } from "../../SharedKernel/dataContainer";
 import { Parity, Vertex } from "../../SharedKernel/interfaces";
 import { View } from "../interfaces/interfaces";
+import { MyControls } from "../MyControls";
 import { updateLabel } from "../utils/updateLabels";
 
 
 export class TwoDView extends DataContainer implements View {
+    public controls: MyControls;
     private verticesGroup: THREE.Group;
     private paritiesGroup: THREE.Group;
     private ghostGroup: THREE.Group;
@@ -15,32 +17,40 @@ export class TwoDView extends DataContainer implements View {
     private drawFrom: number = 1;
     private lineGeomIndex: number = 0;
     private ghostIndex: number = 0;
-    private scene: THREE.Scene;
-    public StartCamera: THREE.Vector3;
+    public StartCamera: THREE.Vector3 = new THREE.Vector3();
 
-    public constructor(verticesGroup: THREE.Group, paritiesGroup: THREE.Group, ghostGroup: THREE.Group, scale: number, limit: number, scene: THREE.Scene) {
+    public constructor(verticesGroup: THREE.Group, paritiesGroup: THREE.Group, ghostGroup: THREE.Group, scale: number, limit: number, controls: MyControls) {
         super();
         this.verticesGroup = verticesGroup;
         this.paritiesGroup = paritiesGroup;
         this.ghostGroup = ghostGroup;
         this.scale = scale;
         this.limit = limit;
-        this.scene = scene;
-        this.StartCamera = new THREE.Vector3( 
-            this.nrOfVertices / this.s * this.scale || 0,
-            this.s / 2 * this.scale,
-            50,
-        );
+        this.controls = controls;
     }
     public HandleUpdatedData(): void {
-        this.StartCamera = new THREE.Vector3( 
-            this.nrOfVertices / this.s * this.scale,
-            this.s / 2 * this.scale,
-            50,
+        this.controls.panOffset.set(
+            ((this.nrOfVertices / this.s) / 2) * this.scale,
+            ((this.s / 2) - 1) * this.scale,
+            20,
         );
     }
-    public GoTo(position: number): void {
 
+    public GoTo(position: number): void {
+        this.drawFrom = position - (this.limit / 2);
+        if (this.drawFrom < 1) {
+            this.drawFrom = this.nrOfVertices + this.drawFrom;
+        }
+        this.drawFrom = Math.ceil(this.drawFrom / this.s) * this.s
+        this.drawFrom++;
+        if (this.drawFrom >= this.nrOfVertices) {
+            this.drawFrom = 1;
+        }
+        this.Update();
+        var v = this.verticesGroup.getObjectByName(position.toString());
+        if (v) {
+            this.controls.panOffset.set(v.position.x - this.controls.camera.position.x, (((this.s / 2) - 1) * this.scale) - this.controls.camera.position.y, 0);
+        }
     }
 
     public Update(): void {
@@ -77,7 +87,7 @@ export class TwoDView extends DataContainer implements View {
                 0                                   // z coordination
             )
             //@ts-ignore
-            obj.material.color.setHex(vertex!.Color);
+            //obj.material.color.setHex(vertex!.Color);
             //@ts-ignore
             obj.material.map.needsUpdate = true;
             obj.name = startIndex.toString();
@@ -134,8 +144,8 @@ export class TwoDView extends DataContainer implements View {
     }
     private CreateParitiyAdvanced2D(output: Parity, strand: number) {
         let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
-        let leftPos = this.scene.getObjectByName(output.From!.toString());
-        let rightPos = this.scene.getObjectByName(output.To!.toString());
+        let leftPos = this.verticesGroup.getObjectByName(output.From!.toString());
+        let rightPos = this.verticesGroup.getObjectByName(output.To!.toString());
         let nrColumns = Math.floor(this.nrOfVertices / this.s);
         let currentColumn = Math.floor((output.From! - 1) / this.s);
         if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
@@ -224,8 +234,8 @@ export class TwoDView extends DataContainer implements View {
 
     private CreateParitiyBasic2D(output: Parity, strand: number) {
         let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
-        let leftPos = this.scene.getObjectByName(output.From!.toString());
-        let rightPos = this.scene.getObjectByName(output.To!.toString());
+        let leftPos = this.verticesGroup.getObjectByName(output.From!.toString());
+        let rightPos = this.verticesGroup.getObjectByName(output.To!.toString());
         if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
             line.visible = true;
             //@ts-ignore

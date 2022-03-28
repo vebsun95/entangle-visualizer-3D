@@ -6,14 +6,13 @@ import { MyControls } from './MyControls';
 import { convertHexToStringColor } from '../SharedKernel/utils';
 import { TwoDView } from './views/twoDview';
 import { View } from './interfaces/interfaces';
+import { runInThisContext } from 'vm';
 
 
 
 
 
 export class RendererObject extends DataContainer {
-
-
     private renderer: THREE.Renderer = new THREE.WebGL1Renderer();
     private scene: THREE.Scene = new THREE.Scene();
     private camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);;
@@ -30,7 +29,7 @@ export class RendererObject extends DataContainer {
     private ghostgroupshow: boolean = true;
     private lineGeomIndex = 0;
     private ghostIndex = 0;
-    private view: View = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.limit, this.scene);
+    private view: View = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.limit, this.controls);
 
     public set View(newView: number) {
         this.Update();
@@ -45,8 +44,9 @@ export class RendererObject extends DataContainer {
     }
 
     public HandleUpdatedData() {
-        this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
         this.initObjects();
+        this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
+        this.view.HandleUpdatedData();
         this.Update();
     }
 
@@ -78,7 +78,7 @@ export class RendererObject extends DataContainer {
             ctx.canvas.width = 256;
             ctx.canvas.height = 128;
             ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, 256, 128);
+            ctx.fillRect(0, 0, 256, 128); 
             material = new THREE.MeshBasicMaterial({
                 map: new THREE.CanvasTexture(ctx.canvas)
             });
@@ -624,6 +624,8 @@ export class RendererObject extends DataContainer {
     }
 
     public GoTo(position: number) {
+        this.view.GoTo(position);
+        return
         this.drawFrom = position - (this.limit / 2);
         if (this.drawFrom < 1) {
             this.drawFrom = this.nrOfVertices + this.drawFrom;
@@ -633,8 +635,6 @@ export class RendererObject extends DataContainer {
         if (this.drawFrom >= this.nrOfVertices) {
             this.drawFrom = 1;
         }
-        this.camera.position.set(this.view.StartCamera.x, this.view.StartCamera.y, this.view.StartCamera.z);
-        this.camera.lookAt(this.view.StartCamera.x, this.view.StartCamera.y, 0 )
         this.Update();
     }
 
@@ -655,7 +655,7 @@ export class RendererObject extends DataContainer {
     private animate() {
         requestAnimationFrame(this.animate.bind(this));
         this.controls.update()
-        for (var v of this.verticesGroup.children) {
+        for (var v of this.verticesGroup.children.filter((v) => v.visible)) {
             v.lookAt(this.camera.position);
         }
         for (var gv of this.ghostGroup.children.filter((gv) => gv.visible)) {

@@ -402,8 +402,6 @@ class MyControls extends EventDispatcher {
 			lastPosition.copy(this.camera.position);
 			lastQuaternion.copy(this.camera.quaternion);
 			this.zoomChanged = false;
-
-
 		}
 
 		return this.camera.position.x;

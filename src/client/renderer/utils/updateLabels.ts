@@ -1,3 +1,4 @@
+import { Color } from "three";
 import { COLORS } from "../../SharedKernel/constants";
 import { convertHexToStringColor } from "../../SharedKernel/utils";
 
@@ -10,25 +11,10 @@ export function updateLabel(newLabel: string, ctx: CanvasRenderingContext2D, bac
         x *= 2;
         fontSize *= 2;
     }
-    ctx.fillStyle = "white";
+    ctx.fillStyle = convertHexToStringColor(backgroundColor);
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.font = "normal " + fontSize + "px sarif";
-    switch (backgroundColor) {
-        case COLORS.GREY:
-            ctx.fillStyle = convertHexToStringColor(COLORS.BLUE);
-            break;
-        case COLORS.GREEN:
-            ctx.fillStyle = convertHexToStringColor(COLORS.RED);
-            break;
-        case COLORS.BLUE:
-            ctx.fillStyle = convertHexToStringColor(COLORS.GREY);
-            break;
-        case COLORS.RED:
-            ctx.fillStyle = convertHexToStringColor(COLORS.GREEN);
-            break;
-        default:
-            ctx.fillStyle = "black";
-    }
+    ctx.fillStyle = "black";
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     if (newLabel.length > 4) {
