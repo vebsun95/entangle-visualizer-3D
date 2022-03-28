@@ -234,6 +234,7 @@ export class App {
         this.renderer.Update();
         this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
         this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
+        this.merkelTree.Update();
     }
     HandleBitMapClicked(e: CustomEvent) {
         this.renderer.GoTo(e.detail.vertexIndex)

@@ -6,7 +6,8 @@ import { MyControls } from './MyControls';
 import { convertHexToStringColor } from '../SharedKernel/utils';
 import { TwoDView } from './views/twoDview';
 import { View } from './interfaces/interfaces';
-import { runInThisContext } from 'vm';
+import { threadId } from 'worker_threads';
+import { noDataView } from './views/noDataView';
 
 
 
@@ -18,18 +19,17 @@ export class RendererObject extends DataContainer {
     private camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);;
     private controls: MyControls = new MyControls(this.camera, this.renderer.domElement);;
     private pointsPerLine: number = 40;
-    private limit: number = 300;
+    private limit: number = 250;
     private drawFrom: number = 1;
     private verticesGroup: THREE.Group = new THREE.Group();
     private paritiesGroup: THREE.Group = new THREE.Group();
     private ghostGroup: THREE.Group = new THREE.Group();
-    private iNodeGroup: THREE.Group = new THREE.Group();
     private scale: number = 10;
     private radius: number = 2;
     private ghostgroupshow: boolean = true;
     private lineGeomIndex = 0;
     private ghostIndex = 0;
-    private view: View = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.limit, this.controls);
+    private view: View;
 
     public set View(newView: number) {
         this.Update();
@@ -38,101 +38,97 @@ export class RendererObject extends DataContainer {
     constructor() {
         super();
         this.camera.position.z = 50;
-        this.renderer.setSize(window.innerWidth, window.innerHeight)
-        document.body.appendChild(this.renderer.domElement)
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(this.renderer.domElement);
+        this.scene.add(this.verticesGroup);
+        this.scene.add(this.paritiesGroup);
+        this.scene.add(this.ghostGroup);
+        this.initObjects();
+        this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.limit, this.controls);
         this.animate();
     }
 
     public HandleUpdatedData() {
         this.initObjects();
+        this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.limit, this.controls);
         this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
         this.view.HandleUpdatedData();
         this.Update();
     }
 
     private initObjects() {
-        this.verticesGroup.clear();
-        this.scene.clear();
-        this.paritiesGroup.clear();
-
-        const geometry = new THREE.SphereGeometry(this.radius);
-
-        var obj: THREE.Mesh;
-        var material: THREE.MeshBasicMaterial;
-        var positions: Float32Array;
-        var lineGeometry: THREE.BufferGeometry;
-        var curveObject: THREE.Line;
-        var lineMaterial: THREE.LineBasicMaterial;
-
-        this.limit = this.limit + (this.s - (this.limit % this.s));
-        this.drawFrom = 1;
+        // this.limit = this.limit + (this.s - (this.limit % this.s));
+        // this.drawFrom = 1;
 
         // Hvis listen av vertcies er mindre enn limit verdien.
-        if (this.vertices.size < this.limit) {
-            this.limit = this.vertices.size
-        }
+        // if (this.vertices.size < this.limit) {
+        //     this.limit = this.vertices.size
+        // }
 
         // Lager n-antall verticies + parity
-        for (var index = 0; index < this.limit; index++) {
-            var ctx = document.createElement("canvas").getContext("2d")!;
+        this.fillVerteciesGroup();
+        this.fillParitiesGroup();
+        this.fillGhostGroup();
+    }
+
+    private fillVerteciesGroup() {
+        var ctx: CanvasRenderingContext2D;
+        var material: THREE.MeshBasicMaterial;
+        var obj: THREE.Mesh;
+        var geometry = new THREE.SphereGeometry(this.radius);
+        while (this.verticesGroup.children.length <= this.limit) {
+            ctx = document.createElement("canvas").getContext("2d")!;
             ctx.canvas.width = 256;
             ctx.canvas.height = 128;
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, 256, 128); 
             material = new THREE.MeshBasicMaterial({
                 map: new THREE.CanvasTexture(ctx.canvas)
             });
             obj = new THREE.Mesh(geometry, material);
             obj.userData.ctx = ctx;
+            obj.visible = false;
             this.verticesGroup.add(obj);
-
-            for (let i = 0; i < this.alpha; i++) {
-                // Hver linje har 4 punkter, som tar 3 plasser(x, y, z)
-                positions = new Float32Array(this.pointsPerLine * 3);
-
-                lineGeometry = new THREE.BufferGeometry();
-                lineMaterial = new THREE.LineBasicMaterial({ color: COLORS.GREY, linewidth: 2 });
-                lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-                curveObject = new THREE.Line(lineGeometry, lineMaterial);
-                curveObject.geometry.attributes.position.needsUpdate;
-                this.paritiesGroup.add(curveObject);
-            }
-            if (index % this.s == 0 || index % this.s == this.s - 1) {
-                var ctx = document.createElement("canvas").getContext("2d")!;
-                ctx.canvas.width = 256;
-                ctx.canvas.height = 128;
-                ctx.fillStyle = "white";
-                ctx.fillRect(0, 0, 256, 128);
-                material = new THREE.MeshBasicMaterial({
-                    map: new THREE.CanvasTexture(ctx.canvas)
-                });
-                obj = new THREE.Mesh(geometry, material);
-                obj.userData.ctx = ctx;
-                this.ghostGroup.add(obj);
-            }
         }
-
-        this.scene.add(this.verticesGroup);
-        this.scene.add(this.paritiesGroup);
-        this.scene.add(this.ghostGroup);
-        this.scene.add(this.iNodeGroup);
     }
 
-    private createMoreInode() {
-        const geometry = new THREE.BoxGeometry(this.radius * 2, this.radius * 2, this.radius * 2);
-        for (var n = 0; n < 10; n++) {
-            var ctx = document.createElement("canvas").getContext("2d")!;
+    private fillParitiesGroup() {
+        var positions: Float32Array;
+        var lineGeometry: THREE.BufferGeometry;
+        var lineMaterial: THREE.LineBasicMaterial;
+        var curveObject: THREE.Line;
+        var nrOfpartiesNeeded = this.alpha ? this.limit * this.alpha : this.limit;
+
+        while (this.paritiesGroup.children.length <= nrOfpartiesNeeded) {
+            positions = new Float32Array(this.pointsPerLine * 3);
+            lineGeometry = new THREE.BufferGeometry();
+            lineMaterial = new THREE.LineBasicMaterial({ color: COLORS.GREY, linewidth: 2 });
+            lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+            curveObject = new THREE.Line(lineGeometry, lineMaterial);
+            curveObject.geometry.attributes.position.needsUpdate;
+            curveObject.visible = false;
+            this.paritiesGroup.add(curveObject);
+        }
+    }
+
+    private fillGhostGroup() {
+        var ctx: CanvasRenderingContext2D;
+        var material: THREE.MeshBasicMaterial;
+        var obj: THREE.Mesh;
+        var geometry = new THREE.SphereGeometry(this.radius);
+        var nrOfGhostNeeded = this.s ? Math.ceil(this.limit / this.s) * 2 : 0; 
+
+        while(this.ghostGroup.children.length <= nrOfGhostNeeded) {
+            ctx = document.createElement("canvas").getContext("2d")!;
             ctx.canvas.width = 256;
             ctx.canvas.height = 128;
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, 256, 128);
-            var material = new THREE.MeshBasicMaterial({
+            material = new THREE.MeshBasicMaterial({
                 map: new THREE.CanvasTexture(ctx.canvas)
             });
-            var obj = new THREE.Mesh(geometry, material);
+            obj = new THREE.Mesh(geometry, material);
             obj.userData.ctx = ctx;
-            this.iNodeGroup.add(obj);
+            obj.visible = false;
+            this.ghostGroup.add(obj);
         }
     }
 
@@ -182,7 +178,6 @@ export class RendererObject extends DataContainer {
         var starty = (this.s * this.scale) / 2
         var vertex: Vertex;
         var obj: THREE.Object3D<THREE.Event>;
-        var inNodeCount = 0;
 
         for (var v of this.verticesGroup.children) {
             v.visible = true;
@@ -194,18 +189,8 @@ export class RendererObject extends DataContainer {
 
         for (var i = 0; i < this.limit; i++) {
             vertex = this.vertices.get(startIndex)!;
-            if (vertex.Depth > 1) {
-                this.verticesGroup.children[i].visible = false;
-                if (inNodeCount >= this.iNodeGroup.children.length - 1) {
-                    this.createMoreInode();
-                }
-                obj = this.iNodeGroup.children[inNodeCount++]!;
-                this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, true);
-                obj.visible = true;
-            } else {
-                obj = this.verticesGroup.children[i];
-                this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, false);
-            }
+            obj = this.verticesGroup.children[i];
+            this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, false);
             obj.position.set(
                 this.scale * column,                // x coordination
                 starty - (this.scale * row) + 5,    // y coordination
@@ -231,10 +216,6 @@ export class RendererObject extends DataContainer {
             if (row == 0) {
                 column++;
             }
-        }
-        for (; inNodeCount < this.iNodeGroup.children.length; inNodeCount++) {
-            this.iNodeGroup.children[inNodeCount].visible = false;
-            this.iNodeGroup.children[inNodeCount].name = "";
         }
 
         /* --- Flytter på parity blokkene --- */
@@ -481,18 +462,8 @@ export class RendererObject extends DataContainer {
 
         for (var i = 0; i < this.limit; i++) {
             vertex = this.vertices.get(startIndex)!;
-            if (vertex.Depth > 1) {
-                this.verticesGroup.children[i].visible = false;
-                if (inNodeCount >= this.iNodeGroup.children.length - 1) {
-                    this.createMoreInode();
-                }
-                obj = this.iNodeGroup.children[inNodeCount++]!;
-                this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, true);
-                obj.visible = true;
-            } else {
-                obj = this.verticesGroup.children[i];
-                this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, false);
-            }
+            obj = this.verticesGroup.children[i];
+            this.updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, false);
             obj.position.set(
                 this.scale * column,
                 this.scale * Math.cos(deltaPi * row),
@@ -514,10 +485,6 @@ export class RendererObject extends DataContainer {
                 column += 2;
                 row = 0;
             }
-        }
-        for (; inNodeCount < this.iNodeGroup.children.length; inNodeCount++) {
-            this.iNodeGroup.children[inNodeCount].visible = false;
-            this.iNodeGroup.children[inNodeCount].name = "";
         }
 
 
@@ -572,18 +539,8 @@ export class RendererObject extends DataContainer {
                     continue
                 }
                 vertex = this.vertices.get(counter)!;
-                if (vertex.Depth > 1) {
-                    this.verticesGroup.children[counter - 1].visible = false;
-                    if (inNodeCount >= this.iNodeGroup.children.length - 1) {
-                        this.createMoreInode();
-                    }
-                    obj = this.iNodeGroup.children[inNodeCount++]!;
-                    this.updateLabel(counter.toString(), obj.userData.ctx, vertex.Color, true);
-                    obj.visible = true;
-                } else {
-                    obj = this.verticesGroup.children[counter - 1];
-                    this.updateLabel(counter.toString(), obj.userData.ctx, vertex.Color, false);
-                }
+                obj = this.verticesGroup.children[counter - 1];
+                this.updateLabel(counter.toString(), obj.userData.ctx, vertex.Color, false);
                 obj.position.set(
                     ((R + r * Math.cos(j)) * Math.cos(i)),
                     ((R + r * Math.cos(j)) * Math.sin(i)),
@@ -625,17 +582,6 @@ export class RendererObject extends DataContainer {
 
     public GoTo(position: number) {
         this.view.GoTo(position);
-        return
-        this.drawFrom = position - (this.limit / 2);
-        if (this.drawFrom < 1) {
-            this.drawFrom = this.nrOfVertices + this.drawFrom;
-        }
-        this.drawFrom = Math.ceil(this.drawFrom / this.s) * this.s
-        this.drawFrom++;
-        if (this.drawFrom >= this.nrOfVertices) {
-            this.drawFrom = 1;
-        }
-        this.Update();
     }
 
     public UpdateVertex(vertexIndex: number) {
@@ -661,6 +607,7 @@ export class RendererObject extends DataContainer {
         for (var gv of this.ghostGroup.children.filter((gv) => gv.visible)) {
             gv.lookAt(this.camera.position);
         }
+        this.view.Animate();
         this.render()
     }
 

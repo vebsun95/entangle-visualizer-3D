@@ -28,6 +28,9 @@ export class TwoDView extends DataContainer implements View {
         this.limit = limit;
         this.controls = controls;
     }
+    public Animate(): void {
+        
+    }
     public HandleUpdatedData(): void {
         this.controls.panOffset.set(
             ((this.nrOfVertices / this.s) / 2) * this.scale,
@@ -59,53 +62,42 @@ export class TwoDView extends DataContainer implements View {
     }
 
     private MoveDataBlocks() {
-        var column = 0
-        var startIndex = this.drawFrom;
-        var row = 0;
-        var starty = (this.s * this.scale) / 2
+        var startIndex = this.drawFrom, row = this.s, column = 0;
         var vertex: Vertex;
-        var obj: THREE.Object3D<THREE.Event>;
+        var obj: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
 
-        for (var v of this.verticesGroup.children) {
-            v.visible = true;
-            v.name = "";
-        }
-        for (var ghostVertx of this.ghostGroup.children) {
-            ghostVertx.visible = false;
-        }
-
-        for (var i = 0; i < this.limit; i++) {
-            if (i >= this.verticesGroup.children.length) {
-                return
-            }
+        for(var i=0; i<this.verticesGroup.children.length; i++) {
+            obj = this.verticesGroup.children[i] as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
             vertex = this.vertices.get(startIndex)!;
-            obj = this.verticesGroup.children[i];
-            updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, false);
             obj.position.set(
-                this.scale * column,                // x coordination
-                starty - (this.scale * row) + 5,    // y coordination
-                0                                   // z coordination
-            )
-            //@ts-ignore
-            //obj.material.color.setHex(vertex!.Color);
-            //@ts-ignore
-            obj.material.map.needsUpdate = true;
+                this.scale * column, // x coordination
+                this.scale * row,    // y coordination
+                0                    // z coordination
+            );
+            updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, vertex.Depth > 1);
+            obj.material.map!.needsUpdate = true;
             obj.name = startIndex.toString();
             startIndex++;
-            if (startIndex > this.nrOfVertices) {
-                let remainder = this.s - (this.nrOfVertices % this.s);
-                for (let j = 0; j < remainder; j++) {
-                    this.verticesGroup.children[this.verticesGroup.children.length - 1 - j].visible = false;
-                }
-                startIndex = 1;
-                column += 3;
-                row = -1;
-            }
-
-            row = (row + 1) % this.s;
+            row--;
             if (row == 0) {
+                row = this.s;
                 column++;
             }
+            if (startIndex > this.nrOfVertices) {
+                startIndex = 1;
+                row = this.s;
+                column += 2;
+            }
+            // Gone in a loop;
+            if (startIndex == this.drawFrom) {
+                break;
+            }
+        }
+
+        for(; i<this.verticesGroup.children.length; i++) {
+            obj = this.verticesGroup.children[i] as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+            obj.name = "";
+            obj.visible = false;
         }
     }
 
@@ -116,11 +108,6 @@ export class TwoDView extends DataContainer implements View {
         this.ghostIndex = 0;
         for (let index = 0; index < this.limit; index++) {
             for (var [strand, output] of this.parities.entries()) {
-                if (this.lineGeomIndex >= this.paritiesGroup.children.length) {
-                    return
-                }
-                this.paritiesGroup.children[this.lineGeomIndex].visible = false;
-                // TODO: Fix når parity har fått lattice index
                 let parityPosition = this.parityShift.get(startIndex)!;
                 let parity = output.get(parityPosition) as Parity;
                 if (index + this.s < this.limit && parity.To != null && parity.From != null) {
@@ -133,13 +120,23 @@ export class TwoDView extends DataContainer implements View {
                         // Gjør basic logikk her
                         this.CreateParitiyBasic2D(parity, strand);
                     }
+                    this.lineGeomIndex++;
                 }
-                this.lineGeomIndex++;
             }
             startIndex++
             if (startIndex > this.nrOfVertices) {
                 startIndex = 1;
             }
+        }
+        for(; this.lineGeomIndex < this.paritiesGroup.children.length; this.lineGeomIndex++) {
+            var line = this.paritiesGroup.children[this.lineGeomIndex];
+            line.name = "";
+            line.visible = false;
+        }
+        for(; this.ghostIndex < this.ghostGroup.children.length; this.ghostIndex++) {
+            var ghost = this.ghostGroup.children[this.ghostIndex];
+            ghost.name = "";
+            ghost.visible = false;
         }
     }
     private CreateParitiyAdvanced2D(output: Parity, strand: number) {
@@ -279,6 +276,7 @@ export class TwoDView extends DataContainer implements View {
             }
             line!.geometry.setDrawRange(0, 2);
             line!.geometry.attributes.position.needsUpdate = true;
+            line.geometry.computeBoundingSphere();
         }
     }
 
@@ -286,7 +284,6 @@ export class TwoDView extends DataContainer implements View {
 
         var obj = this.ghostGroup.children[this.ghostIndex] as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
         updateLabel(index, obj.userData.ctx, color, false);
-        obj.material.color.setHex(color);
         obj.position.set(x, y, z);
         obj.material.opacity = 0.3
         obj.material.transparent = true;

@@ -6,5 +6,6 @@ export interface View extends DataContainer {
     Update(): void,
     GoTo(position: number): void,
     HandleUpdatedData(): void,
+    Animate(): void,
     StartCamera: THREE.Vector3,
 }
