@@ -50,19 +50,39 @@ export class App {
         this.merkelTree.HandleUpdatedDate();
         this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p);
 
+        this.bitMap.Show();
+        this.merkelTree.Show();
     }
 
     AddEventListeners() {
+        this.Container.addEventListener("data-generated", this.HandleDataGenerated.bind(this) as EventListener);
+        this.Container.addEventListener("back-to-start", this.HandleBackToStart.bind(this));
         window.addEventListener("bitmap-clicked", this.HandleBitMapClicked.bind(this) as EventListener);
-        window.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
+        this.Container.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
         window.addEventListener("log-changed-clicked", this.HandleLogChangedClicked.bind(this) as EventListener);
-        window.addEventListener("log-changed", this.HandleLogChanged.bind(this) as EventListener);
+        this.Container.addEventListener("log-changed", this.HandleLogChanged.bind(this) as EventListener);
         window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
         window.addEventListener("change-view", this.HandleChangeView.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
         window.addEventListener("keydown", this.HandleKeyDown.bind(this));
         window.addEventListener("keyup", this.HandleKeyUp.bind(this))
     }
+
+    HandleDataGenerated(e: CustomEvent) {
+        this.renderer.Simulating = false;
+        this.alpha = e.detail.alpha;
+        this.s = e.detail.s;
+        this.p = e.detail.p;
+        this.vertices = e.detail.vertecies;
+        this.parities = e.detail.parities;
+        this.parityShift = e.detail.parityShift;
+        this.UpdateData();
+    }
+
+    HandleBackToStart() {
+        this.renderer.View = 0;
+    }
+
     HandleChangeView(e: CustomEvent) {
         this.renderer.View = e.detail.NewView;
     }
@@ -240,6 +260,7 @@ export class App {
         this.renderer.GoTo(e.detail.vertexIndex)
     }
     HandleNewFileUploaded(e: CustomEvent) {
+        this.renderer.Simulating = true;
         this.sideBar.PlayBackEle.Filename = e.detail.fileName;
         this.sideBar.PlayBackEle.CreateChangeLogBtns(e.detail.nrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);

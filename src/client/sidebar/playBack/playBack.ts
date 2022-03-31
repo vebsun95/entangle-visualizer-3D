@@ -7,6 +7,7 @@ export class PlayBack {
 
     public Container: HTMLDivElement = document.createElement("div");
     public LogEntries: (VertexEvent | ParityEvent)[] = [];
+    private visible: boolean = false;
     private statsTable: StatsTable = {
         table: document.createElement("table"),
         config: document.createElement("tr"),
@@ -66,6 +67,8 @@ export class PlayBack {
     }
 
     private updateTable() {
+        if(!this.visible) return;
+
         var start = Math.max(0, this.currentPos - this.logTable.rows.length / 2);
         start = Math.min(start, this.LogEntries.length - this.logTable.rows.length);
         var row: LogRow;
@@ -256,6 +259,7 @@ export class PlayBack {
     }
 
     public SimulateClick(n: number) {
+        if(!this.visible) return;
         if (n > 0) {
             this.simulate(n);
         } else if (n < 0) {
@@ -264,19 +268,33 @@ export class PlayBack {
     }
 
     public GetLatestEvent(): number {
+        if(!this.visible) return 0;
         let latestEvent = this.LogEntries[this.currentPos - 1] || this.LogEntries[this.currentPos];
         return (latestEvent as VertexEvent).Position || (latestEvent as ParityEvent).From!;
     }
 
     public GoToStart() {
+        if(!this.visible) return;
         this.backClicked(this.currentPos);
     }
 
     public GoToEnd() {
+        if(!this.visible) return;
         this.simulate(this.LogEntries.length - this.currentPos);
     }
 
+    public Hide() {
+        this.visible = false;
+        this.Container.style.display = "none";
+    }
+
+    public Show() {
+        this.visible = true;
+        this.Container.style.display = "unset";
+    }
+
     public FocusInput() {
+        if(!this.visible) return;
         this.slider.currentPosition.focus();
     }
     public set StrandLabels(newLabels: string[]) {

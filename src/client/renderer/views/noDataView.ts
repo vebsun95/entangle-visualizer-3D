@@ -12,22 +12,18 @@ export class noDataView extends DataContainer implements View {
     private paritiesGroup: THREE.Group;
     private ghostGroup: THREE.Group;
     private scale: number;
-    private limit: number;
     public StartCamera: THREE.Vector3 = new THREE.Vector3();
 
-    public constructor(verticesGroup: THREE.Group, paritiesGroup: THREE.Group, ghostGroup: THREE.Group, scale: number, limit: number, controls: MyControls) {
+    public constructor(verticesGroup: THREE.Group, paritiesGroup: THREE.Group, ghostGroup: THREE.Group, scale: number, controls: MyControls) {
         super();
         this.verticesGroup = verticesGroup;
         this.paritiesGroup = paritiesGroup;
         this.ghostGroup = ghostGroup;
         this.scale = scale;
-        this.limit = limit;
         this.controls = controls;
         this.Update();
     }
     public Animate(): void {
-        this.verticesGroup.rotateX(0.001);
-        this.paritiesGroup.rotateX(0.001);
     }
 
     public HandleUpdatedData(): void {
@@ -55,6 +51,10 @@ export class noDataView extends DataContainer implements View {
             data.name = i.toString();
             updateLabel("", data.userData.ctx, this.getRandomInt(0, 0xffffff), false);
             data.position.set(x, y, z);
+        }
+        for(i=0; i < this.ghostGroup.children.length; i++) {
+            data = this.ghostGroup.children[i] as THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+            data.visible = false;
         }
     }
 

@@ -275,4 +275,14 @@ export class BitMap extends DataContainer {
         this.latticeCanvas.scrollTo(coords[0] - window.innerWidth / 2, 0);
         dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
     }
+
+    public Hide() {
+        this.visible = true;
+        this.toggleVisible();
+    }
+
+    public Show() {
+        this.visible = false;
+        this.toggleVisible();
+    }
 }

@@ -6,8 +6,8 @@ import { MyControls } from './MyControls';
 import { convertHexToStringColor } from '../SharedKernel/utils';
 import { TwoDView } from './views/twoDview';
 import { View } from './interfaces/interfaces';
-import { threadId } from 'worker_threads';
 import { noDataView } from './views/noDataView';
+import { updateLabel } from './utils/updateLabels';
 
 
 
@@ -19,11 +19,13 @@ export class RendererObject extends DataContainer {
     private camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);;
     private controls: MyControls = new MyControls(this.camera, this.renderer.domElement);;
     private pointsPerLine: number = 40;
-    private limit: number = 250;
+    private limit: number = 259;
     private drawFrom: number = 1;
     private verticesGroup: THREE.Group = new THREE.Group();
     private paritiesGroup: THREE.Group = new THREE.Group();
     private ghostGroup: THREE.Group = new THREE.Group();
+    private rayCaster: THREE.Raycaster = new THREE.Raycaster();
+    public  Simulating: boolean = true;
     private scale: number = 10;
     private radius: number = 2;
     private ghostgroupshow: boolean = true;
@@ -32,6 +34,16 @@ export class RendererObject extends DataContainer {
     private view: View;
 
     public set View(newView: number) {
+        
+        if(newView === 0) {
+            this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
+        }
+        else if(newView === 1) {
+            this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
+        }
+        else {
+            this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
+        }
         this.Update();
     }
 
@@ -40,20 +52,24 @@ export class RendererObject extends DataContainer {
         this.camera.position.z = 50;
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(this.renderer.domElement);
+        this.renderer.domElement.onclick = this.handleOnClick.bind(this);
         this.scene.add(this.verticesGroup);
         this.scene.add(this.paritiesGroup);
         this.scene.add(this.ghostGroup);
         this.initObjects();
-        this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.limit, this.controls);
+        this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
+
+        const axesHelper = new THREE.AxesHelper( 5 );
+        this.scene.add( axesHelper );
         this.animate();
+
     }
 
     public HandleUpdatedData() {
         this.initObjects();
-        this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.limit, this.controls);
+        this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
         this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
         this.view.HandleUpdatedData();
-        this.Update();
     }
 
     private initObjects() {
@@ -120,8 +136,6 @@ export class RendererObject extends DataContainer {
             ctx = document.createElement("canvas").getContext("2d")!;
             ctx.canvas.width = 256;
             ctx.canvas.height = 128;
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, 256, 128);
             material = new THREE.MeshBasicMaterial({
                 map: new THREE.CanvasTexture(ctx.canvas)
             });
@@ -247,6 +261,20 @@ export class RendererObject extends DataContainer {
             }
         }
         this.ghostGroup.visible = this.ghostgroupshow;
+    }
+
+    private handleOnClick(e: MouseEvent) {
+        console.log("clicked", e.clientX, e.clientY)
+        this.rayCaster.setFromCamera({x: (e.clientX / window.innerWidth) * 2 - 1, y: -(e.clientY / window.innerHeight) * 2 + 1}, this.camera);
+        var intersects = this.rayCaster.intersectObjects(this.scene.children);
+        console.log(intersects);
+        if (intersects.length == 0) return;
+        let obj = intersects[0].object;
+        if(obj.name) {
+            updateLabel(obj.name, obj.userData.ctx, COLORS.RED, false);
+            //@ts-ignore
+            obj.material.map.needsUpdate = true;
+        }
     }
 
     private CreateParitiyAdvanced2D(output: Parity, strand: number) {

@@ -25,6 +25,7 @@ export class MerkelTreeViewer extends DataContainer {
     private tiles: Tile[] = Array(140);
     private currentRootNode: number = 0;
     private currentView: number = 0;
+    private visible: boolean = false;
     public StrandLabels: string[] = [];
 
     constructor() {
@@ -326,4 +327,24 @@ export class MerkelTreeViewer extends DataContainer {
         }
         return this.parities[this.currentView -1].get(index)!
     }
+
+    private toggleVisible() {
+        if (this.visible) {
+            this.Container.style.display = "none";
+        } else {
+            this.Container.style.display = "block";
+        }
+        this.visible = !this.visible;
+    }
+
+    public Hide() {
+        this.visible = true;
+        this.toggleVisible();
+    }
+
+    public Show() {
+        this.visible = false;
+        this.toggleVisible();
+    }
+
 }
