@@ -1,3 +1,4 @@
+import { PositionalAudio } from "three";
 import { COLORS } from "../../SharedKernel/constants";
 import { DownloadConfigLog, ParityEvent, VertexEvent } from "../../SharedKernel/interfaces";
 import { convertHexToStringColor } from "../../SharedKernel/utils";
@@ -132,25 +133,31 @@ export class PlayBack {
 
         st.dlRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span> Downloaded: ';
         st.dlRow.dataCell.innerHTML = "0";
+        st.dlRow.dataCell.classList.add("align-Right");
         st.dlRow.parityCell.innerHTML = "0";
+        st.dlRow.parityCell.classList.add("align-Right");
         st.dlRow.row.append(st.dlRow.type, st.dlRow.dataCell, st.dlRow.parityCell);
 
         st.repRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.BLUE) + ';">&#11044;</span> Repaired: ';
         st.repRow.dataCell.innerHTML = "0";
+        st.repRow.dataCell.classList.add("align-Right");
         st.repRow.parityCell.innerHTML = "0";
+        st.repRow.parityCell.classList.add("align-Right");
         st.repRow.row.append(st.repRow.type, st.repRow.dataCell, st.repRow.parityCell);
 
         st.failedRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.RED) + ';">&#11044;</span> Unavailable: ';
         st.failedRow.dataCell.innerHTML = "0";
+        st.failedRow.dataCell.classList.add("align-Right");
         st.failedRow.parityCell.innerHTML = "0";
+        st.failedRow.parityCell.classList.add("align-Right");
         st.failedRow.row.append(st.failedRow.type, st.failedRow.dataCell, st.failedRow.parityCell);
 
         st.table.append(st.fileName, st.config, st.header, st.dlRow.row, st.repRow.row, st.failedRow.row);
 
-        this.JumpBackButton.innerHTML = "<<";
-        this.BackButton.innerHTML = "<kbd>←</kbd>";
-        this.PlayButton.innerHTML = ">";
-        this.JumpForwardButton.innerHTML = ">>";
+        this.JumpBackButton.innerHTML = '<i class = "fa fa-fast-backward"></i>';
+        this.BackButton.innerHTML = '<i class = "fa fa-step-backward"></i>';
+        this.PlayButton.innerHTML = '<i class = "fa fa-step-forward"></i>';
+        this.JumpForwardButton.innerHTML = '<i class = "fa fa-fast-forward"></i>';
 
         this.JumpBackButton.addEventListener("click", () => this.backClicked(10));
         this.BackButton.addEventListener("click", () => this.backClicked(1));
@@ -175,6 +182,12 @@ export class PlayBack {
                 newColor: document.createElement("td"),
                 position: document.createElement("td"),
             };
+            // logTableRow.position.classList.add("align-Right");
+            logTableRow.newColor.classList.add("align-Right");
+            logTableRow.position.classList.add("align-Right");
+            logTableRow.newColor.classList.add("small-Cell");
+            logTableRow.position.classList.add("medium-Cell");
+            logTableRow.type.classList.add("large-Cell");
             logTableRow.row.append(logTableRow.type, logTableRow.position, logTableRow.newColor);
             this.logTable.table.append(logTableRow.row);
             this.logTable.rows[i] = logTableRow;
