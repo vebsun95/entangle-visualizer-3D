@@ -9,8 +9,8 @@ import {
 	Vector3
 } from 'three';
 
-import { STATE } from './constants';
-import { Keys, MouseButtons, Touches } from './interfaces';
+import { STATE } from '../SharedKernel/constants';
+import { Keys, MouseButtons, Touches } from '../SharedKernel/interfaces';
 
 
 
@@ -402,8 +402,6 @@ class MyControls extends EventDispatcher {
 			lastPosition.copy(this.camera.position);
 			lastQuaternion.copy(this.camera.quaternion);
 			this.zoomChanged = false;
-
-
 		}
 
 		return this.camera.position.x;

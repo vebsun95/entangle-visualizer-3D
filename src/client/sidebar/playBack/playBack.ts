@@ -1,169 +1,10 @@
+import { PositionalAudio } from "three";
+import { COLORS } from "../../SharedKernel/constants";
+import { DownloadConfigLog, ParityEvent, VertexEvent } from "../../SharedKernel/interfaces";
+import { convertHexToStringColor } from "../../SharedKernel/utils";
+import { StatsTable, Slider, LogTable, ChangeViewsButtons, LogRow } from "./interfaces/interfaces";
 
-import { COLORS } from "./constants";
-import { DownloadConfigLog, ParityEvent, VertexEvent } from "./interfaces";
-import { convertHexToStringColor } from "./utils";
-
-export class SideBar {
-
-    private visible: boolean = true;
-    Container: HTMLDivElement = document.createElement("div");
-    PlayBackEle: PlayBack = new PlayBack();
-    FileInput: FileInput = new FileInput();
-
-    constructor() {
-        this.createLayout();
-    }
-
-    private createLayout() {
-        this.Container.id = "side-bar";
-        this.Container.append(this.PlayBackEle.Container, this.FileInput.Container);
-    }
-
-    private toggleVisible() {
-        if (this.visible) {
-            this.Container.style.width = "1em";
-        } else {
-            this.Container.style.width = "";
-        }
-        this.visible = !this.visible;
-    }
-}
-
-interface StartPoints {
-    start: number;
-    end: number;
-}
-
-class FileInput {
-    Container: HTMLDivElement = document.createElement("div");
-    private fileInput: HTMLInputElement = document.createElement("input");
-    private fileReader: FileReader = new FileReader();
-    private currentFile: File | null = null;
-    private fileRead: boolean = false;
-    private startPoints: StartPoints[] = [];
-
-
-    constructor() {
-        this.createFileInput();
-        this.fileReader.onload = this.frOnLoad.bind(this);
-    }
-
-    DevTest(devContent: string) {
-        this.startPoints = [];
-        this.fileRead = false;
-        this.currentFile = new File([devContent], "testDev");
-        this.fileReader.readAsArrayBuffer(this.currentFile);
-    }
-
-    private createFileInput() {
-        this.fileInput.type = "file";
-        this.fileInput.addEventListener("change", this.handleFileChange.bind(this) as EventListener)
-        this.Container.append(this.fileInput);
-    }
-
-    ChangeLog(fileNumber: number) {
-        if (fileNumber > this.startPoints.length) {
-            return
-        }
-        var startpoints = this.startPoints[fileNumber];
-        this.fileReader.readAsText(this.currentFile!.slice(startpoints.start, startpoints.end));
-    }
-
-    private frOnLoad() {
-        if (this.fileRead) {
-            this.readLog();
-        } else {
-            this.findStartPoints();
-        }
-    }
-
-    private readLog() {
-        var lines = ((this.fileReader.result as string)).split("\n");
-        var logEntries = Array(lines.length);
-        for (var [i, line] of lines.entries()) {
-            logEntries[i] = JSON.parse(line);
-        }
-        dispatchEvent(new CustomEvent("log-changed", { detail: { newContent: logEntries } }))
-    }
-
-    private findStartPoints() {
-        /* ASCII 
-            \n -> 10
-            {  -> 123
-            -  -> 45
-        */
-        var buffer = new Uint8Array(this.fileReader.result as ArrayBuffer);
-        var start: number | null = null, end: number = 0;
-
-
-        for (let i = 0; i <= buffer.length; i++) {
-            if (!start && buffer[i] == 10 && buffer[i + 1] == 123) {
-                start = i + 1;
-            }
-            if (start && buffer[i] == 10 && buffer[i + 1] == 45) {
-                end = i
-                this.startPoints.push({ start: start, end: end });
-                start = null;
-            }
-        }
-        this.fileRead = true;
-        dispatchEvent(new CustomEvent("new-file-upload", { detail: { fileName: this.currentFile!.name, nrOfLogs: this.startPoints.length } }))
-    }
-
-    private handleFileChange(e: InputEvent) {
-        this.startPoints = [];
-        this.fileRead = false;
-        this.currentFile = (e.target as HTMLInputElement).files![0];
-        this.fileReader.readAsArrayBuffer(this.currentFile);
-    }
-}
-
-interface ChangeViewsButtons {
-    container: HTMLDivElement,
-    logsDD: HTMLSelectElement,
-    twoDView: HTMLButtonElement,
-    cylinderView: HTMLButtonElement,
-    tortoisView: HTMLButtonElement,
-}
-
-interface StatsTable {
-    table: HTMLTableElement,
-    config: HTMLTableRowElement,
-    fileName: HTMLTableRowElement,
-    header: HTMLTableRowElement,
-    dlRow: StatsRow,
-    repRow: StatsRow,
-    failedRow: StatsRow,
-}
-
-interface StatsRow {
-    row: HTMLTableRowElement,
-    type: HTMLTableCellElement,
-    dataCell: HTMLTableCellElement,
-    parityCell: HTMLTableCellElement,
-}
-
-interface LogTable {
-    table: HTMLTableElement,
-    rows: LogRow[],
-}
-
-interface LogRow {
-    row: HTMLTableRowElement,
-    type: HTMLTableCellElement,
-    position: HTMLTableCellElement,
-    newColor: HTMLTableCellElement,
-}
-
-interface Slider {
-    container: HTMLDivElement,
-    input: HTMLInputElement,
-    currentPosition: HTMLInputElement,
-    endPosition: HTMLSpanElement,
-}
-
-
-class PlayBack {
+export class PlayBack {
 
     public Container: HTMLDivElement = document.createElement("div");
     public LogEntries: (VertexEvent | ParityEvent)[] = [];
@@ -292,25 +133,31 @@ class PlayBack {
 
         st.dlRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.GREEN) + ';">&#11044;</span> Downloaded: ';
         st.dlRow.dataCell.innerHTML = "0";
+        st.dlRow.dataCell.classList.add("align-Right");
         st.dlRow.parityCell.innerHTML = "0";
+        st.dlRow.parityCell.classList.add("align-Right");
         st.dlRow.row.append(st.dlRow.type, st.dlRow.dataCell, st.dlRow.parityCell);
 
         st.repRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.BLUE) + ';">&#11044;</span> Repaired: ';
         st.repRow.dataCell.innerHTML = "0";
+        st.repRow.dataCell.classList.add("align-Right");
         st.repRow.parityCell.innerHTML = "0";
+        st.repRow.parityCell.classList.add("align-Right");
         st.repRow.row.append(st.repRow.type, st.repRow.dataCell, st.repRow.parityCell);
 
         st.failedRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.RED) + ';">&#11044;</span> Unavailable: ';
         st.failedRow.dataCell.innerHTML = "0";
+        st.failedRow.dataCell.classList.add("align-Right");
         st.failedRow.parityCell.innerHTML = "0";
+        st.failedRow.parityCell.classList.add("align-Right");
         st.failedRow.row.append(st.failedRow.type, st.failedRow.dataCell, st.failedRow.parityCell);
 
         st.table.append(st.fileName, st.config, st.header, st.dlRow.row, st.repRow.row, st.failedRow.row);
 
-        this.JumpBackButton.innerHTML = "<<";
-        this.BackButton.innerHTML = "<kbd>←</kbd>";
-        this.PlayButton.innerHTML = ">";
-        this.JumpForwardButton.innerHTML = ">>";
+        this.JumpBackButton.innerHTML = '<i class = "fa fa-fast-backward"></i>';
+        this.BackButton.innerHTML = '<i class = "fa fa-step-backward"></i>';
+        this.PlayButton.innerHTML = '<i class = "fa fa-step-forward"></i>';
+        this.JumpForwardButton.innerHTML = '<i class = "fa fa-fast-forward"></i>';
 
         this.JumpBackButton.addEventListener("click", () => this.backClicked(10));
         this.BackButton.addEventListener("click", () => this.backClicked(1));
@@ -335,6 +182,12 @@ class PlayBack {
                 newColor: document.createElement("td"),
                 position: document.createElement("td"),
             };
+            // logTableRow.position.classList.add("align-Right");
+            logTableRow.newColor.classList.add("align-Right");
+            logTableRow.position.classList.add("align-Right");
+            logTableRow.newColor.classList.add("small-Cell");
+            logTableRow.position.classList.add("medium-Cell");
+            logTableRow.type.classList.add("large-Cell");
             logTableRow.row.append(logTableRow.type, logTableRow.position, logTableRow.newColor);
             this.logTable.table.append(logTableRow.row);
             this.logTable.rows[i] = logTableRow;

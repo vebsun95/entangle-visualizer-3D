@@ -1,29 +1,9 @@
-import { DataContainer } from "./dataContainer";
-import { Parity, Vertex } from "./interfaces";
-import { convertHexToStringColor } from "./utils";
+import { DataContainer } from "../SharedKernel/dataContainer";
+import { Parity, Vertex } from "../SharedKernel/interfaces";
+import { convertHexToStringColor } from "../SharedKernel/utils";
+import { InfoGraphic, MouseOverElement, Tile } from "./interfaces/interfaces";
 
 const SVGURL = "http://www.w3.org/2000/svg";
-
-interface Tile {
-    Container: SVGElement,
-    Rect: SVGRectElement,
-    Text: SVGTextElement,
-}
-
-interface InfoGraphic {
-    Container: HTMLDivElement;
-    Text: HTMLParagraphElement;
-    BreadCrumbs: HTMLParagraphElement;
-    BreadCrumbsIndex: number[];
-    ViewButtons: HTMLButtonElement[];
-    ViewButtonsContainer: HTMLDivElement;
-}
-
-interface MouseOverElement {
-    Container: HTMLDivElement,
-    List: HTMLUListElement,
-}
-
 export class MerkelTreeViewer extends DataContainer {
 
     public Container: HTMLDivElement = document.createElement("div");
@@ -99,6 +79,10 @@ export class MerkelTreeViewer extends DataContainer {
         this.updateTreeStruct();
     }
 
+    public Update() {
+        this.updateTreeStruct();
+    }
+
     private updateDynamicAttributes() {
         this.svgElement.setAttribute("height", (window.innerHeight * 0.2).toString());
         this.svgElement.setAttribute("width", (window.innerWidth).toString());
@@ -168,14 +152,16 @@ export class MerkelTreeViewer extends DataContainer {
 
     private updateInfoGraphic() {
         var breadCrumb: HTMLAnchorElement;
+        var node: Vertex | Parity;
         var currentRootNode = this.getCurrentRootNode();
 
         while (this.infoGraphic.BreadCrumbs.children.length > 0) { this.infoGraphic.BreadCrumbs.removeChild(this.infoGraphic.BreadCrumbs.lastChild!) }
         for (let rootNodeIndex of this.infoGraphic.BreadCrumbsIndex) {
+            node = this.getRootNode(rootNodeIndex);
             breadCrumb = document.createElement("a");
             breadCrumb.href = "#";
             breadCrumb.addEventListener("mousedown", () => this.breadCrumbOnClickHandler(rootNodeIndex));
-            breadCrumb.innerHTML = `>${rootNodeIndex}`
+            breadCrumb.innerHTML = `>${node.Index}`
             this.infoGraphic.BreadCrumbs.append(breadCrumb);
         }
         var currentView = this.currentView == 0 ? "Data" : this.StrandLabels[this.currentView -1];
