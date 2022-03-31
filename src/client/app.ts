@@ -62,10 +62,35 @@ export class App {
         window.addEventListener("log-changed-clicked", this.HandleLogChangedClicked.bind(this) as EventListener);
         this.Container.addEventListener("log-changed", this.HandleLogChanged.bind(this) as EventListener);
         window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
+        window.addEventListener("lattice-clicked", this.HandleLatticeClicked.bind(this) as EventListener);
         window.addEventListener("change-view", this.HandleChangeView.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
         window.addEventListener("keydown", this.HandleKeyDown.bind(this));
         window.addEventListener("keyup", this.HandleKeyUp.bind(this))
+    }
+
+    HandleLatticeClicked(e: CustomEvent) {
+        let strand = e.detail.strand;
+        let index = e.detail.index;
+        console.log(index, strand)
+        if (strand && index) {
+            let parity = this.parities[strand].get(index)!;
+            if (parity.Color == COLORS.RED) {
+                parity.Color = COLORS.GREY;
+            } else {
+                parity.Color = COLORS.RED;
+            }
+        } else if(index ) {
+            let vertex = this.vertices.get(index)!;
+            if (vertex.Color == COLORS.RED) {
+                vertex.Color = COLORS.GREY;
+            } else {
+                vertex.Color = COLORS.RED;
+            }
+        }
+        this.renderer.Update();
+        this.bitMap.Update();
+        this.merkelTree.Update();
     }
 
     HandleDataGenerated(e: CustomEvent) {
@@ -76,6 +101,7 @@ export class App {
         this.vertices = e.detail.vertecies;
         this.parities = e.detail.parities;
         this.parityShift = e.detail.parityShift;
+        this.merkelTree.StrandLabels = Array(this.alpha);
         this.UpdateData();
     }
 
@@ -167,7 +193,6 @@ export class App {
             this.sideBar.PlayBackEle.NrOfParityRep = 0;
             this.sideBar.PlayBackEle.NrOfParityUna = 0;
     
-            this.bitMap.Reset();
         }
         for (vertexEvent of e.detail.VertexEvents) {
             vertex = this.vertices.get(vertexEvent.Position)!;
@@ -252,8 +277,7 @@ export class App {
         this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna;
 
         this.renderer.Update();
-        this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
-        this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
+        this.bitMap.Update();
         this.merkelTree.Update();
     }
     HandleBitMapClicked(e: CustomEvent) {

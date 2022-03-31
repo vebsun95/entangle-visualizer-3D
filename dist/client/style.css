@@ -162,7 +162,7 @@ body {
 }
 
 #popup-bg {
-    position: absolute;
+    position: fixed;
     width: 100vw;
     height: 100vh;
     top: 0%;
@@ -173,11 +173,16 @@ body {
 
 .popup-container {
     position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     height: 50vh;
     width: 30vw;
     top: 25vh;
     left: 35vw;
     background-color: white;
+    border: 5px solid #ccc;
+    border-radius: 5px;
 }
 
 #pop-up-container label {

@@ -53,7 +53,9 @@ export class RendererObject extends DataContainer {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(this.renderer.domElement);
         this.renderer.domElement.onclick = this.handleOnClick.bind(this);
+        this.verticesGroup.name = "vertecies";
         this.scene.add(this.verticesGroup);
+        this.paritiesGroup.name = "parities";
         this.scene.add(this.paritiesGroup);
         this.scene.add(this.ghostGroup);
         this.initObjects();
@@ -144,6 +146,23 @@ export class RendererObject extends DataContainer {
             obj.visible = false;
             this.ghostGroup.add(obj);
         }
+    }
+
+    private handleOnClick(e: MouseEvent) {
+        if(this.Simulating) return;
+
+        this.rayCaster.setFromCamera({x: (e.clientX / window.innerWidth) * 2 - 1, y: -(e.clientY / window.innerHeight) * 2 + 1}, this.camera);
+        var intersects = this.rayCaster.intersectObjects(this.scene.children);  
+        if (intersects.length == 0) return;
+        let index, strand;
+        let obj = intersects[0].object;
+        if (obj.parent?.name == "parities") {
+            strand = obj.userData.strand;
+            index = obj.userData.index;
+        } else if (obj.parent?.name == "vertecies") {
+            index = obj.userData.index;
+        }
+        dispatchEvent(new CustomEvent("lattice-clicked", {detail: {strand: strand, index: index}, bubbles: true}));
     }
 
     private updateLabel(newLabel: string, ctx: CanvasRenderingContext2D, backgroundColor: number, isInode: boolean) {
@@ -261,20 +280,6 @@ export class RendererObject extends DataContainer {
             }
         }
         this.ghostGroup.visible = this.ghostgroupshow;
-    }
-
-    private handleOnClick(e: MouseEvent) {
-        console.log("clicked", e.clientX, e.clientY)
-        this.rayCaster.setFromCamera({x: (e.clientX / window.innerWidth) * 2 - 1, y: -(e.clientY / window.innerHeight) * 2 + 1}, this.camera);
-        var intersects = this.rayCaster.intersectObjects(this.scene.children);
-        console.log(intersects);
-        if (intersects.length == 0) return;
-        let obj = intersects[0].object;
-        if(obj.name) {
-            updateLabel(obj.name, obj.userData.ctx, COLORS.RED, false);
-            //@ts-ignore
-            obj.material.map.needsUpdate = true;
-        }
     }
 
     private CreateParitiyAdvanced2D(output: Parity, strand: number) {

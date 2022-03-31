@@ -74,6 +74,7 @@ export class TwoDView extends DataContainer implements View {
             updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, vertex.Depth > 1);
             obj.material.map!.needsUpdate = true;
             obj.name = startIndex.toString();
+            obj.userData.index = vertex.Index;
             startIndex++;
             row--;
             if (row == 0) {
@@ -107,6 +108,8 @@ export class TwoDView extends DataContainer implements View {
             for (var [strand, output] of this.parities.entries()) {
                 let parityPosition = this.parityShift.get(startIndex)!;
                 let parity = output.get(parityPosition) as Parity;
+                this.paritiesGroup.children[this.lineGeomIndex].userData.strand = strand;
+                this.paritiesGroup.children[this.lineGeomIndex].userData.index  = parity.Index;
                 if (index + this.s < this.verticesGroup.children.length && parity.To != null && parity.From != null) {
                     // Sjekker at RightPos er mindre enn LeftPos og siste kolonne ikke er fylt opp av verticies
                     if (parity.To < parity.From && this.nrOfVertices % this.s != 0) {
@@ -127,6 +130,8 @@ export class TwoDView extends DataContainer implements View {
         }
         for(; this.lineGeomIndex < this.paritiesGroup.children.length; this.lineGeomIndex++) {
             var line = this.paritiesGroup.children[this.lineGeomIndex];
+            line.userData.strand = null;
+            line.userData.index = null;
             line.name = "";
             line.visible = false;
         }
@@ -291,6 +296,7 @@ export class TwoDView extends DataContainer implements View {
         obj.position.set(x, y, z);
         obj.material.opacity = 0.3
         obj.material.transparent = true;
+        obj.material.map!.needsUpdate = true;
         obj.visible = true;
 
         this.ghostIndex++;

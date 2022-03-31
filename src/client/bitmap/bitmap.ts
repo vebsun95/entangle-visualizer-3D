@@ -22,7 +22,7 @@ export class BitMap extends DataContainer {
     private viewBox: HTMLDivElement = document.createElement("div");
     private viewBoxLocked: HTMLDivElement = document.createElement("div");
     private viewBoxWidth = 0;
-    public DrawLimit: number = 1;
+    public DrawLimit: number = 300;
 
     constructor() {
         super();
@@ -258,7 +258,7 @@ export class BitMap extends DataContainer {
         dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
     }
 
-    public Reset() {
+    public Update() {
         this.draw();
     }
 

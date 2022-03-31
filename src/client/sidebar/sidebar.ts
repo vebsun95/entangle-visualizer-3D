@@ -24,6 +24,7 @@ export class SideBar {
         this.backButton.style.display = "none";
         this.Container.addEventListener("new-file-upload", this.handleOnNewFileUploaded.bind(this));
         this.Container.addEventListener("file-generator", this.handleFileGenerator.bind(this));
+        this.Container.addEventListener("back-to-start", this.HandleBackToStart.bind(this));
 
         this.backButton.innerHTML = "&#10060;";
 
@@ -41,6 +42,13 @@ export class SideBar {
         this.backButton.style.display = "unset";
         this.FileInput.Hide();
         this.PlayBackEle.Show();
+    }
+
+    private HandleBackToStart() {
+        this.backButton.style.display = "none";
+        this.FileGenerator.Hide();
+        this.PlayBackEle.Hide();
+        this.FileInput.Show();
     }
 
     private backButtonClicked() {
