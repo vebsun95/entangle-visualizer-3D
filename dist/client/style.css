@@ -1,7 +1,7 @@
 body {
     overflow: hidden;
     margin: 0px;
-    font-family: sans-serif;
+    font-family: Arial, sans-serif;
 }
 
 #overlay-layout {
@@ -146,14 +146,15 @@ body {
 }
 
 .log-table {
-    border-collapse: collapse;
     width: 100%;
     border: 1px solid grey;
 }
 
 .log-table td, th {
   border: 1px solid #999;
-  padding: 0.5rem;
+  border-collapse: collapse;
+  padding: 1.5px;
+  width: min-content;
 }
 
 .stats-table {
@@ -193,4 +194,22 @@ body {
 
 #popup-rules {
     display: none;
+    /* border-collapse: collapse;
+    border: 1px solid grey; */
+}
+
+.align-Right {
+    text-align: right;
+}
+
+.small-Cell{
+    width: 10%;
+}
+
+.medium-Cell{
+    width: 40%;
+}
+
+.large-Cell{
+    width: 50%;
 }

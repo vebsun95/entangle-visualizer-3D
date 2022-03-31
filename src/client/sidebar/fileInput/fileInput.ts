@@ -1,8 +1,10 @@
+import { timeStamp } from "console";
 import { StartPoints } from "./interfaces/interfaces";
 
 export class FileInput {
     Container: HTMLDivElement = document.createElement("div");
     private visible: boolean = true;
+    private fileIcon: HTMLLabelElement = document.createElement("label");
     private fileInput: HTMLInputElement = document.createElement("input");
     private fileGeneratorButton: HTMLButtonElement = document.createElement("button");
     private fileReader: FileReader = new FileReader();
@@ -34,6 +36,14 @@ export class FileInput {
         });
 
         this.Container.append(this.fileInput, this.fileGeneratorButton);
+        this.fileInput.id = "input";
+        this.fileInput.style.visibility = "none"
+        this.fileInput.style.display = "none"
+        this.fileIcon.htmlFor = "input";
+        this.fileIcon.innerHTML = '<i class="fa fa-upload"></i>';
+        this.fileInput.addEventListener("change", this.handleFileChange.bind(this) as EventListener)
+        this.Container.append(this.fileIcon);
+        this.Container.append(this.fileInput);
     }
 
 
