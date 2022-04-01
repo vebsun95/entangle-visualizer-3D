@@ -14,7 +14,13 @@ function GenerateParities(alpha: number, s: number, p: number, nrdata: number, f
         for(let a=0; a<alpha; a++) {
             to = null;
             from = null;
-            row = i % s;
+            if (i < 129 ) {
+                row = i % s;
+            }  else if( i < 258) {
+                row = (i - 1) % s;
+            } else {
+                row = (i - 2) % s;
+            }
             if(row == 1) {
                 row = 0;
             } else if (row > 1) {
@@ -44,21 +50,21 @@ function GenerateParities(alpha: number, s: number, p: number, nrdata: number, f
                 parent = 258;
                 depth = 1;
                 children = []
-                from = i;
-                to = fnc();
+                from = i - 1;
+                to = fnc() - 1;
             } else if (i == 258) {
                 parent = 263;
                 depth = 2;
                 children = Array(128);
-                for(let j=130, k=0; k < 129; j++, k++) {
+                for(let j=130, k=0; k < 128; j++, k++) {
                     children[k] = j;
                 }
             }  else if(i < 262) {
                 parent = 262;
                 depth = 1;
                 children = [];
-                from = i;
-                to = fnc();
+                from = i - 2;
+                to = fnc() - 2;
 
             } else if( i == 262) {
                 parent = 263;

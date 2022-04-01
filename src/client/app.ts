@@ -72,15 +72,14 @@ export class App {
     HandleLatticeClicked(e: CustomEvent) {
         let strand = e.detail.strand;
         let index = e.detail.index;
-        console.log(index, strand)
-        if (strand && index) {
+        if (strand != null && index != null) {
             let parity = this.parities[strand].get(index)!;
             if (parity.Color == COLORS.RED) {
                 parity.Color = COLORS.GREY;
             } else {
                 parity.Color = COLORS.RED;
             }
-        } else if(index ) {
+        } else if( index != null ) {
             let vertex = this.vertices.get(index)!;
             if (vertex.Color == COLORS.RED) {
                 vertex.Color = COLORS.GREY;
@@ -101,7 +100,11 @@ export class App {
         this.vertices = e.detail.vertecies;
         this.parities = e.detail.parities;
         this.parityShift = e.detail.parityShift;
-        this.merkelTree.StrandLabels = Array(this.alpha);
+        let strandLabels = Array(this.alpha);
+        for(let i=0; i<strandLabels.length; i++) {
+            strandLabels[i] = "Strand: " + (i + 1).toString();
+        }
+        this.merkelTree.StrandLabels = strandLabels;
         this.UpdateData();
     }
 
