@@ -1,14 +1,13 @@
 export interface RuleI {
-    container: HTMLDivElement,
-    strand: HTMLSpanElement,
+    container: HTMLFieldSetElement,
+    strand: HTMLLegendElement,
     top: InputLabelI,
-    middel: InputLabelI,
+    mid: InputLabelI,
     bot: InputLabelI,
 }
 
 interface InputLabelI {
     container: HTMLDivElement,
-    type: HTMLSpanElement,
     label: HTMLLabelElement,
     input: HTMLInputElement,
 }

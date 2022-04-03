@@ -8,6 +8,7 @@ import { TwoDView } from './views/twoDview';
 import { View } from './interfaces/interfaces';
 import { noDataView } from './views/noDataView';
 import { updateLabel } from './utils/updateLabels';
+import { CylinderView } from './views/cylinderView';
 
 
 
@@ -37,13 +38,15 @@ export class RendererObject extends DataContainer {
         
         if(newView === 0) {
             this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
-        }
-        else if(newView === 1) {
+        } else if(newView === 1) {
             this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
-        }
-        else {
+        } else if(newView === 2) {
+            this.view = new CylinderView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
+        } else {
             this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
         }
+        this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
+        this.view.HandleUpdatedData();
         this.Update();
     }
 
@@ -614,6 +617,7 @@ export class RendererObject extends DataContainer {
     }
 
     public GoTo(position: number) {
+        if(!position) return
         this.view.GoTo(position);
     }
 

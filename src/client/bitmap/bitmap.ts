@@ -198,6 +198,9 @@ export class BitMap extends DataContainer {
 
     private updateDrawLimit() {
         this.viewBoxWidth = this.pixelWidth * (this.DrawLimit / this.s);
+        if(this.viewBoxWidth >= window.innerWidth) {
+            this.viewBoxWidth = this.pixelWidth;
+        }
 
         this.viewBox.style.display = "none"
         this.viewBox.style.height = this.latticeCanvas.height.toString() + "px";

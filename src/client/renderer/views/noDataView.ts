@@ -50,6 +50,7 @@ export class noDataView extends DataContainer implements View {
             data.visible = true;
             data.name = i.toString();
             updateLabel("", data.userData.ctx, this.getRandomInt(0, 0xffffff), false);
+            data.material.map!.needsUpdate = true;
             data.position.set(x, y, z);
         }
         for(i=0; i < this.ghostGroup.children.length; i++) {
@@ -65,7 +66,7 @@ export class noDataView extends DataContainer implements View {
         var toPosition: THREE.Vector3;
         var line: THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>;
         var array: THREE.BufferAttribute;
-        for (var i = 0; i < this.verticesGroup.children.length; i++) {
+        for (var i = 0; i < this.paritiesGroup.children.length; i++) {
             fromIndex = this.getRandomInt(0, this.verticesGroup.children.length - 1);
             toIndex = this.getRandomInt(0, this.verticesGroup.children.length - 1);
             fromPosition = this.verticesGroup.children[fromIndex].position;
@@ -77,8 +78,10 @@ export class noDataView extends DataContainer implements View {
             array.setXYZ(0, fromPosition.x, fromPosition.y, fromPosition.z);
             array.setXYZ(1, toPosition.x, toPosition.y, toPosition.z);
             line.geometry.setDrawRange(0, 2);
-            line.geometry.attributes.position.needsUpdate = true;
             line.material.color.setHex(this.getRandomInt(0, 0xffffff));
+            line.geometry.attributes.position.needsUpdate = true;
+            line.material.needsUpdate = true;   
+            line.geometry.computeBoundingSphere();
         }
     }
 

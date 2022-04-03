@@ -19,11 +19,11 @@ export class FileInput {
     }
 
     public DevTest(devContent: string) {
-        this.fileGeneratorButton.click();
+        //this.fileGeneratorButton.click();
         this.startPoints = [];
         this.fileRead = false;
         this.currentFile = new File([devContent], "testDev");
-        //this.fileReader.readAsArrayBuffer(this.currentFile);
+        this.fileReader.readAsArrayBuffer(this.currentFile);
     }
 
     private createLayout() {

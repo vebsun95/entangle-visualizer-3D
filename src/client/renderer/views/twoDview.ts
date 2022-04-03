@@ -127,6 +127,9 @@ export class TwoDView extends DataContainer implements View {
             if (startIndex > this.nrOfVertices) {
                 startIndex = 1;
             }
+            if (startIndex == this.drawFrom) {
+                break
+            }
         }
         for(; this.lineGeomIndex < this.paritiesGroup.children.length; this.lineGeomIndex++) {
             var line = this.paritiesGroup.children[this.lineGeomIndex];

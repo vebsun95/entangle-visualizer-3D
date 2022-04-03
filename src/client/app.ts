@@ -6,6 +6,7 @@ import { SideBar } from "./sidebar/sidebar";
 import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./SharedKernel/interfaces";
 import { COLORS, DLStatus, MSG, RepStatus } from "./SharedKernel/constants";
 import { parseLogVertexEntry } from "./SharedKernel/utils";
+import { OneFactor } from "three";
 
 
 
@@ -61,12 +62,48 @@ export class App {
         this.Container.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
         window.addEventListener("log-changed-clicked", this.HandleLogChangedClicked.bind(this) as EventListener);
         this.Container.addEventListener("log-changed", this.HandleLogChanged.bind(this) as EventListener);
+        this.Container.addEventListener("download", this.HandleDownload.bind(this));
         window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
         window.addEventListener("lattice-clicked", this.HandleLatticeClicked.bind(this) as EventListener);
         window.addEventListener("change-view", this.HandleChangeView.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
         window.addEventListener("keydown", this.HandleKeyDown.bind(this));
         window.addEventListener("keyup", this.HandleKeyUp.bind(this))
+    }
+
+    HandleDownload() {
+        let filename = "test.txt";
+        let text = "failedList[0] = unavailfaillist(";
+        let atLeatOnce: boolean = false;
+        for(let vertex of this.vertices.values()) {
+            if (vertex.Color == COLORS.RED) {
+                text += vertex.Index.toString() + ", "
+                atLeatOnce = true;
+            }
+        }
+        if(atLeatOnce) {
+            text = text.slice(0, text.length - 2) + ")\n";
+        } else {
+            text += ")\n"
+        }
+        for(let [strand, parityMap] of this.parities.entries()) {
+            atLeatOnce = false;
+            text += "failedList[" + (strand + 1).toString() + "] = unavailfaillist(";
+            for(let parity of parityMap.values()) {
+                if(parity.Color == COLORS.RED) {
+                    text += parity.Index.toString() + ", "
+                    atLeatOnce = true;
+                }
+            }
+            if (atLeatOnce) {
+                text = text.slice(0, text.length - 2) + ")\n";
+            } else {
+                text += ")\n";
+            }
+        }
+        
+        navigator.clipboard.writeText(text);
+
     }
 
     HandleLatticeClicked(e: CustomEvent) {
@@ -97,7 +134,7 @@ export class App {
         this.alpha = e.detail.alpha;
         this.s = e.detail.s;
         this.p = e.detail.p;
-        this.vertices = e.detail.vertecies;
+        this.vertices = e.detail.vertices;
         this.parities = e.detail.parities;
         this.parityShift = e.detail.parityShift;
         let strandLabels = Array(this.alpha);
@@ -110,6 +147,7 @@ export class App {
 
     HandleBackToStart() {
         this.renderer.View = 0;
+        this.renderer.Simulating = true;
     }
 
     HandleChangeView(e: CustomEvent) {

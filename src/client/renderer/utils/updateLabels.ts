@@ -1,5 +1,3 @@
-import { Color } from "three";
-import { COLORS } from "../../SharedKernel/constants";
 import { convertHexToStringColor } from "../../SharedKernel/utils";
 
 

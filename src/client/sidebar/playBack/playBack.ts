@@ -103,15 +103,15 @@ export class PlayBack {
     private createLayout() {
         this.changeButtons.twoDView.innerText = "2D view";
         this.changeButtons.twoDView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 0 }}));
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 1 }}));
         });
         this.changeButtons.cylinderView.innerText = "Cylinder View";
         this.changeButtons.cylinderView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 1 }}));
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 2 }}));
         });
         this.changeButtons.tortoisView.innerText = "Tortois View";
         this.changeButtons.tortoisView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 2 }}));
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 3 }}));
         });
 
         this.changeButtons.container.append(this.changeLogDropDown, this.changeButtons.twoDView, this.changeButtons.cylinderView, this.changeButtons.tortoisView);

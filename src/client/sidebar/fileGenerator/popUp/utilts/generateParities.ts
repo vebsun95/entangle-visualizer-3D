@@ -3,14 +3,14 @@ import { Parity } from "../../../../SharedKernel/interfaces";
 
 export {GenerateParities}
 
-function GenerateParities(alpha: number, s: number, p: number, nrdata: number, funcStrings: string[][]): Map<number, Parity>[] {
+function GenerateParities(alpha: number, s: number, p: number, nrData: number, funcStrings: string[][]): Map<number, Parity>[] {
     let to: number | null, from: number | null, row: number, fncString: string;
     let fnc: Function, depth: number, parent: number, children: number[];
     let parities: Map<number, Parity>[] = Array(alpha);
     for(let i=0; i < parities.length; i++) {
         parities[i] = new Map();
     }
-    for(let i=1; i<=nrdata + 5; i++) {
+    for(let i=1; i<=nrData + 5; i++) {
         for(let a=0; a<alpha; a++) {
             to = null;
             from = null;
@@ -32,7 +32,7 @@ function GenerateParities(alpha: number, s: number, p: number, nrdata: number, f
             fncString = fncString.replace( new RegExp("i", "g"), i.toString());
             fncString = fncString.replace( new RegExp("s", "g"), s.toString());
             fncString = fncString.replace( new RegExp("p", "g"), p.toString());
-            fnc = new Function(fncString);
+            fnc = Function(fncString);
             if(i < 129) {
                 depth = 1;
                 parent = 129;

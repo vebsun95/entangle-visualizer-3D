@@ -35,7 +35,6 @@ export class SideBar {
         this.backButton.style.display = "unset";
         this.FileInput.Hide();
         this.FileGenerator.Show();
-        this.FileGenerator.showPopUp();
     }
 
     private handleOnNewFileUploaded() {

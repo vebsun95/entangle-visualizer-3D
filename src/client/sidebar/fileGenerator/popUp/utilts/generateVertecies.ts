@@ -1,10 +1,10 @@
 import { COLORS } from "../../../../SharedKernel/constants";
 import { Vertex } from "../../../../SharedKernel/interfaces";
 
-export {GenerateVertecies}
+export {GenerateVertices}
 
-function GenerateVertecies(nrdata: number) : Map<number, Vertex> {
-    let vertecies: Map<number, Vertex> = new Map();
+function GenerateVertices(nrdata: number) : Map<number, Vertex> {
+    let vertices: Map<number, Vertex> = new Map();
     let depth: number, parent: number, children: number[]
     for (let i=1; i<=nrdata; i++) {
         if(i < 129) {
@@ -34,7 +34,7 @@ function GenerateVertecies(nrdata: number) : Map<number, Vertex> {
             depth = 3;
             children = [129, 258];
         }
-        vertecies.set(i, {Index: i, Children: children!, Color: COLORS.GREY, Depth: depth!, Parent: parent!, DamagedChildren: 0 });
+        vertices.set(i, {Index: i, Children: children!, Color: COLORS.GREY, Depth: depth!, Parent: parent!, DamagedChildren: 0 });
     }
-    return vertecies;
+    return vertices;
 }

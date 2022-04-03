@@ -63,12 +63,12 @@ body {
 }
 
 #side-bar {
-    z-index: 10;
     position: absolute;
     background-color: white;
     border: 3px solid grey;
     border-radius: 5px 5px;
-    left: 5;
+    max-height: 65vh;
+    min-height: 25vh;
 }
 
 #toggle-side-bar {
@@ -173,9 +173,6 @@ body {
 
 .popup-container {
     position: absolute;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     height: 50vh;
     width: 30vw;
     top: 25vh;
@@ -185,12 +182,29 @@ body {
     border-radius: 5px;
 }
 
-#pop-up-container label {
-    display:  inline-block;
+.popup-container div{
+    width: 100%;
 }
 
-#config-input label{
+.popup-container h1 {
+    text-align: center;
+}
 
+.popup-container label {
+    display:  inline-block;
+    width: 8em;
+    display: inline-block;
+    padding-left: 1em;
+}
+
+.popup-container fieldset {
+    display: grid;
+}
+
+.popup-container button {
+    position: absolute;
+    bottom: 1em;
+    right: 25%;
 }
 
 #config-params input{
@@ -199,8 +213,8 @@ body {
 
 #popup-rules {
     display: none;
-    /* border-collapse: collapse;
-    border: 1px solid grey; */
+    max-height: 40vh;
+    overflow-y: auto;
 }
 
 .align-Right {
