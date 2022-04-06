@@ -15,6 +15,13 @@ body {
     pointer-events: all;
 }
 
+#sidebar-backButton {
+    position: absolute;
+    top: 1em;
+    right: 1em;
+    cursor: grab;
+}
+
 .btn-overlay {
     z-index: 10;
     position: absolute;
@@ -56,12 +63,12 @@ body {
 }
 
 #side-bar {
-    z-index: 10;
     position: absolute;
     background-color: white;
     border: 3px solid grey;
     border-radius: 5px 5px;
-    left: 5;
+    max-height: 65vh;
+    min-height: 25vh;
 }
 
 #toggle-side-bar {
@@ -128,8 +135,9 @@ body {
 }
 
 @keyframes hideBitMap {
-    from { max-height: 200px; }
-    to   { max-height: 0;   }
+    from { max-height: 200px; display: unset; }
+    99%  { display: unset;}
+    to   { max-height: 0; display: none;  }
 }
 
 @keyframes showBitMap {
@@ -151,8 +159,62 @@ body {
 
 .stats-table {
     width: 100%;
-    /* border-collapse: collapse;
-    border: 1px solid grey; */
+}
+
+#popup-bg {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    top: 0%;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.247);
+    backdrop-filter: 5px;
+}
+
+.popup-container {
+    position: absolute;
+    height: 50vh;
+    width: 30vw;
+    top: 25vh;
+    left: 35vw;
+    background-color: white;
+    border: 5px solid #ccc;
+    border-radius: 5px;
+}
+
+.popup-container div{
+    width: 100%;
+}
+
+.popup-container h1 {
+    text-align: center;
+}
+
+.popup-container label {
+    display:  inline-block;
+    width: 8em;
+    display: inline-block;
+    padding-left: 1em;
+}
+
+.popup-container fieldset {
+    display: grid;
+}
+
+.popup-container button {
+    position: absolute;
+    bottom: 1em;
+    right: 25%;
+}
+
+#config-params input{
+    width: 1em;
+}
+
+#popup-rules {
+    display: none;
+    max-height: 40vh;
+    overflow-y: auto;
 }
 
 .align-Right {

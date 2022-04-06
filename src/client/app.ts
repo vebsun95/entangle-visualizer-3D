@@ -6,6 +6,7 @@ import { SideBar } from "./sidebar/sidebar";
 import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./SharedKernel/interfaces";
 import { COLORS, DLStatus, MSG, RepStatus } from "./SharedKernel/constants";
 import { parseLogVertexEntry } from "./SharedKernel/utils";
+import { OneFactor } from "three";
 
 
 
@@ -50,19 +51,105 @@ export class App {
         this.merkelTree.HandleUpdatedDate();
         this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p);
 
+        this.bitMap.Show();
+        this.merkelTree.Show();
     }
 
     AddEventListeners() {
+        this.Container.addEventListener("data-generated", this.HandleDataGenerated.bind(this) as EventListener);
+        this.Container.addEventListener("back-to-start", this.HandleBackToStart.bind(this));
         window.addEventListener("bitmap-clicked", this.HandleBitMapClicked.bind(this) as EventListener);
-        window.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
+        this.Container.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
         window.addEventListener("log-changed-clicked", this.HandleLogChangedClicked.bind(this) as EventListener);
-        window.addEventListener("log-changed", this.HandleLogChanged.bind(this) as EventListener);
+        this.Container.addEventListener("log-changed", this.HandleLogChanged.bind(this) as EventListener);
+        this.Container.addEventListener("download", this.HandleDownload.bind(this));
         window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
+        window.addEventListener("lattice-clicked", this.HandleLatticeClicked.bind(this) as EventListener);
         window.addEventListener("change-view", this.HandleChangeView.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
         window.addEventListener("keydown", this.HandleKeyDown.bind(this));
         window.addEventListener("keyup", this.HandleKeyUp.bind(this))
     }
+
+    HandleDownload() {
+        let filename = "test.txt";
+        let text = "failedList[0] = unavailfaillist(";
+        let atLeatOnce: boolean = false;
+        for(let vertex of this.vertices.values()) {
+            if (vertex.Color == COLORS.RED) {
+                text += vertex.Index.toString() + ", "
+                atLeatOnce = true;
+            }
+        }
+        if(atLeatOnce) {
+            text = text.slice(0, text.length - 2) + ")\n";
+        } else {
+            text += ")\n"
+        }
+        for(let [strand, parityMap] of this.parities.entries()) {
+            atLeatOnce = false;
+            text += "failedList[" + (strand + 1).toString() + "] = unavailfaillist(";
+            for(let parity of parityMap.values()) {
+                if(parity.Color == COLORS.RED) {
+                    text += parity.Index.toString() + ", "
+                    atLeatOnce = true;
+                }
+            }
+            if (atLeatOnce) {
+                text = text.slice(0, text.length - 2) + ")\n";
+            } else {
+                text += ")\n";
+            }
+        }
+        
+        navigator.clipboard.writeText(text);
+
+    }
+
+    HandleLatticeClicked(e: CustomEvent) {
+        let strand = e.detail.strand;
+        let index = e.detail.index;
+        if (strand != null && index != null) {
+            let parity = this.parities[strand].get(index)!;
+            if (parity.Color == COLORS.RED) {
+                parity.Color = COLORS.GREY;
+            } else {
+                parity.Color = COLORS.RED;
+            }
+        } else if( index != null ) {
+            let vertex = this.vertices.get(index)!;
+            if (vertex.Color == COLORS.RED) {
+                vertex.Color = COLORS.GREY;
+            } else {
+                vertex.Color = COLORS.RED;
+            }
+        }
+        this.renderer.Update();
+        this.bitMap.Update();
+        this.merkelTree.Update();
+    }
+
+    HandleDataGenerated(e: CustomEvent) {
+        this.renderer.Simulating = false;
+        this.alpha = e.detail.alpha;
+        this.s = e.detail.s;
+        this.p = e.detail.p;
+        this.vertices = e.detail.vertices;
+        this.parities = e.detail.parities;
+        this.parityShift = e.detail.parityShift;
+        let strandLabels = Array(this.alpha);
+        for(let i=0; i<strandLabels.length; i++) {
+            strandLabels[i] = "Strand: " + (i + 1).toString();
+        }
+        this.merkelTree.StrandLabels = strandLabels;
+        this.UpdateData();
+    }
+
+    HandleBackToStart() {
+        this.renderer.View = 0;
+        this.renderer.Simulating = true;
+    }
+
     HandleChangeView(e: CustomEvent) {
         this.renderer.View = e.detail.NewView;
     }
@@ -147,7 +234,6 @@ export class App {
             this.sideBar.PlayBackEle.NrOfParityRep = 0;
             this.sideBar.PlayBackEle.NrOfParityUna = 0;
     
-            this.bitMap.Reset();
         }
         for (vertexEvent of e.detail.VertexEvents) {
             vertex = this.vertices.get(vertexEvent.Position)!;
@@ -232,14 +318,14 @@ export class App {
         this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna;
 
         this.renderer.Update();
-        this.bitMap.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
-        this.merkelTree.UpdateVertex((e.detail.VertexEvents as VertexEvent[]).map(v => v.Position));
+        this.bitMap.Update();
         this.merkelTree.Update();
     }
     HandleBitMapClicked(e: CustomEvent) {
         this.renderer.GoTo(e.detail.vertexIndex)
     }
     HandleNewFileUploaded(e: CustomEvent) {
+        this.renderer.Simulating = true;
         this.sideBar.PlayBackEle.Filename = e.detail.fileName;
         this.sideBar.PlayBackEle.CreateChangeLogBtns(e.detail.nrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);

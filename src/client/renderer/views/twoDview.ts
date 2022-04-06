@@ -13,34 +13,30 @@ export class TwoDView extends DataContainer implements View {
     private paritiesGroup: THREE.Group;
     private ghostGroup: THREE.Group;
     private scale: number;
-    private limit: number;
     private drawFrom: number = 1;
     private lineGeomIndex: number = 0;
     private ghostIndex: number = 0;
+    private camera: THREE.Camera;
     public StartCamera: THREE.Vector3 = new THREE.Vector3();
 
-    public constructor(verticesGroup: THREE.Group, paritiesGroup: THREE.Group, ghostGroup: THREE.Group, scale: number, limit: number, controls: MyControls) {
+    public constructor(verticesGroup: THREE.Group, paritiesGroup: THREE.Group, ghostGroup: THREE.Group, scale: number, controls: MyControls, camera: THREE.Camera) {
         super();
         this.verticesGroup = verticesGroup;
         this.paritiesGroup = paritiesGroup;
         this.ghostGroup = ghostGroup;
         this.scale = scale;
-        this.limit = limit;
         this.controls = controls;
+        this.camera = camera;
     }
     public Animate(): void {
         
     }
     public HandleUpdatedData(): void {
-        this.controls.panOffset.set(
-            ((this.nrOfVertices / this.s) / 2) * this.scale,
-            ((this.s / 2) - 1) * this.scale,
-            20,
-        );
+        this.Update();
     }
 
     public GoTo(position: number): void {
-        this.drawFrom = position - (this.limit / 2);
+        this.drawFrom = position - (this.verticesGroup.children.length / 2);
         if (this.drawFrom < 1) {
             this.drawFrom = this.nrOfVertices + this.drawFrom;
         }
@@ -50,10 +46,11 @@ export class TwoDView extends DataContainer implements View {
             this.drawFrom = 1;
         }
         this.Update();
-        var v = this.verticesGroup.getObjectByName(position.toString());
+        var v = this.verticesGroup.getObjectByName(position.toString())!;
         if (v) {
-            this.controls.panOffset.set(v.position.x - this.controls.camera.position.x, (((this.s / 2) - 1) * this.scale) - this.controls.camera.position.y, 0);
+            this.controls.panOffset.set(v.position.x - this.controls.camera.position.x, (((this.s / 2) + 1) * this.scale) - this.controls.camera.position.y, 0);
         }
+        this.camera.lookAt(v.position)
     }
 
     public Update(): void {
@@ -77,6 +74,7 @@ export class TwoDView extends DataContainer implements View {
             updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, vertex.Depth > 1);
             obj.material.map!.needsUpdate = true;
             obj.name = startIndex.toString();
+            obj.userData.index = vertex.Index;
             startIndex++;
             row--;
             if (row == 0) {
@@ -106,11 +104,13 @@ export class TwoDView extends DataContainer implements View {
         var startIndex = this.drawFrom;
         this.lineGeomIndex = 0;
         this.ghostIndex = 0;
-        for (let index = 0; index < this.limit; index++) {
+        for (let index = 0; index < this.verticesGroup.children.length; index++) {
             for (var [strand, output] of this.parities.entries()) {
                 let parityPosition = this.parityShift.get(startIndex)!;
                 let parity = output.get(parityPosition) as Parity;
-                if (index + this.s < this.limit && parity.To != null && parity.From != null) {
+                this.paritiesGroup.children[this.lineGeomIndex].userData.strand = strand;
+                this.paritiesGroup.children[this.lineGeomIndex].userData.index  = parity.Index;
+                if (index + this.s < this.verticesGroup.children.length && parity.To != null && parity.From != null) {
                     // Sjekker at RightPos er mindre enn LeftPos og siste kolonne ikke er fylt opp av verticies
                     if (parity.To < parity.From && this.nrOfVertices % this.s != 0) {
                         // Gjør avansert logikk her
@@ -127,9 +127,14 @@ export class TwoDView extends DataContainer implements View {
             if (startIndex > this.nrOfVertices) {
                 startIndex = 1;
             }
+            if (startIndex == this.drawFrom) {
+                break
+            }
         }
         for(; this.lineGeomIndex < this.paritiesGroup.children.length; this.lineGeomIndex++) {
             var line = this.paritiesGroup.children[this.lineGeomIndex];
+            line.userData.strand = null;
+            line.userData.index = null;
             line.name = "";
             line.visible = false;
         }
@@ -156,6 +161,7 @@ export class TwoDView extends DataContainer implements View {
                     array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                     line!.geometry.setDrawRange(0, 2);
                     line!.geometry.attributes.position.needsUpdate = true;
+                    line.geometry.computeBoundingSphere();
                     return
                 }
                 case STRANDS.RHStrand: {
@@ -170,6 +176,7 @@ export class TwoDView extends DataContainer implements View {
                         array.setXYZ(pointList[pointList.length - 1][2] + 1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                         line!.geometry.setDrawRange(0, pointList[pointList.length - 1][2] + 1);
                         line!.geometry.attributes.position.needsUpdate = true;
+                        line.geometry.computeBoundingSphere();
                         return
                     }
                     else {
@@ -178,6 +185,7 @@ export class TwoDView extends DataContainer implements View {
                         array.setXYZ(3, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                         line!.geometry.setDrawRange(0, 4);
                         line!.geometry.attributes.position.needsUpdate = true;
+                        line.geometry.computeBoundingSphere();
                         return
                     }
 
@@ -192,6 +200,7 @@ export class TwoDView extends DataContainer implements View {
                         array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
                         line!.geometry.setDrawRange(0, 2);
                         line!.geometry.attributes.position.needsUpdate = true;
+                        line.geometry.computeBoundingSphere();
                         return
                     }
                     // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
@@ -205,6 +214,7 @@ export class TwoDView extends DataContainer implements View {
                         array.setXYZ(pointList[pointList.length - 1][2] + 1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                         line!.geometry.setDrawRange(0, pointList[pointList.length - 1][2] + 1);
                         line!.geometry.attributes.position.needsUpdate = true;
+                        line.geometry.computeBoundingSphere();
                         return
                     }
                     else {
@@ -213,6 +223,7 @@ export class TwoDView extends DataContainer implements View {
                         array.setXYZ(3, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                         line!.geometry.setDrawRange(0, 4);
                         line!.geometry.attributes.position.needsUpdate = true;
+                        line.geometry.computeBoundingSphere();
                         return
                     }
                 }
@@ -221,6 +232,7 @@ export class TwoDView extends DataContainer implements View {
                     array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
                     line!.geometry.setDrawRange(0, 2);
                     line!.geometry.attributes.position.needsUpdate = true;
+                    line.geometry.computeBoundingSphere();
                     return
                 }
             }
@@ -287,6 +299,7 @@ export class TwoDView extends DataContainer implements View {
         obj.position.set(x, y, z);
         obj.material.opacity = 0.3
         obj.material.transparent = true;
+        obj.material.map!.needsUpdate = true;
         obj.visible = true;
 
         this.ghostIndex++;

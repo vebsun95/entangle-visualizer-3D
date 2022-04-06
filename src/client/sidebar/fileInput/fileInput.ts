@@ -3,8 +3,10 @@ import { StartPoints } from "./interfaces/interfaces";
 
 export class FileInput {
     Container: HTMLDivElement = document.createElement("div");
+    private visible: boolean = true;
     private fileIcon: HTMLLabelElement = document.createElement("label");
     private fileInput: HTMLInputElement = document.createElement("input");
+    private fileGeneratorButton: HTMLButtonElement = document.createElement("button");
     private fileReader: FileReader = new FileReader();
     private currentFile: File | null = null;
     private fileRead: boolean = false;
@@ -12,19 +14,28 @@ export class FileInput {
 
 
     constructor() {
-        this.createFileInput();
+        this.createLayout();
         this.fileReader.onload = this.frOnLoad.bind(this);
     }
 
-    DevTest(devContent: string) {
+    public DevTest(devContent: string) {
+        //this.fileGeneratorButton.click();
         this.startPoints = [];
         this.fileRead = false;
         this.currentFile = new File([devContent], "testDev");
         this.fileReader.readAsArrayBuffer(this.currentFile);
     }
 
-    private createFileInput() {
+    private createLayout() {
         this.fileInput.type = "file";
+        this.fileInput.addEventListener("change", this.handleFileChange.bind(this) as EventListener);
+
+        this.fileGeneratorButton.innerText = "Generate input file for snarl";
+        this.fileGeneratorButton.addEventListener("click", () => {
+            this.Container.dispatchEvent( new Event("file-generator", {bubbles: true}));
+        });
+
+        this.Container.append(this.fileInput, this.fileGeneratorButton);
         this.fileInput.id = "input";
         this.fileInput.style.visibility = "none"
         this.fileInput.style.display = "none"
@@ -35,7 +46,8 @@ export class FileInput {
         this.Container.append(this.fileInput);
     }
 
-    ChangeLog(fileNumber: number) {
+
+    public ChangeLog(fileNumber: number) {
         if (fileNumber > this.startPoints.length) {
             return
         }
@@ -57,7 +69,7 @@ export class FileInput {
         for (var [i, line] of lines.entries()) {
             logEntries[i] = JSON.parse(line);
         }
-        dispatchEvent(new CustomEvent("log-changed", { detail: { newContent: logEntries } }))
+        this.Container.dispatchEvent(new CustomEvent("log-changed", { detail: { newContent: logEntries }, bubbles: true }))
     }
 
     private findStartPoints() {
@@ -81,7 +93,7 @@ export class FileInput {
             }
         }
         this.fileRead = true;
-        dispatchEvent(new CustomEvent("new-file-upload", { detail: { fileName: this.currentFile!.name, nrOfLogs: this.startPoints.length } }))
+        this.Container.dispatchEvent(new CustomEvent("new-file-upload", { detail: { fileName: this.currentFile!.name, nrOfLogs: this.startPoints.length }, bubbles: true }))
     }
 
     private handleFileChange(e: InputEvent) {
@@ -90,4 +102,15 @@ export class FileInput {
         this.currentFile = (e.target as HTMLInputElement).files![0];
         this.fileReader.readAsArrayBuffer(this.currentFile);
     }
+
+    public Hide() {
+        this.visible = false;
+        this.Container.style.display = "none";
+    }
+
+    public Show() {
+        this.visible = true;
+        this.Container.style.display = "unset";
+    }
+
 }

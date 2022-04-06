@@ -22,7 +22,7 @@ export class BitMap extends DataContainer {
     private viewBox: HTMLDivElement = document.createElement("div");
     private viewBoxLocked: HTMLDivElement = document.createElement("div");
     private viewBoxWidth = 0;
-    public DrawLimit: number = 1;
+    public DrawLimit: number = 300;
 
     constructor() {
         super();
@@ -198,6 +198,9 @@ export class BitMap extends DataContainer {
 
     private updateDrawLimit() {
         this.viewBoxWidth = this.pixelWidth * (this.DrawLimit / this.s);
+        if(this.viewBoxWidth >= window.innerWidth) {
+            this.viewBoxWidth = this.pixelWidth;
+        }
 
         this.viewBox.style.display = "none"
         this.viewBox.style.height = this.latticeCanvas.height.toString() + "px";
@@ -258,7 +261,7 @@ export class BitMap extends DataContainer {
         dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
     }
 
-    public Reset() {
+    public Update() {
         this.draw();
     }
 
@@ -274,5 +277,15 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.left = coords[0].toString() + "px";
         this.latticeCanvas.scrollTo(coords[0] - window.innerWidth / 2, 0);
         dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
+    }
+
+    public Hide() {
+        this.visible = true;
+        this.toggleVisible();
+    }
+
+    public Show() {
+        this.visible = false;
+        this.toggleVisible();
     }
 }

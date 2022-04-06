@@ -8,6 +8,7 @@ export class PlayBack {
 
     public Container: HTMLDivElement = document.createElement("div");
     public LogEntries: (VertexEvent | ParityEvent)[] = [];
+    private visible: boolean = false;
     private statsTable: StatsTable = {
         table: document.createElement("table"),
         config: document.createElement("tr"),
@@ -67,6 +68,8 @@ export class PlayBack {
     }
 
     private updateTable() {
+        if(!this.visible) return;
+
         var start = Math.max(0, this.currentPos - this.logTable.rows.length / 2);
         start = Math.min(start, this.LogEntries.length - this.logTable.rows.length);
         var row: LogRow;
@@ -100,15 +103,15 @@ export class PlayBack {
     private createLayout() {
         this.changeButtons.twoDView.innerText = "2D view";
         this.changeButtons.twoDView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 0 }}));
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 1 }}));
         });
         this.changeButtons.cylinderView.innerText = "Cylinder View";
         this.changeButtons.cylinderView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 1 }}));
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 2 }}));
         });
         this.changeButtons.tortoisView.innerText = "Tortois View";
         this.changeButtons.tortoisView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 2 }}));
+            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 3 }}));
         });
 
         this.changeButtons.container.append(this.changeLogDropDown, this.changeButtons.twoDView, this.changeButtons.cylinderView, this.changeButtons.tortoisView);
@@ -269,6 +272,7 @@ export class PlayBack {
     }
 
     public SimulateClick(n: number) {
+        if(!this.visible) return;
         if (n > 0) {
             this.simulate(n);
         } else if (n < 0) {
@@ -277,19 +281,33 @@ export class PlayBack {
     }
 
     public GetLatestEvent(): number {
+        if(!this.visible) return 0;
         let latestEvent = this.LogEntries[this.currentPos - 1] || this.LogEntries[this.currentPos];
         return (latestEvent as VertexEvent).Position || (latestEvent as ParityEvent).From!;
     }
 
     public GoToStart() {
+        if(!this.visible) return;
         this.backClicked(this.currentPos);
     }
 
     public GoToEnd() {
+        if(!this.visible) return;
         this.simulate(this.LogEntries.length - this.currentPos);
     }
 
+    public Hide() {
+        this.visible = false;
+        this.Container.style.display = "none";
+    }
+
+    public Show() {
+        this.visible = true;
+        this.Container.style.display = "unset";
+    }
+
     public FocusInput() {
+        if(!this.visible) return;
         this.slider.currentPosition.focus();
     }
     public set StrandLabels(newLabels: string[]) {
