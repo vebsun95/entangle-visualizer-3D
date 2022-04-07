@@ -9,6 +9,7 @@ import { View } from './interfaces/interfaces';
 import { noDataView } from './views/noDataView';
 import { updateLabel } from './utils/updateLabels';
 import { CylinderView } from './views/cylinderView';
+import { LatticeClickedEvent } from './events/latticeClicked';
 
 
 
@@ -43,7 +44,7 @@ export class RendererObject extends DataContainer {
         } else if(newView === 2) {
             this.view = new CylinderView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
         } else {
-            this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
+            this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
         }
         this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
         this.view.HandleUpdatedData();
@@ -155,7 +156,7 @@ export class RendererObject extends DataContainer {
         if(this.Simulating) return;
 
         this.rayCaster.setFromCamera({x: (e.clientX / window.innerWidth) * 2 - 1, y: -(e.clientY / window.innerHeight) * 2 + 1}, this.camera);
-        var intersects = this.rayCaster.intersectObjects(this.scene.children);  
+        var intersects = this.rayCaster.intersectObjects(this.scene.children);
         if (intersects.length == 0) return;
         let index, strand;
         let obj = intersects[0].object;
@@ -165,7 +166,7 @@ export class RendererObject extends DataContainer {
         } else if (obj.parent?.name == "vertecies") {
             index = obj.userData.index;
         }
-        dispatchEvent(new CustomEvent("lattice-clicked", {detail: {strand: strand, index: index}, bubbles: true}));
+        this.renderer.domElement.dispatchEvent( new LatticeClickedEvent(strand, index, {bubbles: true}) );
     }
 
     private updateLabel(newLabel: string, ctx: CanvasRenderingContext2D, backgroundColor: number, isInode: boolean) {

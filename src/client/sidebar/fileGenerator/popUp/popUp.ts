@@ -1,3 +1,4 @@
+import { DataGeneratedEvent } from "../../events/dataGenerated";
 import { GenerateParities } from "./utilts/generateParities";
 import { GenerateParityShift } from "./utilts/generateParityShift";
 import { GenerateVertices } from "./utilts/generateVertecies";
@@ -102,7 +103,7 @@ class PopUp {
         let vertices = GenerateVertices(nrdata);
         let parities = GenerateParities(alpha, s, p, nrdata, funcStrings);
         let parityShift = GenerateParityShift(nrdata);
-        this.Container.dispatchEvent( new CustomEvent("data-generated", {detail: 
-            {vertices: vertices, alpha: alpha, s: s, p:p, parities: parities, parityShift: parityShift}, bubbles: true}) );
+        this.Container.dispatchEvent( new DataGeneratedEvent(vertices, alpha, s, p, parities, parityShift, {bubbles: true}));
+
     }
 }

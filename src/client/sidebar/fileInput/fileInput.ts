@@ -1,4 +1,6 @@
 import { timeStamp } from "console";
+import { LogChangedEvent } from "../events/logChangedEvent";
+import { NewFileUploadEvent } from "../events/newFileUpload";
 import { StartPoints } from "./interfaces/interfaces";
 
 export class FileInput {
@@ -69,7 +71,7 @@ export class FileInput {
         for (var [i, line] of lines.entries()) {
             logEntries[i] = JSON.parse(line);
         }
-        this.Container.dispatchEvent(new CustomEvent("log-changed", { detail: { newContent: logEntries }, bubbles: true }))
+        this.Container.dispatchEvent(new LogChangedEvent( logEntries, {bubbles: true} ))
     }
 
     private findStartPoints() {
@@ -93,7 +95,7 @@ export class FileInput {
             }
         }
         this.fileRead = true;
-        this.Container.dispatchEvent(new CustomEvent("new-file-upload", { detail: { fileName: this.currentFile!.name, nrOfLogs: this.startPoints.length }, bubbles: true }))
+        this.Container.dispatchEvent( new NewFileUploadEvent(this.currentFile!.name, this.startPoints.length, {bubbles: true}) )
     }
 
     private handleFileChange(e: InputEvent) {

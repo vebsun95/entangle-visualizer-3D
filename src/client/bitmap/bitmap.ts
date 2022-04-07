@@ -2,6 +2,7 @@ import { Vec2 } from "three";
 import { DataContainer } from "../SharedKernel/dataContainer";
 import { Vertex } from "../SharedKernel/interfaces";
 import { convertHexToStringColor } from "../SharedKernel/utils";
+import { BitMapClickedEvent } from "./Events/bitMapClicked";
 import { rect, vec2 } from "./interfaces/interfaces";
 
 
@@ -258,7 +259,7 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.width = this.viewBox.style.width;
 
         var vertexIndex = this.getIndexFromCoord(event.offsetX, event.offsetY);
-        dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
+        this.Container.dispatchEvent( new BitMapClickedEvent({bubbles: true}, vertexIndex) )
     }
 
     public Update() {
@@ -276,7 +277,7 @@ export class BitMap extends DataContainer {
         let coords = this.getCoordFromIndex(vertexIndex);
         this.viewBoxLocked.style.left = coords[0].toString() + "px";
         this.latticeCanvas.scrollTo(coords[0] - window.innerWidth / 2, 0);
-        dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
+        this.Container.dispatchEvent( new BitMapClickedEvent({bubbles: true}, vertexIndex) )
     }
 
     public Hide() {
@@ -289,3 +290,4 @@ export class BitMap extends DataContainer {
         this.toggleVisible();
     }
 }
+

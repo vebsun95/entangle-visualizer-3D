@@ -2,6 +2,9 @@ import { PositionalAudio } from "three";
 import { COLORS } from "../../SharedKernel/constants";
 import { DownloadConfigLog, ParityEvent, VertexEvent } from "../../SharedKernel/interfaces";
 import { convertHexToStringColor } from "../../SharedKernel/utils";
+import { ChangeViewEvent } from "../events/changeView";
+import { LogChangedClickedEvent } from "../events/logChangedClicked";
+import { LogEntryEvent } from "../events/logEntryEvents";
 import { StatsTable, Slider, LogTable, ChangeViewsButtons, LogRow } from "./interfaces/interfaces";
 
 export class PlayBack {
@@ -100,12 +103,12 @@ export class PlayBack {
         this.addViewsToDropDown();
         this.changeViewDropDown.addEventListener("change", () => {
             var value = parseInt(this.changeViewDropDown.value)
-            dispatchEvent( new CustomEvent("change-view", { detail: { NewView: value } }));
+            this.Container.dispatchEvent( new ChangeViewEvent(value, {bubbles: true}));
         });
 
         this.changeLogDropDown.addEventListener("change", () => {
             var value = parseInt(this.changeLogDropDown.value)
-            dispatchEvent( new CustomEvent("log-changed-clicked", { detail: { changeToLog: value } }));
+            this.Container.dispatchEvent( new LogChangedClickedEvent(value, {bubbles: true}) );
         });
 
         var st = this.statsTable;
@@ -271,8 +274,7 @@ export class PlayBack {
                 }
             }
             this.setCurrentPos(this.currentPos + count);
-
-            dispatchEvent(new CustomEvent("logEntryEvents", { detail: { NeedsReset: needsReset, ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
+            this.Container.dispatchEvent( new LogEntryEvent(vertexEvents, parityEvents, needsReset, {bubbles: true}) );
         }
 
     }

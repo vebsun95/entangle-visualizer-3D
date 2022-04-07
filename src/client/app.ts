@@ -6,6 +6,15 @@ import { SideBar } from "./sidebar/sidebar";
 import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./SharedKernel/interfaces";
 import { COLORS, DLStatus, MSG, RepStatus } from "./SharedKernel/constants";
 import { parseLogVertexEntry } from "./SharedKernel/utils";
+import { BitMapClickedEvent } from "./bitmap/Events/bitMapClicked";
+import { BackToStartEvent } from "./sidebar/events/backToStart";
+import { DataGeneratedEvent } from "./sidebar/events/dataGenerated";
+import { NewFileUploadEvent } from "./sidebar/events/newFileUpload";
+import { LogChangedEvent } from "./sidebar/events/logChangedEvent";
+import { LogChangedClickedEvent } from "./sidebar/events/logChangedClicked";
+import { ChangeViewEvent } from "./sidebar/events/changeView";
+import { LogEntryEvent } from "./sidebar/events/logEntryEvents";
+import { LatticeClickedEvent } from "./renderer/events/latticeClicked";
 
 
 
@@ -55,58 +64,23 @@ export class App {
     }
 
     AddEventListeners() {
-        this.Container.addEventListener("data-generated", this.HandleDataGenerated.bind(this) as EventListener);
-        this.Container.addEventListener("back-to-start", this.HandleBackToStart.bind(this));
-        window.addEventListener("bitmap-clicked", this.HandleBitMapClicked.bind(this) as EventListener);
-        this.Container.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
-        window.addEventListener("log-changed-clicked", this.HandleLogChangedClicked.bind(this) as EventListener);
-        this.Container.addEventListener("log-changed", this.HandleLogChanged.bind(this) as EventListener);
-        this.Container.addEventListener("download", this.HandleDownload.bind(this));
-        window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
-        window.addEventListener("lattice-clicked", this.HandleLatticeClicked.bind(this) as EventListener);
-        window.addEventListener("change-view", this.HandleChangeView.bind(this) as EventListener);
+        this.Container.addEventListener(DataGeneratedEvent.EventName, this.HandleDataGenerated.bind(this) as EventListener);
+        this.Container.addEventListener(BackToStartEvent.EventName, this.HandleBackToStart.bind(this));
+        this.Container.addEventListener(BitMapClickedEvent.EventName, this.HandleBitMapClicked.bind(this) as EventListener);
+        this.Container.addEventListener(NewFileUploadEvent.EventName, this.HandleNewFileUploaded.bind(this) as EventListener);
+        this.Container.addEventListener(LogChangedClickedEvent.EventName, this.HandleLogChangedClicked.bind(this) as EventListener);
+        this.Container.addEventListener(LogChangedEvent.EventName, this.HandleLogChanged.bind(this) as EventListener);
+        this.Container.addEventListener(LogEntryEvent.EventName, this.HandleLogEntryEvents.bind(this) as EventListener);
+        this.Container.addEventListener(ChangeViewEvent.EventName, this.HandleChangeView.bind(this) as EventListener);
+        window.addEventListener(LatticeClickedEvent.EventName, this.HandleLatticeClicked.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
         window.addEventListener("keydown", this.HandleKeyDown.bind(this));
         window.addEventListener("keyup", this.HandleKeyUp.bind(this))
     }
 
-    HandleDownload() {
-        let text = "failedList[0] = unavailfaillist(";
-        let atLeatOnce: boolean = false;
-        for(let vertex of this.vertices.values()) {
-            if (vertex.Color == COLORS.RED) {
-                text += vertex.Index.toString() + ", "
-                atLeatOnce = true;
-            }
-        }
-        if(atLeatOnce) {
-            text = text.slice(0, text.length - 2) + ")\n";
-        } else {
-            text += ")\n"
-        }
-        for(let [strand, parityMap] of this.parities.entries()) {
-            atLeatOnce = false;
-            text += "failedList[" + (strand + 1).toString() + "] = unavailfaillist(";
-            for(let parity of parityMap.values()) {
-                if(parity.Color == COLORS.RED) {
-                    text += parity.Index.toString() + ", "
-                    atLeatOnce = true;
-                }
-            }
-            if (atLeatOnce) {
-                text = text.slice(0, text.length - 2) + ")\n";
-            } else {
-                text += ")\n";
-            }
-        }
-        
-        navigator.clipboard.writeText(text);
-
-    }
-
-    HandleLatticeClicked(e: CustomEvent) {
-        let strand = e.detail.strand;
-        let index = e.detail.index;
+    HandleLatticeClicked(e: LatticeClickedEvent) {
+        let strand = e.strand;
+        let index = e.index;
         if (strand != null && index != null) {
             let parity = this.parities[strand].get(index)!;
             if (parity.Color == COLORS.RED) {
@@ -127,14 +101,14 @@ export class App {
         this.merkelTree.Update();
     }
 
-    HandleDataGenerated(e: CustomEvent) {
+    HandleDataGenerated(e: DataGeneratedEvent) {
         this.renderer.Simulating = false;
-        this.alpha = e.detail.alpha;
-        this.s = e.detail.s;
-        this.p = e.detail.p;
-        this.vertices = e.detail.vertices;
-        this.parities = e.detail.parities;
-        this.parityShift = e.detail.parityShift;
+        this.alpha = e.alpha;
+        this.s = e.s;
+        this.p = e.p;
+        this.vertices = e.vertices;
+        this.parities = e.parities;
+        this.parityShift = e.parityShift;
         let strandLabels = Array(this.alpha);
         for(let i=0; i<strandLabels.length; i++) {
             strandLabels[i] = "Strand: " + (i + 1).toString();
@@ -148,8 +122,8 @@ export class App {
         this.renderer.Simulating = true;
     }
 
-    HandleChangeView(e: CustomEvent) {
-        this.renderer.View = e.detail.NewView;
+    HandleChangeView(e: ChangeViewEvent) {
+        this.renderer.View = e.newView;
     }
 
     HandleKeyUp(e: KeyboardEvent) {
@@ -203,14 +177,14 @@ export class App {
             }
         }
     }
-    HandleLogEntryEvents(e: CustomEvent) {
+    HandleLogEntryEvents(e: LogEntryEvent) {
         var vertexEvent: VertexEvent;
         var parityEvent: ParityEvent;
         var vertex: Vertex;
         var parity: Parity;
         var oldColor: number;
         var deltaDDL= 0, deltaDRep = 0, deltaDUna = 0, deltaPDL = 0, deltaPRep = 0, deltaPUna = 0;
-        if (e.detail.NeedsReset) {
+        if (e.NeedsReset) {
             // If true sets all state variables back to default.
             for (var vertex of this.vertices.values()) {
                 vertex.Color = COLORS.GREY;
@@ -233,7 +207,7 @@ export class App {
             this.sideBar.PlayBackEle.NrOfParityUna = 0;
     
         }
-        for (vertexEvent of e.detail.VertexEvents) {
+        for (vertexEvent of e.VertexEvents) {
             vertex = this.vertices.get(vertexEvent.Position)!;
             switch (vertex.Color) {
                 case COLORS.GREEN:
@@ -268,7 +242,7 @@ export class App {
                 vertex.DamagedChildren--;
             }
         }
-        for (parityEvent of e.detail.ParityEvents) {
+        for (parityEvent of e.ParityEvents) {
             let strand = parityEvent.Strand;
             parity = this.parities[strand].get(parityEvent.Index)!;
             switch (parity.Color) {
@@ -319,24 +293,24 @@ export class App {
         this.bitMap.Update();
         this.merkelTree.Update();
     }
-    HandleBitMapClicked(e: CustomEvent) {
-        this.renderer.GoTo(e.detail.vertexIndex)
+    HandleBitMapClicked(e: BitMapClickedEvent) {
+        this.renderer.GoTo(e.VertexIndex)
     }
-    HandleNewFileUploaded(e: CustomEvent) {
+    HandleNewFileUploaded(e: NewFileUploadEvent) {
         this.renderer.Simulating = true;
-        this.sideBar.PlayBackEle.Filename = e.detail.fileName;
-        this.sideBar.PlayBackEle.CreateChangeLogBtns(e.detail.nrOfLogs);
+        this.sideBar.PlayBackEle.Filename = e.fileName;
+        this.sideBar.PlayBackEle.CreateChangeLogBtns(e.nrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);
     }
-    HandleLogChangedClicked(e: CustomEvent) {        
-        let newLog = e.detail.changeToLog;
+    HandleLogChangedClicked(e: LogChangedClickedEvent) {        
+        let newLog = e.changeToLog;
         this.sideBar.FileInput.ChangeLog(newLog);
     }
-    HandleLogChanged(e: CustomEvent) {
+    HandleLogChanged(e: LogChangedEvent) {
         var lineCounter, parityIndex: number;
         lineCounter = 0;
 
-        let content: ContentJSON[] = e.detail.newContent
+        let content: ContentJSON[] = e.newContent
         var line: ContentJSON = content[lineCounter++]
         this.alpha = (line.log as DownloadConfigLog).alpha;
         this.s = (line.log as DownloadConfigLog).s;
