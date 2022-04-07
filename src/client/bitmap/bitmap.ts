@@ -86,7 +86,7 @@ export class BitMap extends DataContainer {
 
     private fillLookUpTable() {
         var oldPosMap: Map<number, vec2> = new Map();
-        var oldPos: Vec2, width: number, row: number = 0, column: number = 0;
+        var oldPos: Vec2, width: number;
         for (let depth = 2; depth < this.maxDepth; depth++) {
             oldPosMap.set(depth, { x: 0, y: this.pixelHeight * (this.maxDepth - depth - 1) })
         }
@@ -95,14 +95,14 @@ export class BitMap extends DataContainer {
         for (var [position, vertex] of [...this.vertices.entries()]
             .filter((v) => { return v[1].Depth > 1 && v[1].Depth < this.maxDepth })
             .sort((a, b) => a[1].Index - b[1].Index)) {
-            column = Math.floor((vertex.Index - 1) / this.s)
-            row = (vertex.Index - 1) % this.s
             oldPos = oldPosMap.get(vertex.Depth)!;
             width = (Math.ceil(vertex.Index / this.s) * this.pixelWidth) - oldPos.x;
             oldPosMap.set(vertex.Depth, { x: oldPos.x + width, y: oldPos.y })
             this.treeCanvasesLookup.set(position, { x: oldPos.x, y: oldPos.y, width: width, height: this.pixelHeight })
         }
     }
+
+    
 
     private createRuler() {
         var rulerStep = window.innerWidth / 7 - 1; // How often do you mark the ruler.
