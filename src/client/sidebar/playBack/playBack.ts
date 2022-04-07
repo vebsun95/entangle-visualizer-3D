@@ -46,13 +46,7 @@ export class PlayBack {
     };
     private currentPos: number = 0;
     private changeLogDropDown: HTMLSelectElement = document.createElement("select");
-    private changeButtons: ChangeViewsButtons = {
-        container: document.createElement("div"),
-        logsDD: document.createElement("select"),
-        twoDView: document.createElement("button"),
-        cylinderView: document.createElement("button"),
-        tortoisView: document.createElement("button"),
-    }
+    private changeViewDropDown: HTMLSelectElement = document.createElement("select");
     private strandLabels: string[] = [];
 
     constructor() {
@@ -101,21 +95,13 @@ export class PlayBack {
     }
 
     private createLayout() {
-        this.changeButtons.twoDView.innerText = "2D view";
-        this.changeButtons.twoDView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 1 }}));
-        });
-        this.changeButtons.cylinderView.innerText = "Cylinder View";
-        this.changeButtons.cylinderView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 2 }}));
-        });
-        this.changeButtons.tortoisView.innerText = "Tortois View";
-        this.changeButtons.tortoisView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 3 }}));
-        });
 
-        this.changeButtons.container.append(this.changeLogDropDown, this.changeButtons.twoDView, this.changeButtons.cylinderView, this.changeButtons.tortoisView);
-
+        this.changeViewDropDown.id = "view-dropdown";
+        this.addViewsToDropDown();
+        this.changeViewDropDown.addEventListener("change", () => {
+            var value = parseInt(this.changeViewDropDown.value)
+            dispatchEvent( new CustomEvent("change-view", { detail: { NewView: value } }));
+        });
 
         this.changeLogDropDown.addEventListener("change", () => {
             var value = parseInt(this.changeLogDropDown.value)
@@ -198,7 +184,7 @@ export class PlayBack {
 
         this.logTable.table.classList.add("log-table");
 
-        this.Container.append(this.changeButtons.container, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
+        this.Container.append(this.changeLogDropDown, this.changeViewDropDown, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
     public HandleUpdatedData(alpha: number, s: number, p: number) {
@@ -232,6 +218,36 @@ export class PlayBack {
         this.NrOfParityUna = 0;
     }
 
+    private handleSliderChange(optValue: number | null = null) {
+        var newValue: number = optValue != null ? optValue : this.slider.input.valueAsNumber;
+        if (newValue < this.currentPos) {
+            this.backClicked(this.currentPos - newValue);
+        }
+        else if (newValue > this.currentPos) {
+            this.simulate(newValue - this.currentPos);
+        }
+    }
+
+    private addViewsToDropDown() {
+        let opt: HTMLOptionElement;
+        let i = 0;
+
+        opt = document.createElement("option");
+        opt.innerText = "2D view";
+        opt.value = (++i).toString();
+        this.changeViewDropDown.append(opt);
+
+        opt = document.createElement("option");
+        opt.innerText = "Cylinder view";
+        opt.value = (++i).toString();
+        this.changeViewDropDown.append(opt);
+
+        opt = document.createElement("option");
+        opt.innerText = "Toruse view";
+        opt.value = (++i).toString();
+        this.changeViewDropDown.append(opt);
+    }
+
     private backClicked(n: number) {
         if (this.currentPos > 0) {
             var oldpos = this.currentPos;
@@ -259,16 +275,6 @@ export class PlayBack {
             dispatchEvent(new CustomEvent("logEntryEvents", { detail: { NeedsReset: needsReset, ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
         }
 
-    }
-
-    private handleSliderChange(optValue: number | null = null) {
-        var newValue: number = optValue != null ? optValue : this.slider.input.valueAsNumber;
-        if (newValue < this.currentPos) {
-            this.backClicked(this.currentPos - newValue);
-        }
-        else if (newValue > this.currentPos) {
-            this.simulate(newValue - this.currentPos);
-        }
     }
 
     public SimulateClick(n: number) {
@@ -310,6 +316,7 @@ export class PlayBack {
         if(!this.visible) return;
         this.slider.currentPosition.focus();
     }
+
     public set StrandLabels(newLabels: string[]) {
         this.strandLabels = ["D", ... newLabels.map( (s) => {return s[0]} )];
     }
