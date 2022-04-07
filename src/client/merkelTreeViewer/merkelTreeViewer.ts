@@ -111,7 +111,7 @@ export class MerkelTreeViewer extends DataContainer {
             tile.Container.append(tile.Rect, tile.Text);
             tile.Container.addEventListener("click", () => { this.tileOnClickHandler(i) });
             tile.Container.addEventListener("mouseenter", () => { this.tileMouseEnterHandler(i) })
-            tile.Container.addEventListener("mouseleave", this.tileMouseLeaveHandler.bind(this));
+            tile.Container.addEventListener("mouseleave", () => this.tileMouseLeaveHandler(i));
 
             this.svgElement.append(tile.Container);
             this.tiles[i] = tile
@@ -269,28 +269,16 @@ export class MerkelTreeViewer extends DataContainer {
     }
 
     private tileMouseEnterHandler(tileIndex: number) {
-        return ;
-        // var currentRootNode = this.getCurrentRootNode();
-        // let childIndex = currentRootNode.Children[tileIndex]
-        // currentRootNode = this.getRootNode(childIndex);
-        // if (currentRootNode.DamagedChildren.length > 0) {
-        //     this.mouseOverEle.Container.style.display = "unset";
-        //     this.mouseOverEle.Container.style.left = this.tiles[tileIndex].Container.getAttribute("x") + "px";
-        //     this.mouseOverEle.Container.style.top = this.tiles[tileIndex].Container.getAttribute("y") + "px";
-        //     this.mouseOverEle.List.innerHTML = "";
-        //     var li: HTMLLIElement;
-        //     var vertex: Vertex;
-        //     for (let i = 0; i < currentRootNode.DamagedChildren.length && i < 5; i++) {
-        //         vertex = this.getRootNode(currentRootNode.DamagedChildren[i]);
-        //         li = document.createElement("li");
-        //         li.innerText = `Vertex: ${vertex.Index}. Depth: ${vertex.Depth}`;
-        //         this.mouseOverEle.List.append(li);
-        //     }
-        // }
+        let rootNode = this.getCurrentRootNode();
+        let tile = this.tiles[tileIndex];
+        tile.Text.innerHTML = (rootNode.Children[tileIndex]).toString();
     }
 
-    private tileMouseLeaveHandler() {
-        this.mouseOverEle.Container.style.display = "none";
+    private tileMouseLeaveHandler(tileIndex: number) {
+        let rootNode = this.getCurrentRootNode();
+        let childeNode = this.getRootNode(rootNode.Children[tileIndex]);
+        let tile = this.tiles[tileIndex];
+        tile.Text.innerHTML = (childeNode.Index).toString();
     }
 
     private breadCrumbOnClickHandler(rootNodeIndex: number) {
