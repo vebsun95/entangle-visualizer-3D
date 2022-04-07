@@ -406,7 +406,6 @@ export class App {
             if (line.msg == MSG.DlEntry) {
                 logEntry = line.log as DownloadEntryLog;
 
-
                 if (logEntry.downloadStatus == DLStatus.Pending || logEntry.repairStatus == RepStatus.Pending) {
                     line = content[lineCounter++]
 
@@ -416,8 +415,11 @@ export class App {
                     strand = ParityLabels.indexOf(logEntry.class);
                     from = this.parityShift.get(logEntry.start!)!;
                     to = this.parityShift.get(logEntry.end!)!;
-                    if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
+                    if (logEntry.downloadStatus === DLStatus.Failed && logEntry.repairStatus == RepStatus.NoRep && !logEntry.hasData) {
                         color = COLORS.RED;
+                    }
+                    else if (logEntry.downloadStatus === DLStatus.Failed && logEntry.repairStatus == RepStatus.Failed && !logEntry.hasData) {
+                        color = COLORS.YELLOW;
                     }
                     else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
                         color = COLORS.BLUE
