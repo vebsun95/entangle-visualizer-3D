@@ -6,7 +6,6 @@ import { SideBar } from "./sidebar/sidebar";
 import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./SharedKernel/interfaces";
 import { COLORS, DLStatus, MSG, RepStatus } from "./SharedKernel/constants";
 import { parseLogVertexEntry } from "./SharedKernel/utils";
-import { OneFactor } from "three";
 
 
 
@@ -72,7 +71,6 @@ export class App {
     }
 
     HandleDownload() {
-        let filename = "test.txt";
         let text = "failedList[0] = unavailfaillist(";
         let atLeatOnce: boolean = false;
         for(let vertex of this.vertices.values()) {
@@ -388,14 +386,15 @@ export class App {
         }
         var swappedVertex: Vertex;
         var tempDepth: number;
+        var tempParent: number;
         var allReadySwapped: number[] = [];
         for (var [position, vertex] of this.vertices.entries()) {
-            if (vertex.Parent != 0) {
-                this.vertices.get(vertex.Parent)?.Children.push(dataShiftRegister[position]);
-            }
             if (position != vertex.Index && (!allReadySwapped.includes(position) || !allReadySwapped.includes(vertex.Index))) {
                 swappedVertex = this.vertices.get(vertex.Index)!;
 
+                tempParent = vertex.Parent;
+                vertex.Parent = swappedVertex.Parent;
+                swappedVertex.Parent = tempParent;
 
                 tempDepth = vertex.Depth;
                 vertex.Depth = swappedVertex.Depth;
@@ -404,11 +403,25 @@ export class App {
                 allReadySwapped.push(position, vertex.Index);
             }
         }
+        for(var [position, vertex] of this.vertices.entries()) {
+            if (vertex.Parent != 0) {
+                this.vertices.get(vertex.Parent)?.Children.push(position);
+            }
+        }
         for (var parityMap of this.parities) {
             for (var [position, parity] of parityMap.entries()) {
                 if (parity.Parent != 0) {
                     parityMap.get(parity.Parent)!.Children.push(parity.Index);
                 }
+            }
+        }
+        for(var vertex of this.vertices.values()){
+            if (vertex.Children.length) {
+                vertex.Children.sort((a, b) => {
+                    var v1 = this.vertices.get(a)!;
+                    var v2 = this.vertices.get(b)!;
+                    return v1.Index - v2.Index; 
+                })
             }
         }
 
