@@ -269,12 +269,15 @@ export class MerkelTreeViewer extends DataContainer {
     }
 
     private tileMouseEnterHandler(tileIndex: number) {
+        if(this.currentView != 0) return;
         let rootNode = this.getCurrentRootNode();
+        if(rootNode.Depth <= 2) return;
         let tile = this.tiles[tileIndex];
-        tile.Text.innerHTML = (rootNode.Children[tileIndex]).toString();
+        tile.Text.innerHTML = "( " + (rootNode.Children[tileIndex]).toString() + " )";
     }
 
     private tileMouseLeaveHandler(tileIndex: number) {
+        if(this.currentView != 0) return;
         let rootNode = this.getCurrentRootNode();
         let childeNode = this.getRootNode(rootNode.Children[tileIndex]);
         let tile = this.tiles[tileIndex];
