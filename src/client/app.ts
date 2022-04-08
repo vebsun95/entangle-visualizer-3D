@@ -58,9 +58,6 @@ export class App {
         this.bitMap.HandleUpdatedData();
         this.merkelTree.HandleUpdatedDate();
         this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p);
-
-        this.bitMap.Show();
-        this.merkelTree.Show();
     }
 
     AddEventListeners() {
@@ -83,17 +80,27 @@ export class App {
         let index = e.index;
         if (strand != null && index != null) {
             let parity = this.parities[strand].get(index)!;
-            if (parity.Color == COLORS.RED) {
-                parity.Color = COLORS.GREY;
-            } else {
+            if(parity.Color == COLORS.GREY) {
                 parity.Color = COLORS.RED;
+                this.sideBar.FileGenerator.SetUnavailable(index, strand);
+            } else if(parity.Color == COLORS.RED) {
+                parity.Color = COLORS.YELLOW;
+                this.sideBar.FileGenerator.SetDelayed(index, strand);
+            } else if(parity.Color == COLORS.YELLOW) {
+                parity.Color = COLORS.GREY;
+                this.sideBar.FileGenerator.RemoveIndex(index,strand);
             }
         } else if( index != null ) {
             let vertex = this.vertices.get(index)!;
-            if (vertex.Color == COLORS.RED) {
-                vertex.Color = COLORS.GREY;
-            } else {
+            if (vertex.Color == COLORS.GREY) {
                 vertex.Color = COLORS.RED;
+                this.sideBar.FileGenerator.SetUnavailable(index, null);
+            } else if (vertex.Color == COLORS.RED){
+                vertex.Color = COLORS.YELLOW;
+                this.sideBar.FileGenerator.SetDelayed(index, null);
+            } else if (vertex.Color == COLORS.YELLOW) {
+                vertex.Color = COLORS.GREY;
+                this.sideBar.FileGenerator.RemoveIndex(index, null)
             }
         }
         this.renderer.Update();
@@ -120,6 +127,8 @@ export class App {
     HandleBackToStart() {
         this.renderer.View = 0;
         this.renderer.Simulating = true;
+        this.bitMap.Hide();
+        this.merkelTree.Hide();
     }
 
     HandleChangeView(e: ChangeViewEvent) {
@@ -183,7 +192,7 @@ export class App {
         var vertex: Vertex;
         var parity: Parity;
         var oldColor: number;
-        var deltaDDL= 0, deltaDRep = 0, deltaDUna = 0, deltaPDL = 0, deltaPRep = 0, deltaPUna = 0;
+        var deltaDDL= 0, deltaDRep = 0, deltaDUna = 0, deltaDRepF = 0, deltaPDL = 0, deltaPRep = 0, deltaPUna = 0, deltaPRepF = 0;
         if (e.NeedsReset) {
             // If true sets all state variables back to default.
             for (var vertex of this.vertices.values()) {
@@ -202,9 +211,11 @@ export class App {
             this.sideBar.PlayBackEle.NrOfDataDl = 0;
             this.sideBar.PlayBackEle.NrOfDataRep = 0;
             this.sideBar.PlayBackEle.NrOfDataUna = 0;
+            this.sideBar.PlayBackEle.NrOfDataRepFailed = 0;
             this.sideBar.PlayBackEle.NrOfParityDl = 0;
             this.sideBar.PlayBackEle.NrOfParityRep = 0;
             this.sideBar.PlayBackEle.NrOfParityUna = 0;
+            this.sideBar.PlayBackEle.NrOfParityRepFailed = 0;
     
         }
         for (vertexEvent of e.VertexEvents) {
@@ -219,7 +230,9 @@ export class App {
                 case COLORS.BLUE:
                     deltaDRep--;
                     break;
-
+                case COLORS.YELLOW:
+                    deltaDRepF--;
+                    break;
             }
             switch (vertexEvent.NewColor) {
                 case COLORS.GREEN:
@@ -229,8 +242,10 @@ export class App {
                     deltaDUna++;
                     break;
                 case COLORS.BLUE:
-                    deltaDRep++
-                break;
+                    deltaDRep++;
+                    break;
+                case COLORS.YELLOW:
+                    deltaDRepF++;
             }
             oldColor = vertex.Color;
             vertex.Color = vertexEvent.NewColor;
@@ -255,18 +270,22 @@ export class App {
                 case COLORS.BLUE:
                     deltaPRep--
                     break;
-
+                case COLORS.YELLOW:
+                    deltaPRepF--;
+                    break;
             }
             switch (parityEvent.NewColor) {
                 case COLORS.GREEN:
-                    deltaPDL++
+                    deltaPDL++;
                     break;
                 case COLORS.RED:
-                    deltaPUna++
+                    deltaPUna++;
                     break;
                 case COLORS.BLUE:
-                    deltaPRep++
-                break;
+                    deltaPRep++;
+                    break;
+                case COLORS.YELLOW:
+                    deltaPRepF++;
             }
             parity.From = parityEvent.From;
             parity.To = parityEvent.To;
@@ -281,13 +300,15 @@ export class App {
             }
 
         }
-        this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL;
-        this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep;
-        this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna;
+        deltaDDL  ? this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL : null;
+        deltaDRep ? this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep : null;
+        deltaDUna ? this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna : null;
+        deltaDRepF? this.sideBar.PlayBackEle.NrOfDataRepFailed += deltaDRepF : null;
 
-        this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL;
-        this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep;
-        this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna;
+        deltaPDL  ? this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL : null;
+        deltaPRep ? this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep : null;
+        deltaPUna ? this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna : null;
+        deltaPRepF? this.sideBar.PlayBackEle.NrOfParityRepFailed += deltaPRepF : null;
 
         this.renderer.Update();
         this.bitMap.Update();
@@ -298,6 +319,8 @@ export class App {
     }
     HandleNewFileUploaded(e: NewFileUploadEvent) {
         this.renderer.Simulating = true;
+        this.bitMap.Show();
+        this.merkelTree.Show();
         this.sideBar.PlayBackEle.Filename = e.fileName;
         this.sideBar.PlayBackEle.CreateChangeLogBtns(e.nrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);
@@ -454,7 +477,6 @@ export class App {
         this.sideBar.PlayBackEle.StrandLabels = ParityLabels;
         this.sideBar.PlayBackEle.LogEntries = LogEntries;
         this.UpdateData();
-
     }
     HandleWindowResize() {
         this.renderer.onWindowResize();

@@ -1,4 +1,3 @@
-import { PositionalAudio } from "three";
 import { COLORS } from "../../SharedKernel/constants";
 import { DownloadConfigLog, ParityEvent, VertexEvent } from "../../SharedKernel/interfaces";
 import { convertHexToStringColor } from "../../SharedKernel/utils";
@@ -31,7 +30,14 @@ export class PlayBack {
             row: document.createElement("tr"),
             type: document.createElement("td"),
             dataCell: document.createElement("td"),
-            parityCell: document.createElement("td")},
+            parityCell: document.createElement("td")
+        },
+        failedRepRow: {
+            row: document.createElement("tr"),
+            type: document.createElement("td"),
+            dataCell: document.createElement("td"),
+            parityCell: document.createElement("td")
+        }
     }
     private JumpBackButton: HTMLButtonElement = document.createElement("button");
     private BackButton: HTMLButtonElement = document.createElement("button");
@@ -144,7 +150,14 @@ export class PlayBack {
         st.failedRow.parityCell.classList.add("align-Right");
         st.failedRow.row.append(st.failedRow.type, st.failedRow.dataCell, st.failedRow.parityCell);
 
-        st.table.append(st.fileName, st.config, st.header, st.dlRow.row, st.repRow.row, st.failedRow.row);
+        st.failedRepRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.YELLOW) + ';">&#11044;</span> Rep failed: ';
+        st.failedRepRow.dataCell.innerHTML = "0";
+        st.failedRepRow.dataCell.classList.add("align-Right");
+        st.failedRepRow.parityCell.innerHTML = "0";
+        st.failedRepRow.parityCell.classList.add("align-Right");
+        st.failedRepRow.row.append(st.failedRepRow.type, st.failedRepRow.dataCell, st.failedRepRow.parityCell);
+
+        st.table.append(st.fileName, st.config, st.header, st.dlRow.row, st.repRow.row, st.failedRow.row, st.failedRepRow.row);
 
         this.JumpBackButton.innerHTML = '<i class = "fa fa-fast-backward"></i>';
         this.BackButton.innerHTML = '<i class = "fa fa-step-backward"></i>';
@@ -361,6 +374,16 @@ export class PlayBack {
     }
     // -----
 
+    // DATA Unavailable
+    public set NrOfDataRepFailed(value: number) {
+        this.statsTable.failedRepRow.dataCell.innerText = value.toString();
+    }
+    
+    public get NrOfDataRepFailed(): number {
+        return parseInt(this.statsTable.failedRepRow.dataCell.innerText)
+    }
+    // -----
+
     // Parity Download
     public set NrOfParityDl(value: number) {
         this.statsTable.dlRow.parityCell.innerText = value.toString();
@@ -388,6 +411,16 @@ export class PlayBack {
     
     public get NrOfParityUna(): number {
         return parseInt(this.statsTable.failedRow.parityCell.innerText)
+    }
+    // ----
+
+    // Parity Rep failed
+    public set NrOfParityRepFailed(value: number) {
+        this.statsTable.failedRepRow.parityCell.innerText = value.toString();
+    }
+    
+    public get NrOfParityRepFailed(): number {
+        return parseInt(this.statsTable.failedRepRow.parityCell.innerText)
     }
     // ----
 }
