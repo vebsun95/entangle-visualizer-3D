@@ -2,6 +2,7 @@ import { Vec2 } from "three";
 import { DataContainer } from "../SharedKernel/dataContainer";
 import { Vertex } from "../SharedKernel/interfaces";
 import { convertHexToStringColor } from "../SharedKernel/utils";
+import { BitMapClickedEvent } from "./Events/bitMapClicked";
 import { rect, vec2 } from "./interfaces/interfaces";
 
 
@@ -86,7 +87,7 @@ export class BitMap extends DataContainer {
 
     private fillLookUpTable() {
         var oldPosMap: Map<number, vec2> = new Map();
-        var oldPos: Vec2, width: number, row: number = 0, column: number = 0;
+        var oldPos: Vec2, width: number;
         for (let depth = 2; depth < this.maxDepth; depth++) {
             oldPosMap.set(depth, { x: 0, y: this.pixelHeight * (this.maxDepth - depth - 1) })
         }
@@ -95,14 +96,14 @@ export class BitMap extends DataContainer {
         for (var [position, vertex] of [...this.vertices.entries()]
             .filter((v) => { return v[1].Depth > 1 && v[1].Depth < this.maxDepth })
             .sort((a, b) => a[1].Index - b[1].Index)) {
-            column = Math.floor((vertex.Index - 1) / this.s)
-            row = (vertex.Index - 1) % this.s
             oldPos = oldPosMap.get(vertex.Depth)!;
             width = (Math.ceil(vertex.Index / this.s) * this.pixelWidth) - oldPos.x;
             oldPosMap.set(vertex.Depth, { x: oldPos.x + width, y: oldPos.y })
             this.treeCanvasesLookup.set(position, { x: oldPos.x, y: oldPos.y, width: width, height: this.pixelHeight })
         }
     }
+
+    
 
     private createRuler() {
         var rulerStep = window.innerWidth / 7 - 1; // How often do you mark the ruler.
@@ -180,7 +181,7 @@ export class BitMap extends DataContainer {
         }
 
         this.treeCanvases.setAttribute("width", this.containerWidth.toString() + "px");
-        this.treeCanvases.setAttribute("height", ((this.maxDepth - 2) * this.pixelHeight).toString() + "px");
+        this.treeCanvases.setAttribute("height", (Math.max((this.maxDepth - 2), 0) * this.pixelHeight).toString() + "px");
         this.treeCanvases.classList.add("bitMapCanvas");
 
         this.latticeCanvas.setAttribute("width", this.containerWidth.toString() + "px");
@@ -258,7 +259,7 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.width = this.viewBox.style.width;
 
         var vertexIndex = this.getIndexFromCoord(event.offsetX, event.offsetY);
-        dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
+        this.Container.dispatchEvent( new BitMapClickedEvent({bubbles: true}, vertexIndex) )
     }
 
     public Update() {
@@ -276,7 +277,7 @@ export class BitMap extends DataContainer {
         let coords = this.getCoordFromIndex(vertexIndex);
         this.viewBoxLocked.style.left = coords[0].toString() + "px";
         this.latticeCanvas.scrollTo(coords[0] - window.innerWidth / 2, 0);
-        dispatchEvent(new CustomEvent("bitmap-clicked", { detail: { vertexIndex: vertexIndex } }))
+        this.Container.dispatchEvent( new BitMapClickedEvent({bubbles: true}, vertexIndex) )
     }
 
     public Hide() {
@@ -289,3 +290,4 @@ export class BitMap extends DataContainer {
         this.toggleVisible();
     }
 }
+

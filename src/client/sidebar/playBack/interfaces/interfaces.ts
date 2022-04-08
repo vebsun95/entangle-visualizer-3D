@@ -14,6 +14,7 @@ export interface StatsTable {
     dlRow: StatsRow,
     repRow: StatsRow,
     failedRow: StatsRow,
+    failedRepRow: StatsRow,
 }
 
 export interface StatsRow {

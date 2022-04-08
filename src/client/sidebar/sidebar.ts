@@ -1,3 +1,4 @@
+import { BackToStartEvent } from "./events/backToStart";
 import { FileGenerator } from "./fileGenerator/fileGenerator";
 import { FileInput } from "./fileInput/fileInput";
 import { PlayBack } from "./playBack/playBack";
@@ -55,7 +56,7 @@ export class SideBar {
         this.PlayBackEle.Hide();
         this.FileGenerator.Hide();
         this.FileInput.Show();
-        this.Container.dispatchEvent( new Event("back-to-start", { bubbles: true}));
+        this.Container.dispatchEvent( new BackToStartEvent({ bubbles: true}));
     }
 
     private toggleVisible() {

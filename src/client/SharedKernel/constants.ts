@@ -8,6 +8,7 @@ export const COLORS = {
     GREEN: 0x9eff69,
     BLUE: 0x3c96ff,
     RED: 0xff4646,
+    YELLOW: 0xfcba03,
     GREY: 0xd1d1d1
 }
 
@@ -40,6 +41,7 @@ export const RepStatus = {
     NoRep: "NoRepair",
     Success: "RepairSuccess",
     Pending: "RepairPending",
+    Failed: "RepairFailed",
 }
 
 export enum MOUSE {

@@ -6,7 +6,15 @@ import { SideBar } from "./sidebar/sidebar";
 import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./SharedKernel/interfaces";
 import { COLORS, DLStatus, MSG, RepStatus } from "./SharedKernel/constants";
 import { parseLogVertexEntry } from "./SharedKernel/utils";
-import { OneFactor } from "three";
+import { BitMapClickedEvent } from "./bitmap/Events/bitMapClicked";
+import { BackToStartEvent } from "./sidebar/events/backToStart";
+import { DataGeneratedEvent } from "./sidebar/events/dataGenerated";
+import { NewFileUploadEvent } from "./sidebar/events/newFileUpload";
+import { LogChangedEvent } from "./sidebar/events/logChangedEvent";
+import { LogChangedClickedEvent } from "./sidebar/events/logChangedClicked";
+import { ChangeViewEvent } from "./sidebar/events/changeView";
+import { LogEntryEvent } from "./sidebar/events/logEntryEvents";
+import { LatticeClickedEvent } from "./renderer/events/latticeClicked";
 
 
 
@@ -50,78 +58,49 @@ export class App {
         this.bitMap.HandleUpdatedData();
         this.merkelTree.HandleUpdatedDate();
         this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p);
-
-        this.bitMap.Show();
-        this.merkelTree.Show();
     }
 
     AddEventListeners() {
-        this.Container.addEventListener("data-generated", this.HandleDataGenerated.bind(this) as EventListener);
-        this.Container.addEventListener("back-to-start", this.HandleBackToStart.bind(this));
-        window.addEventListener("bitmap-clicked", this.HandleBitMapClicked.bind(this) as EventListener);
-        this.Container.addEventListener("new-file-upload", this.HandleNewFileUploaded.bind(this) as EventListener);
-        window.addEventListener("log-changed-clicked", this.HandleLogChangedClicked.bind(this) as EventListener);
-        this.Container.addEventListener("log-changed", this.HandleLogChanged.bind(this) as EventListener);
-        this.Container.addEventListener("download", this.HandleDownload.bind(this));
-        window.addEventListener("logEntryEvents", this.HandleLogEntryEvents.bind(this) as EventListener);
-        window.addEventListener("lattice-clicked", this.HandleLatticeClicked.bind(this) as EventListener);
-        window.addEventListener("change-view", this.HandleChangeView.bind(this) as EventListener);
+        this.Container.addEventListener(DataGeneratedEvent.EventName, this.HandleDataGenerated.bind(this) as EventListener);
+        this.Container.addEventListener(BackToStartEvent.EventName, this.HandleBackToStart.bind(this));
+        this.Container.addEventListener(BitMapClickedEvent.EventName, this.HandleBitMapClicked.bind(this) as EventListener);
+        this.Container.addEventListener(NewFileUploadEvent.EventName, this.HandleNewFileUploaded.bind(this) as EventListener);
+        this.Container.addEventListener(LogChangedClickedEvent.EventName, this.HandleLogChangedClicked.bind(this) as EventListener);
+        this.Container.addEventListener(LogChangedEvent.EventName, this.HandleLogChanged.bind(this) as EventListener);
+        this.Container.addEventListener(LogEntryEvent.EventName, this.HandleLogEntryEvents.bind(this) as EventListener);
+        this.Container.addEventListener(ChangeViewEvent.EventName, this.HandleChangeView.bind(this) as EventListener);
+        window.addEventListener(LatticeClickedEvent.EventName, this.HandleLatticeClicked.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
         window.addEventListener("keydown", this.HandleKeyDown.bind(this));
         window.addEventListener("keyup", this.HandleKeyUp.bind(this))
     }
 
-    HandleDownload() {
-        let filename = "test.txt";
-        let text = "failedList[0] = unavailfaillist(";
-        let atLeatOnce: boolean = false;
-        for(let vertex of this.vertices.values()) {
-            if (vertex.Color == COLORS.RED) {
-                text += vertex.Index.toString() + ", "
-                atLeatOnce = true;
-            }
-        }
-        if(atLeatOnce) {
-            text = text.slice(0, text.length - 2) + ")\n";
-        } else {
-            text += ")\n"
-        }
-        for(let [strand, parityMap] of this.parities.entries()) {
-            atLeatOnce = false;
-            text += "failedList[" + (strand + 1).toString() + "] = unavailfaillist(";
-            for(let parity of parityMap.values()) {
-                if(parity.Color == COLORS.RED) {
-                    text += parity.Index.toString() + ", "
-                    atLeatOnce = true;
-                }
-            }
-            if (atLeatOnce) {
-                text = text.slice(0, text.length - 2) + ")\n";
-            } else {
-                text += ")\n";
-            }
-        }
-        
-        navigator.clipboard.writeText(text);
-
-    }
-
-    HandleLatticeClicked(e: CustomEvent) {
-        let strand = e.detail.strand;
-        let index = e.detail.index;
+    HandleLatticeClicked(e: LatticeClickedEvent) {
+        let strand = e.strand;
+        let index = e.index;
         if (strand != null && index != null) {
             let parity = this.parities[strand].get(index)!;
-            if (parity.Color == COLORS.RED) {
-                parity.Color = COLORS.GREY;
-            } else {
+            if(parity.Color == COLORS.GREY) {
                 parity.Color = COLORS.RED;
+                this.sideBar.FileGenerator.SetUnavailable(index, strand);
+            } else if(parity.Color == COLORS.RED) {
+                parity.Color = COLORS.YELLOW;
+                this.sideBar.FileGenerator.SetDelayed(index, strand);
+            } else if(parity.Color == COLORS.YELLOW) {
+                parity.Color = COLORS.GREY;
+                this.sideBar.FileGenerator.RemoveIndex(index,strand);
             }
         } else if( index != null ) {
             let vertex = this.vertices.get(index)!;
-            if (vertex.Color == COLORS.RED) {
-                vertex.Color = COLORS.GREY;
-            } else {
+            if (vertex.Color == COLORS.GREY) {
                 vertex.Color = COLORS.RED;
+                this.sideBar.FileGenerator.SetUnavailable(index, null);
+            } else if (vertex.Color == COLORS.RED){
+                vertex.Color = COLORS.YELLOW;
+                this.sideBar.FileGenerator.SetDelayed(index, null);
+            } else if (vertex.Color == COLORS.YELLOW) {
+                vertex.Color = COLORS.GREY;
+                this.sideBar.FileGenerator.RemoveIndex(index, null)
             }
         }
         this.renderer.Update();
@@ -129,14 +108,14 @@ export class App {
         this.merkelTree.Update();
     }
 
-    HandleDataGenerated(e: CustomEvent) {
+    HandleDataGenerated(e: DataGeneratedEvent) {
         this.renderer.Simulating = false;
-        this.alpha = e.detail.alpha;
-        this.s = e.detail.s;
-        this.p = e.detail.p;
-        this.vertices = e.detail.vertices;
-        this.parities = e.detail.parities;
-        this.parityShift = e.detail.parityShift;
+        this.alpha = e.alpha;
+        this.s = e.s;
+        this.p = e.p;
+        this.vertices = e.vertices;
+        this.parities = e.parities;
+        this.parityShift = e.parityShift;
         let strandLabels = Array(this.alpha);
         for(let i=0; i<strandLabels.length; i++) {
             strandLabels[i] = "Strand: " + (i + 1).toString();
@@ -148,10 +127,12 @@ export class App {
     HandleBackToStart() {
         this.renderer.View = 0;
         this.renderer.Simulating = true;
+        this.bitMap.Hide();
+        this.merkelTree.Hide();
     }
 
-    HandleChangeView(e: CustomEvent) {
-        this.renderer.View = e.detail.NewView;
+    HandleChangeView(e: ChangeViewEvent) {
+        this.renderer.View = e.newView;
     }
 
     HandleKeyUp(e: KeyboardEvent) {
@@ -205,14 +186,14 @@ export class App {
             }
         }
     }
-    HandleLogEntryEvents(e: CustomEvent) {
+    HandleLogEntryEvents(e: LogEntryEvent) {
         var vertexEvent: VertexEvent;
         var parityEvent: ParityEvent;
         var vertex: Vertex;
         var parity: Parity;
         var oldColor: number;
-        var deltaDDL= 0, deltaDRep = 0, deltaDUna = 0, deltaPDL = 0, deltaPRep = 0, deltaPUna = 0;
-        if (e.detail.NeedsReset) {
+        var deltaDDL= 0, deltaDRep = 0, deltaDUna = 0, deltaDRepF = 0, deltaPDL = 0, deltaPRep = 0, deltaPUna = 0, deltaPRepF = 0;
+        if (e.NeedsReset) {
             // If true sets all state variables back to default.
             for (var vertex of this.vertices.values()) {
                 vertex.Color = COLORS.GREY;
@@ -230,12 +211,14 @@ export class App {
             this.sideBar.PlayBackEle.NrOfDataDl = 0;
             this.sideBar.PlayBackEle.NrOfDataRep = 0;
             this.sideBar.PlayBackEle.NrOfDataUna = 0;
+            this.sideBar.PlayBackEle.NrOfDataRepFailed = 0;
             this.sideBar.PlayBackEle.NrOfParityDl = 0;
             this.sideBar.PlayBackEle.NrOfParityRep = 0;
             this.sideBar.PlayBackEle.NrOfParityUna = 0;
+            this.sideBar.PlayBackEle.NrOfParityRepFailed = 0;
     
         }
-        for (vertexEvent of e.detail.VertexEvents) {
+        for (vertexEvent of e.VertexEvents) {
             vertex = this.vertices.get(vertexEvent.Position)!;
             switch (vertex.Color) {
                 case COLORS.GREEN:
@@ -247,7 +230,9 @@ export class App {
                 case COLORS.BLUE:
                     deltaDRep--;
                     break;
-
+                case COLORS.YELLOW:
+                    deltaDRepF--;
+                    break;
             }
             switch (vertexEvent.NewColor) {
                 case COLORS.GREEN:
@@ -257,8 +242,10 @@ export class App {
                     deltaDUna++;
                     break;
                 case COLORS.BLUE:
-                    deltaDRep++
-                break;
+                    deltaDRep++;
+                    break;
+                case COLORS.YELLOW:
+                    deltaDRepF++;
             }
             oldColor = vertex.Color;
             vertex.Color = vertexEvent.NewColor;
@@ -270,7 +257,7 @@ export class App {
                 vertex.DamagedChildren--;
             }
         }
-        for (parityEvent of e.detail.ParityEvents) {
+        for (parityEvent of e.ParityEvents) {
             let strand = parityEvent.Strand;
             parity = this.parities[strand].get(parityEvent.Index)!;
             switch (parity.Color) {
@@ -283,18 +270,22 @@ export class App {
                 case COLORS.BLUE:
                     deltaPRep--
                     break;
-
+                case COLORS.YELLOW:
+                    deltaPRepF--;
+                    break;
             }
             switch (parityEvent.NewColor) {
                 case COLORS.GREEN:
-                    deltaPDL++
+                    deltaPDL++;
                     break;
                 case COLORS.RED:
-                    deltaPUna++
+                    deltaPUna++;
                     break;
                 case COLORS.BLUE:
-                    deltaPRep++
-                break;
+                    deltaPRep++;
+                    break;
+                case COLORS.YELLOW:
+                    deltaPRepF++;
             }
             parity.From = parityEvent.From;
             parity.To = parityEvent.To;
@@ -309,36 +300,40 @@ export class App {
             }
 
         }
-        this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL;
-        this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep;
-        this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna;
+        deltaDDL  ? this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL : null;
+        deltaDRep ? this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep : null;
+        deltaDUna ? this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna : null;
+        deltaDRepF? this.sideBar.PlayBackEle.NrOfDataRepFailed += deltaDRepF : null;
 
-        this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL;
-        this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep;
-        this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna;
+        deltaPDL  ? this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL : null;
+        deltaPRep ? this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep : null;
+        deltaPUna ? this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna : null;
+        deltaPRepF? this.sideBar.PlayBackEle.NrOfParityRepFailed += deltaPRepF : null;
 
         this.renderer.Update();
         this.bitMap.Update();
         this.merkelTree.Update();
     }
-    HandleBitMapClicked(e: CustomEvent) {
-        this.renderer.GoTo(e.detail.vertexIndex)
+    HandleBitMapClicked(e: BitMapClickedEvent) {
+        this.renderer.GoTo(e.VertexIndex)
     }
-    HandleNewFileUploaded(e: CustomEvent) {
+    HandleNewFileUploaded(e: NewFileUploadEvent) {
         this.renderer.Simulating = true;
-        this.sideBar.PlayBackEle.Filename = e.detail.fileName;
-        this.sideBar.PlayBackEle.CreateChangeLogBtns(e.detail.nrOfLogs);
+        this.bitMap.Show();
+        this.merkelTree.Show();
+        this.sideBar.PlayBackEle.Filename = e.fileName;
+        this.sideBar.PlayBackEle.CreateChangeLogBtns(e.nrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);
     }
-    HandleLogChangedClicked(e: CustomEvent) {        
-        let newLog = e.detail.changeToLog;
+    HandleLogChangedClicked(e: LogChangedClickedEvent) {        
+        let newLog = e.changeToLog;
         this.sideBar.FileInput.ChangeLog(newLog);
     }
-    HandleLogChanged(e: CustomEvent) {
+    HandleLogChanged(e: LogChangedEvent) {
         var lineCounter, parityIndex: number;
         lineCounter = 0;
 
-        let content: ContentJSON[] = e.detail.newContent
+        let content: ContentJSON[] = e.newContent
         var line: ContentJSON = content[lineCounter++]
         this.alpha = (line.log as DownloadConfigLog).alpha;
         this.s = (line.log as DownloadConfigLog).s;
@@ -388,14 +383,15 @@ export class App {
         }
         var swappedVertex: Vertex;
         var tempDepth: number;
+        var tempParent: number;
         var allReadySwapped: number[] = [];
         for (var [position, vertex] of this.vertices.entries()) {
-            if (vertex.Parent != 0) {
-                this.vertices.get(vertex.Parent)?.Children.push(dataShiftRegister[position]);
-            }
             if (position != vertex.Index && (!allReadySwapped.includes(position) || !allReadySwapped.includes(vertex.Index))) {
                 swappedVertex = this.vertices.get(vertex.Index)!;
 
+                tempParent = vertex.Parent;
+                vertex.Parent = swappedVertex.Parent;
+                swappedVertex.Parent = tempParent;
 
                 tempDepth = vertex.Depth;
                 vertex.Depth = swappedVertex.Depth;
@@ -404,11 +400,25 @@ export class App {
                 allReadySwapped.push(position, vertex.Index);
             }
         }
+        for(var [position, vertex] of this.vertices.entries()) {
+            if (vertex.Parent != 0) {
+                this.vertices.get(vertex.Parent)?.Children.push(position);
+            }
+        }
         for (var parityMap of this.parities) {
             for (var [position, parity] of parityMap.entries()) {
                 if (parity.Parent != 0) {
                     parityMap.get(parity.Parent)!.Children.push(parity.Index);
                 }
+            }
+        }
+        for(var vertex of this.vertices.values()){
+            if (vertex.Children.length) {
+                vertex.Children.sort((a, b) => {
+                    var v1 = this.vertices.get(a)!;
+                    var v2 = this.vertices.get(b)!;
+                    return v1.Index - v2.Index; 
+                })
             }
         }
 
@@ -419,7 +429,6 @@ export class App {
             if (line.msg == MSG.DlEntry) {
                 logEntry = line.log as DownloadEntryLog;
 
-
                 if (logEntry.downloadStatus == DLStatus.Pending || logEntry.repairStatus == RepStatus.Pending) {
                     line = content[lineCounter++]
 
@@ -429,8 +438,11 @@ export class App {
                     strand = ParityLabels.indexOf(logEntry.class);
                     from = this.parityShift.get(logEntry.start!)!;
                     to = this.parityShift.get(logEntry.end!)!;
-                    if (logEntry.downloadStatus === DLStatus.Failed && !logEntry.hasData) {
+                    if (logEntry.downloadStatus === DLStatus.Failed && logEntry.repairStatus == RepStatus.NoRep && !logEntry.hasData) {
                         color = COLORS.RED;
+                    }
+                    else if (logEntry.downloadStatus === DLStatus.Failed && logEntry.repairStatus == RepStatus.Failed && !logEntry.hasData) {
+                        color = COLORS.YELLOW;
                     }
                     else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
                         color = COLORS.BLUE
@@ -465,7 +477,6 @@ export class App {
         this.sideBar.PlayBackEle.StrandLabels = ParityLabels;
         this.sideBar.PlayBackEle.LogEntries = LogEntries;
         this.UpdateData();
-
     }
     HandleWindowResize() {
         this.renderer.onWindowResize();

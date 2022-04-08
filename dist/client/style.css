@@ -69,6 +69,7 @@ body {
     border-radius: 5px 5px;
     max-height: 65vh;
     min-height: 25vh;
+    max-width: 20vw;
 }
 
 #toggle-side-bar {

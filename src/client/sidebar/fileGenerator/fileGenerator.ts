@@ -3,6 +3,7 @@ import { GenerateParities } from "./popUp/utilts/generateParities";
 import { GenerateParityShift } from "./popUp/utilts/generateParityShift";
 import { GenerateVertices } from "./popUp/utilts/generateVertecies";
 import { strandRules } from './constans/const'
+import { DataGeneratedEvent } from "../events/dataGenerated";
 
 export {FileGenerator}
 
@@ -42,8 +43,7 @@ class FileGenerator {
         let vertices = GenerateVertices(nrOfData);
         let parityShift = GenerateParityShift(nrOfData);
         let parities = GenerateParities(alpha, s, p, nrOfData, strandRules)
-        this.Container.dispatchEvent( new CustomEvent("data-generated", {detail: 
-            {vertices: vertices, alpha: alpha, s: s, p:p, parities: parities, parityShift: parityShift}, bubbles: true}) );
+        this.Container.dispatchEvent( new DataGeneratedEvent(vertices, alpha, s, p, parities, parityShift, {bubbles: true}));
     }
 
 

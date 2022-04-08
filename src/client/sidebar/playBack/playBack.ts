@@ -1,7 +1,9 @@
-import { PositionalAudio } from "three";
 import { COLORS } from "../../SharedKernel/constants";
 import { DownloadConfigLog, ParityEvent, VertexEvent } from "../../SharedKernel/interfaces";
 import { convertHexToStringColor } from "../../SharedKernel/utils";
+import { ChangeViewEvent } from "../events/changeView";
+import { LogChangedClickedEvent } from "../events/logChangedClicked";
+import { LogEntryEvent } from "../events/logEntryEvents";
 import { StatsTable, Slider, LogTable, ChangeViewsButtons, LogRow } from "./interfaces/interfaces";
 
 export class PlayBack {
@@ -28,7 +30,14 @@ export class PlayBack {
             row: document.createElement("tr"),
             type: document.createElement("td"),
             dataCell: document.createElement("td"),
-            parityCell: document.createElement("td")},
+            parityCell: document.createElement("td")
+        },
+        failedRepRow: {
+            row: document.createElement("tr"),
+            type: document.createElement("td"),
+            dataCell: document.createElement("td"),
+            parityCell: document.createElement("td")
+        }
     }
     private JumpBackButton: HTMLButtonElement = document.createElement("button");
     private BackButton: HTMLButtonElement = document.createElement("button");
@@ -46,13 +55,7 @@ export class PlayBack {
     };
     private currentPos: number = 0;
     private changeLogDropDown: HTMLSelectElement = document.createElement("select");
-    private changeButtons: ChangeViewsButtons = {
-        container: document.createElement("div"),
-        logsDD: document.createElement("select"),
-        twoDView: document.createElement("button"),
-        cylinderView: document.createElement("button"),
-        tortoisView: document.createElement("button"),
-    }
+    private changeViewDropDown: HTMLSelectElement = document.createElement("select");
     private strandLabels: string[] = [];
 
     constructor() {
@@ -101,25 +104,17 @@ export class PlayBack {
     }
 
     private createLayout() {
-        this.changeButtons.twoDView.innerText = "2D view";
-        this.changeButtons.twoDView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 1 }}));
-        });
-        this.changeButtons.cylinderView.innerText = "Cylinder View";
-        this.changeButtons.cylinderView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 2 }}));
-        });
-        this.changeButtons.tortoisView.innerText = "Tortois View";
-        this.changeButtons.tortoisView.addEventListener("click", () => {
-            dispatchEvent(new CustomEvent("change-view", {detail: { NewView: 3 }}));
-        });
 
-        this.changeButtons.container.append(this.changeLogDropDown, this.changeButtons.twoDView, this.changeButtons.cylinderView, this.changeButtons.tortoisView);
-
+        this.changeViewDropDown.id = "view-dropdown";
+        this.addViewsToDropDown();
+        this.changeViewDropDown.addEventListener("change", () => {
+            var value = parseInt(this.changeViewDropDown.value)
+            this.Container.dispatchEvent( new ChangeViewEvent(value, {bubbles: true}));
+        });
 
         this.changeLogDropDown.addEventListener("change", () => {
             var value = parseInt(this.changeLogDropDown.value)
-            dispatchEvent( new CustomEvent("log-changed-clicked", { detail: { changeToLog: value } }));
+            this.Container.dispatchEvent( new LogChangedClickedEvent(value, {bubbles: true}) );
         });
 
         var st = this.statsTable;
@@ -155,7 +150,14 @@ export class PlayBack {
         st.failedRow.parityCell.classList.add("align-Right");
         st.failedRow.row.append(st.failedRow.type, st.failedRow.dataCell, st.failedRow.parityCell);
 
-        st.table.append(st.fileName, st.config, st.header, st.dlRow.row, st.repRow.row, st.failedRow.row);
+        st.failedRepRow.type.innerHTML = '<span style="color:' + convertHexToStringColor(COLORS.YELLOW) + ';">&#11044;</span> Rep failed: ';
+        st.failedRepRow.dataCell.innerHTML = "0";
+        st.failedRepRow.dataCell.classList.add("align-Right");
+        st.failedRepRow.parityCell.innerHTML = "0";
+        st.failedRepRow.parityCell.classList.add("align-Right");
+        st.failedRepRow.row.append(st.failedRepRow.type, st.failedRepRow.dataCell, st.failedRepRow.parityCell);
+
+        st.table.append(st.fileName, st.config, st.header, st.dlRow.row, st.repRow.row, st.failedRow.row, st.failedRepRow.row);
 
         this.JumpBackButton.innerHTML = '<i class = "fa fa-fast-backward"></i>';
         this.BackButton.innerHTML = '<i class = "fa fa-step-backward"></i>';
@@ -198,7 +200,7 @@ export class PlayBack {
 
         this.logTable.table.classList.add("log-table");
 
-        this.Container.append(this.changeButtons.container, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
+        this.Container.append(this.changeLogDropDown, this.changeViewDropDown, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
     public HandleUpdatedData(alpha: number, s: number, p: number) {
@@ -232,6 +234,36 @@ export class PlayBack {
         this.NrOfParityUna = 0;
     }
 
+    private handleSliderChange(optValue: number | null = null) {
+        var newValue: number = optValue != null ? optValue : this.slider.input.valueAsNumber;
+        if (newValue < this.currentPos) {
+            this.backClicked(this.currentPos - newValue);
+        }
+        else if (newValue > this.currentPos) {
+            this.simulate(newValue - this.currentPos);
+        }
+    }
+
+    private addViewsToDropDown() {
+        let opt: HTMLOptionElement;
+        let i = 0;
+
+        opt = document.createElement("option");
+        opt.innerText = "2D view";
+        opt.value = (++i).toString();
+        this.changeViewDropDown.append(opt);
+
+        opt = document.createElement("option");
+        opt.innerText = "Cylinder view";
+        opt.value = (++i).toString();
+        this.changeViewDropDown.append(opt);
+
+        opt = document.createElement("option");
+        opt.innerText = "Toruse view";
+        opt.value = (++i).toString();
+        this.changeViewDropDown.append(opt);
+    }
+
     private backClicked(n: number) {
         if (this.currentPos > 0) {
             var oldpos = this.currentPos;
@@ -255,20 +287,9 @@ export class PlayBack {
                 }
             }
             this.setCurrentPos(this.currentPos + count);
-
-            dispatchEvent(new CustomEvent("logEntryEvents", { detail: { NeedsReset: needsReset, ParityEvents: parityEvents, VertexEvents: vertexEvents } }))
+            this.Container.dispatchEvent( new LogEntryEvent(vertexEvents, parityEvents, needsReset, {bubbles: true}) );
         }
 
-    }
-
-    private handleSliderChange(optValue: number | null = null) {
-        var newValue: number = optValue != null ? optValue : this.slider.input.valueAsNumber;
-        if (newValue < this.currentPos) {
-            this.backClicked(this.currentPos - newValue);
-        }
-        else if (newValue > this.currentPos) {
-            this.simulate(newValue - this.currentPos);
-        }
     }
 
     public SimulateClick(n: number) {
@@ -310,6 +331,7 @@ export class PlayBack {
         if(!this.visible) return;
         this.slider.currentPosition.focus();
     }
+
     public set StrandLabels(newLabels: string[]) {
         this.strandLabels = ["D", ... newLabels.map( (s) => {return s[0]} )];
     }
@@ -352,6 +374,16 @@ export class PlayBack {
     }
     // -----
 
+    // DATA Unavailable
+    public set NrOfDataRepFailed(value: number) {
+        this.statsTable.failedRepRow.dataCell.innerText = value.toString();
+    }
+    
+    public get NrOfDataRepFailed(): number {
+        return parseInt(this.statsTable.failedRepRow.dataCell.innerText)
+    }
+    // -----
+
     // Parity Download
     public set NrOfParityDl(value: number) {
         this.statsTable.dlRow.parityCell.innerText = value.toString();
@@ -379,6 +411,16 @@ export class PlayBack {
     
     public get NrOfParityUna(): number {
         return parseInt(this.statsTable.failedRow.parityCell.innerText)
+    }
+    // ----
+
+    // Parity Rep failed
+    public set NrOfParityRepFailed(value: number) {
+        this.statsTable.failedRepRow.parityCell.innerText = value.toString();
+    }
+    
+    public get NrOfParityRepFailed(): number {
+        return parseInt(this.statsTable.failedRepRow.parityCell.innerText)
     }
     // ----
 }

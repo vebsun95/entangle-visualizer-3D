@@ -92,7 +92,7 @@ export class CylinderView extends DataContainer implements View {
         let startIndex = this.drawFrom, parity: Parity;
         let line: THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>, lineIndex: number;
         let array: THREE.BufferAttribute, drawRange: number = 2, parityPosition: number;
-        let startPos: THREE.Vector3, endPos: THREE.Vector3;
+        let start: THREE.Object3D, startPos: THREE.Vector3, end: THREE.Object3D, endPos: THREE.Vector3;
 
         for (lineIndex = 0; lineIndex < this.paritiesGroup.children.length;) {
             for (let [strand, parityMap] of this.parities.entries()) {
@@ -101,9 +101,14 @@ export class CylinderView extends DataContainer implements View {
                 if (parity.From == null || parity.To == null) {
                     continue;
                 }
-                startPos = this.verticesGroup.getObjectByName(parity.From.toString())!.position;
-                endPos = this.verticesGroup.getObjectByName(parity.To!.toString())!.position;
-                if (startPos.x > endPos.x || !startPos || !endPos) {
+                start = this.verticesGroup.getObjectByName(parity.From.toString())!;
+                end = this.verticesGroup.getObjectByName(parity.To!.toString())!;
+                if (!start || !end) {
+                    continue
+                }
+                startPos = start.position;
+                endPos = end.position;
+                if (startPos.x > endPos.x) {
                     continue
                 }
                 line = this.paritiesGroup.children[lineIndex++] as THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>;
