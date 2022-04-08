@@ -181,7 +181,7 @@ export class BitMap extends DataContainer {
         }
 
         this.treeCanvases.setAttribute("width", this.containerWidth.toString() + "px");
-        this.treeCanvases.setAttribute("height", ((this.maxDepth - 2) * this.pixelHeight).toString() + "px");
+        this.treeCanvases.setAttribute("height", (Math.max((this.maxDepth - 2), 0) * this.pixelHeight).toString() + "px");
         this.treeCanvases.classList.add("bitMapCanvas");
 
         this.latticeCanvas.setAttribute("width", this.containerWidth.toString() + "px");
