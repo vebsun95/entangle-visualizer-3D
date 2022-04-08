@@ -76,36 +76,36 @@ export class App {
     }
 
     HandleLatticeClicked(e: LatticeClickedEvent) {
-        let strand = e.strand;
-        let index = e.index;
-        if (strand != null && index != null) {
-            let parity = this.parities[strand].get(index)!;
-            if(parity.Color == COLORS.GREY) {
-                parity.Color = COLORS.RED;
-                this.sideBar.FileGenerator.SetUnavailable(index, strand);
-            } else if(parity.Color == COLORS.RED) {
-                parity.Color = COLORS.YELLOW;
-                this.sideBar.FileGenerator.SetDelayed(index, strand);
-            } else if(parity.Color == COLORS.YELLOW) {
-                parity.Color = COLORS.GREY;
-                this.sideBar.FileGenerator.RemoveIndex(index,strand);
-            }
-        } else if( index != null ) {
-            let vertex = this.vertices.get(index)!;
-            if (vertex.Color == COLORS.GREY) {
-                vertex.Color = COLORS.RED;
-                this.sideBar.FileGenerator.SetUnavailable(index, null);
-            } else if (vertex.Color == COLORS.RED){
-                vertex.Color = COLORS.YELLOW;
-                this.sideBar.FileGenerator.SetDelayed(index, null);
-            } else if (vertex.Color == COLORS.YELLOW) {
-                vertex.Color = COLORS.GREY;
-                this.sideBar.FileGenerator.RemoveIndex(index, null)
-            }
-        }
-        this.renderer.Update();
-        this.bitMap.Update();
-        this.merkelTree.Update();
+        // let strand = e.strand;
+        // let index = e.index;
+        // if (strand != null && index != null) {
+        //     let parity = this.parities[strand].get(index)!;
+        //     if(parity.Color == COLORS.GREY) {
+        //         parity.Color = COLORS.RED;
+        //         this.sideBar.FileGenerator.SetUnavailable(index, strand);
+        //     } else if(parity.Color == COLORS.RED) {
+        //         parity.Color = COLORS.YELLOW;
+        //         this.sideBar.FileGenerator.SetDelayed(index, strand);
+        //     } else if(parity.Color == COLORS.YELLOW) {
+        //         parity.Color = COLORS.GREY;
+        //         this.sideBar.FileGenerator.RemoveIndex(index,strand);
+        //     }
+        // } else if( index != null ) {
+        //     let vertex = this.vertices.get(index)!;
+        //     if (vertex.Color == COLORS.GREY) {
+        //         vertex.Color = COLORS.RED;
+        //         this.sideBar.FileGenerator.SetUnavailable(index, null);
+        //     } else if (vertex.Color == COLORS.RED){
+        //         vertex.Color = COLORS.YELLOW;
+        //         this.sideBar.FileGenerator.SetDelayed(index, null);
+        //     } else if (vertex.Color == COLORS.YELLOW) {
+        //         vertex.Color = COLORS.GREY;
+        //         this.sideBar.FileGenerator.RemoveIndex(index, null)
+        //     }
+        // }
+        // this.renderer.Update();
+        // this.bitMap.Update();
+        // this.merkelTree.Update();
     }
 
     HandleDataGenerated(e: DataGeneratedEvent) {
