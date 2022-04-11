@@ -1,9 +1,8 @@
+import { ParityShiftMock } from "../../../SharedKernel/parityShiftMock";
 import { DataGeneratedEvent } from "../../events/dataGenerated";
+import { EntanglementRulesOut } from "../constans/const";
 import { GenerateParities } from "./utilts/generateParities";
-import { GenerateParityShift } from "./utilts/generateParityShift";
 import { GenerateVertices } from "./utilts/generateVertecies";
-import { GetFuncStrings } from "./utilts/getFuncStrings";
-import { GenerateRuleLayout } from "./utilts/utils";
 
 export { PopUp }
 
@@ -21,13 +20,13 @@ const layOut = /*html*/
                 <input name='config' value='5'/>
                 <input name='config' value='5'/>
             </div>
+            <span class="error-span" id="params-error"></span>
             <div>
                 <label for='nrdata'># of data elemets:</label>
-                <input name='nrdata' value='259' readonly />
+                <input name='nrdata' value='259' />
             </div>
+            <span class="error-span" id="nrData-error"></span>
             <button id="submit-config" onclick="configSubmited"> submit </button>
-        </div>
-        <div id="popup-rules">
         </div>
     </div>
 </div>
@@ -36,12 +35,14 @@ const layOut = /*html*/
 class PopUp {
     public Container: HTMLDivElement = document.createElement("div");
     private configC: HTMLDivElement;
-    private rulesC: HTMLDivElement;
+    private configError: HTMLSpanElement;
+    private nrDataError: HTMLSpanElement;
     
     constructor() {
         this.Container.innerHTML = layOut;
         this.configC = this.Container.querySelector("#popup-config") as HTMLDivElement;
-        this.rulesC = this.Container.querySelector("#popup-rules") as HTMLDivElement;
+        this.configError = this.Container.querySelector("#params-error") as HTMLDivElement;
+        this.nrDataError = this.Container.querySelector("#nrData-error") as HTMLDivElement;
         this.addEventListeners();
     }
 
@@ -51,8 +52,6 @@ class PopUp {
 
     public Hide() {
         this.Container.style.display = "none";
-        this.configC.style.display = "unset";
-        this.rulesC.style.display = "none";
     }
 
     private addEventListeners() {
@@ -65,11 +64,34 @@ class PopUp {
         let alpha = parseInt((q[0] as HTMLInputElement).value);
         let s = parseInt((q[1] as HTMLInputElement).value);
         let p = parseInt((q[2] as HTMLInputElement).value);
-        if (!alpha || !s || !p || alpha < 0 || s < p) return
         let w = this.Container.querySelector("input[name='nrdata']")!;
         let nrOfData = parseInt((w as HTMLInputElement).value)
-        if (!nrOfData) return;
-        this.createRulesLayout();
+
+        this.configError.innerText = "";
+        this.nrDataError.innerText = "";
+        if (this.checkForError(alpha, s, p, nrOfData)) return
+
+        this.generateData(alpha, s, p, nrOfData);
+    }
+
+    private checkForError(alpha: number, s: number, p: number, nrData: number) : boolean {
+        if(isNaN(alpha) || isNaN(s) || isNaN(p)) {
+            this.configError.innerText = "cant prase alpha, s or p";
+            return true;
+        }
+        if(alpha <= 0 || alpha > EntanglementRulesOut.length) {
+            this.configError.innerText = `only alpha ∈ [1:${EntanglementRulesOut.length}]`;
+            return true;
+        }
+        if(p < s) {
+            this.configError.innerText = "S must be greater or equal to P";
+            return true;
+        }
+        if(isNaN(nrData) || nrData < s || nrData <= 0) {
+            this.nrDataError.innerText = "Invalid input";
+            return true;
+        }
+        return false;
     }
 
     private handleBGClicked(e: Event) {
@@ -78,32 +100,16 @@ class PopUp {
             this.Hide();
         }
     }
-
-    private createRulesLayout() {
-        this.configC.style.display = "none";
-        while( this.rulesC.children.length > 0 ) { this.rulesC.removeChild(this.rulesC.firstChild!) }
-        this.rulesC.style.display = "inline-block";
-        let q = this.Container.querySelectorAll("input[name='config']");
-        let alpha = parseInt((q[0] as HTMLInputElement).value);
-        GenerateRuleLayout(alpha, this.rulesC);
-        var btn = document.createElement("button");
-        btn.innerText = "Generate!";
-        btn.onclick = this.generateCode.bind(this);
-        this.rulesC.append(btn);
-    }
     
-    private generateCode() {
-        let q = this.Container.querySelectorAll("input[name='config']");
-        let alpha = parseInt((q[0] as HTMLInputElement).value);
-        let s = parseInt((q[1] as HTMLInputElement).value);
-        let p = parseInt((q[2] as HTMLInputElement).value);
-        q = this.Container.querySelectorAll("input[name='nrdata']");
-        let funcStrings: string[][] = GetFuncStrings(alpha, this.rulesC);
-        let nrdata = parseInt((q[0] as HTMLInputElement).value);
+    private generateData(alpha: number, s: number, p: number, nrdata: number) {
         let vertices = GenerateVertices(nrdata);
-        let parities = GenerateParities(alpha, s, p, nrdata, funcStrings);
-        let parityShift = GenerateParityShift(nrdata);
+        let parities = GenerateParities(alpha, s, p, nrdata);
+        let parityShift = new ParityShiftMock();
         this.Container.dispatchEvent( new DataGeneratedEvent(vertices, alpha, s, p, parities, parityShift, {bubbles: true}));
+    }
 
+    public GenerateDefaultData() {
+        let alpha=3, s=5, p=5, nrOfData=259;
+        this.generateData(alpha, s, p, nrOfData);
     }
 }

@@ -56,8 +56,7 @@ export class App {
 
         this.renderer.HandleUpdatedData();
         this.bitMap.HandleUpdatedData();
-        this.merkelTree.HandleUpdatedDate();
-        this.sideBar.PlayBackEle.HandleUpdatedData(this.alpha, this.s, this.p);
+        this.merkelTree.HandleUpdatedData();
     }
 
     AddEventListeners() {
@@ -76,39 +75,38 @@ export class App {
     }
 
     HandleLatticeClicked(e: LatticeClickedEvent) {
-        // let strand = e.strand;
-        // let index = e.index;
-        // if (strand != null && index != null) {
-        //     let parity = this.parities[strand].get(index)!;
-        //     if(parity.Color == COLORS.GREY) {
-        //         parity.Color = COLORS.RED;
-        //         this.sideBar.FileGenerator.SetUnavailable(index, strand);
-        //     } else if(parity.Color == COLORS.RED) {
-        //         parity.Color = COLORS.YELLOW;
-        //         this.sideBar.FileGenerator.SetDelayed(index, strand);
-        //     } else if(parity.Color == COLORS.YELLOW) {
-        //         parity.Color = COLORS.GREY;
-        //         this.sideBar.FileGenerator.RemoveIndex(index,strand);
-        //     }
-        // } else if( index != null ) {
-        //     let vertex = this.vertices.get(index)!;
-        //     if (vertex.Color == COLORS.GREY) {
-        //         vertex.Color = COLORS.RED;
-        //         this.sideBar.FileGenerator.SetUnavailable(index, null);
-        //     } else if (vertex.Color == COLORS.RED){
-        //         vertex.Color = COLORS.YELLOW;
-        //         this.sideBar.FileGenerator.SetDelayed(index, null);
-        //     } else if (vertex.Color == COLORS.YELLOW) {
-        //         vertex.Color = COLORS.GREY;
-        //         this.sideBar.FileGenerator.RemoveIndex(index, null)
-        //     }
-        // }
-        // this.renderer.Update();
-        // this.bitMap.Update();
-        // this.merkelTree.Update();
+        let strand = e.strand;
+        let index = e.index;
+        let clickedObj: Vertex | Parity
+
+        if (strand != null && index != null) {
+            clickedObj = this.parities[strand].get(index)!;
+        } else if (index != null) {
+            clickedObj = this.vertices.get(index)!;
+        } else return
+
+        if (clickedObj.Color == COLORS.GREY) {
+            clickedObj.Color = COLORS.RED;
+            this.sideBar.FileGenerator.SetUnavailable(index, strand);
+        } 
+        else if (clickedObj.Color == COLORS.RED) {
+            clickedObj.Color = COLORS.YELLOW;
+            this.sideBar.FileGenerator.SetDelayed(index, strand);
+        } 
+        else if (clickedObj.Color == COLORS.YELLOW) {
+            clickedObj.Color = COLORS.ORANGE;
+            this.sideBar.FileGenerator.SetDelayedUnavailable(index, strand);
+        } 
+        else if (clickedObj.Color == COLORS.ORANGE) {
+            clickedObj.Color = COLORS.GREY;
+            this.sideBar.FileGenerator.RemoveIndex(index, strand);
+        }
+        this.renderer.Update();
+        this.bitMap.Update();
     }
 
     HandleDataGenerated(e: DataGeneratedEvent) {
+        this.bitMap.Show();
         this.renderer.Simulating = false;
         this.alpha = e.alpha;
         this.s = e.s;
@@ -116,11 +114,6 @@ export class App {
         this.vertices = e.vertices;
         this.parities = e.parities;
         this.parityShift = e.parityShift;
-        let strandLabels = Array(this.alpha);
-        for(let i=0; i<strandLabels.length; i++) {
-            strandLabels[i] = "Strand: " + (i + 1).toString();
-        }
-        this.merkelTree.StrandLabels = strandLabels;
         this.UpdateData();
     }
 
@@ -180,7 +173,7 @@ export class App {
                 this.sideBar.PlayBackEle.GoToStart();
             } else if (e.key == "w" || e.key == "W") {
                 this.sideBar.PlayBackEle.GoToEnd();
-            } else if(e.key == "f") {
+            } else if (e.key == "f") {
                 this.sideBar.PlayBackEle.FocusInput();
                 e.preventDefault();
             }
@@ -192,7 +185,7 @@ export class App {
         var vertex: Vertex;
         var parity: Parity;
         var oldColor: number;
-        var deltaDDL= 0, deltaDRep = 0, deltaDUna = 0, deltaDRepF = 0, deltaPDL = 0, deltaPRep = 0, deltaPUna = 0, deltaPRepF = 0;
+        var deltaDDL = 0, deltaDRep = 0, deltaDUna = 0, deltaDRepF = 0, deltaPDL = 0, deltaPRep = 0, deltaPUna = 0, deltaPRepF = 0;
         if (e.NeedsReset) {
             // If true sets all state variables back to default.
             for (var vertex of this.vertices.values()) {
@@ -207,7 +200,7 @@ export class App {
                     parity.DamagedChildren = 0;
                 }
             }
-    
+
             this.sideBar.PlayBackEle.NrOfDataDl = 0;
             this.sideBar.PlayBackEle.NrOfDataRep = 0;
             this.sideBar.PlayBackEle.NrOfDataUna = 0;
@@ -216,7 +209,7 @@ export class App {
             this.sideBar.PlayBackEle.NrOfParityRep = 0;
             this.sideBar.PlayBackEle.NrOfParityUna = 0;
             this.sideBar.PlayBackEle.NrOfParityRepFailed = 0;
-    
+
         }
         for (vertexEvent of e.VertexEvents) {
             vertex = this.vertices.get(vertexEvent.Position)!;
@@ -300,15 +293,15 @@ export class App {
             }
 
         }
-        deltaDDL  ? this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL : null;
+        deltaDDL ? this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL : null;
         deltaDRep ? this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep : null;
         deltaDUna ? this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna : null;
-        deltaDRepF? this.sideBar.PlayBackEle.NrOfDataRepFailed += deltaDRepF : null;
+        deltaDRepF ? this.sideBar.PlayBackEle.NrOfDataRepFailed += deltaDRepF : null;
 
-        deltaPDL  ? this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL : null;
+        deltaPDL ? this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL : null;
         deltaPRep ? this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep : null;
         deltaPUna ? this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna : null;
-        deltaPRepF? this.sideBar.PlayBackEle.NrOfParityRepFailed += deltaPRepF : null;
+        deltaPRepF ? this.sideBar.PlayBackEle.NrOfParityRepFailed += deltaPRepF : null;
 
         this.renderer.Update();
         this.bitMap.Update();
@@ -325,7 +318,7 @@ export class App {
         this.sideBar.PlayBackEle.CreateChangeLogBtns(e.nrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);
     }
-    HandleLogChangedClicked(e: LogChangedClickedEvent) {        
+    HandleLogChangedClicked(e: LogChangedClickedEvent) {
         let newLog = e.changeToLog;
         this.sideBar.FileInput.ChangeLog(newLog);
     }
@@ -400,7 +393,7 @@ export class App {
                 allReadySwapped.push(position, vertex.Index);
             }
         }
-        for(var [position, vertex] of this.vertices.entries()) {
+        for (var [position, vertex] of this.vertices.entries()) {
             if (vertex.Parent != 0) {
                 this.vertices.get(vertex.Parent)?.Children.push(position);
             }
@@ -412,12 +405,12 @@ export class App {
                 }
             }
         }
-        for(var vertex of this.vertices.values()){
+        for (var vertex of this.vertices.values()) {
             if (vertex.Children.length) {
                 vertex.Children.sort((a, b) => {
                     var v1 = this.vertices.get(a)!;
                     var v2 = this.vertices.get(b)!;
-                    return v1.Index - v2.Index; 
+                    return v1.Index - v2.Index;
                 })
             }
         }

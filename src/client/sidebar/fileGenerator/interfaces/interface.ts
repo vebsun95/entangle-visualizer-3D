@@ -1,4 +1,6 @@
-export interface RuleI {
+export {RuleI, TextAreaI, InputI}
+
+interface RuleI {
     container: HTMLFieldSetElement,
     strand: HTMLLegendElement,
     top: InputLabelI,
@@ -7,6 +9,18 @@ export interface RuleI {
 }
 
 interface InputLabelI {
+    container: HTMLDivElement,
+    label: HTMLLabelElement,
+    input: HTMLInputElement,
+}
+
+interface TextAreaI {
+    containter: HTMLDivElement,
+    textArea: HTMLTextAreaElement,
+    label: HTMLLabelElement,
+}
+
+interface InputI {
     container: HTMLDivElement,
     label: HTMLLabelElement,
     input: HTMLInputElement,

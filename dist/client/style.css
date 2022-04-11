@@ -233,3 +233,9 @@ body {
 .large-Cell{
     width: 50%;
 }
+
+.error-span {
+    font-style: italic;
+    color: grey;
+    margin-left: 20%;
+}
