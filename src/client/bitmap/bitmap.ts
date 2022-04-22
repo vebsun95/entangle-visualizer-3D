@@ -9,6 +9,7 @@ import { rect, vec2 } from "./interfaces/interfaces";
 export class BitMap extends DataContainer {
 
     public Container: HTMLDivElement = document.createElement("div");
+    public DrawLimit: number = 250;
     private canvasContainer: HTMLDivElement = document.createElement("div");
     private ruler: HTMLCanvasElement = document.createElement('canvas');
     private treeCanvases: HTMLCanvasElement = document.createElement("canvas");
@@ -23,13 +24,10 @@ export class BitMap extends DataContainer {
     private viewBox: HTMLDivElement = document.createElement("div");
     private viewBoxLocked: HTMLDivElement = document.createElement("div");
     private viewBoxWidth = 0;
-    public DrawLimit: number = 300;
 
     constructor() {
         super();
-
         this.createLayout();
-
     }
     private createLayout() {
 
@@ -49,17 +47,18 @@ export class BitMap extends DataContainer {
 
         this.Container.append(this.canvasContainer);
     }
-    HandleUpdatedData() {
+
+    public HandleUpdatedData() {
         this.updateDynamicAttributes();
         this.updateDrawLimit();
         this.fillLookUpTable();
         this.createRuler();
-        this.draw();
+        this.Update();
     }
 
-    private draw() {
-        var row = 0;
-        var column = 0;
+    public Update() {
+        var row: number;
+        var column: number;
         var color: string;
         var vertex: Vertex;
         var latticeCtx = this.latticeCanvas.getContext("2d")!;
@@ -103,8 +102,6 @@ export class BitMap extends DataContainer {
         }
     }
 
-    
-
     private createRuler() {
         var rulerStep = window.innerWidth / 7 - 1; // How often do you mark the ruler.
         var ctx = this.ruler.getContext('2d')!;
@@ -137,8 +134,6 @@ export class BitMap extends DataContainer {
         index = Math.floor((offsetX / this.pixelWidth)) * this.s;
         ctx.fillRect(offsetX, 15, 2, 5);
         ctx.fillText(index.toString(), offsetX, this.ruler.height / 2);
-
-
     }
 
     private toggleVisible() {
@@ -213,29 +208,6 @@ export class BitMap extends DataContainer {
         this.viewBoxLocked.style.bottom = "0";
     }
 
-    public UpdateVertex(vertexPositions: number[]) {
-        let latticeCtx = this.latticeCanvas.getContext("2d")!;
-        for (var vertexPosition of vertexPositions) {
-            var vertex = this.vertices.get(vertexPosition);
-            if (typeof vertex == "undefined") {
-                return;
-            }
-            let col = Math.floor((vertexPosition - 1) / this.s)
-            let row = (vertexPosition - 1) % this.s
-            let color = convertHexToStringColor(vertex.Color);
-            latticeCtx.fillStyle = color;
-            latticeCtx.fillRect(col * this.pixelWidth, row * this.pixelHeight, this.pixelWidth, this.pixelHeight);
-            if (vertex.Depth > 1 && vertex.Depth < this.maxDepth) {
-                var treeCtx = this.treeCanvases.getContext("2d")!;
-                let dim = this.treeCanvasesLookup.get(vertexPosition)!;
-                treeCtx.fillStyle = color;
-                treeCtx.fillRect(dim.x, dim.y, dim.width, dim.height);
-                treeCtx.fillStyle = "black";
-                treeCtx.strokeRect(dim.x, dim.y, dim.width, dim.height);
-            }
-        }
-    }
-
     private handleMouseEnter() {
         this.viewBox.style.display = "unset"
     }
@@ -246,7 +218,7 @@ export class BitMap extends DataContainer {
 
     private handleMouseMove(event: MouseEvent) {
         if (event.offsetX + this.viewBoxWidth / 2 > this.containerWidth) {
-            this.viewBox.style.width = (this.containerWidth - event.offsetX + (this.viewBox.clientWidth / 2)).toString() + "px";
+            this.viewBox.style.width = (this.containerWidth - event.offsetX + (this.viewBox.clientWidth / 2) - 10).toString() + "px";
         } else {
             this.viewBox.style.width = (this.viewBoxWidth).toString() + "px";
         }
@@ -262,15 +234,11 @@ export class BitMap extends DataContainer {
         this.Container.dispatchEvent( new BitMapClickedEvent({bubbles: true}, vertexIndex) )
     }
 
-    public Update() {
-        this.draw();
-    }
-
     public onWindowResize() {
         this.updateDynamicAttributes();
         this.fillLookUpTable();
         this.createRuler();
-        this.draw();
+        this.Update();
     }
 
     public SimulateClick(vertexIndex: number) {
