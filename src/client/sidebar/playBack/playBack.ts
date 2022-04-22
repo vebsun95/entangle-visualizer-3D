@@ -4,12 +4,12 @@ import { convertHexToStringColor } from "../../SharedKernel/utils";
 import { ChangeViewEvent } from "../events/changeView";
 import { LogChangedClickedEvent } from "../events/logChangedClicked";
 import { LogEntryEvent } from "../events/logEntryEvents";
-import { StatsTable, Slider, LogTable, ChangeViewsButtons, LogRow } from "./interfaces/interfaces";
+import { StatsTable, Slider, LogTable, LogRow } from "./interfaces/interfaces";
 
 export class PlayBack {
 
     public Container: HTMLDivElement = document.createElement("div");
-    public LogEntries: (VertexEvent | ParityEvent)[] = [];
+    private logEntries: (VertexEvent | ParityEvent)[] = [];
     private visible: boolean = false;
     private statsTable: StatsTable = {
         table: document.createElement("table"),
@@ -74,11 +74,11 @@ export class PlayBack {
         if(!this.visible) return;
 
         var start = Math.max(0, this.currentPos - this.logTable.rows.length / 2);
-        start = Math.min(start, this.LogEntries.length - this.logTable.rows.length);
+        start = Math.min(start, this.logEntries.length - this.logTable.rows.length);
         var row: LogRow;
         var logEntry: VertexEvent | ParityEvent;
         for (var i = 0; i < this.logTable.rows.length; i++, start++) {
-            logEntry = this.LogEntries[start];
+            logEntry = this.logEntries[start];
             row = this.logTable.rows[i];
             if (start < this.currentPos) {
                 row.row.style.background = "pink";
@@ -89,7 +89,7 @@ export class PlayBack {
                 logEntry as ParityEvent;
                 if (!(logEntry as ParityEvent).To) {
                     row.type.innerText = "IParity";
-                    row.position.innerText = "...";
+                    row.position.innerText = `${this.strandLabels[(logEntry as ParityEvent).Strand + 1]}(${(logEntry as ParityEvent).Index})`;
                 } else {
                     row.type.innerText = "Parity";
                     row.position.innerText = (logEntry as ParityEvent).From!.toString() + " -> " + (logEntry as ParityEvent).To!.toString();
@@ -203,13 +203,6 @@ export class PlayBack {
         this.Container.append(this.changeLogDropDown, this.changeViewDropDown, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
-    public HandleUpdatedData(alpha: number, s: number, p: number) {
-        this.slider.input.setAttribute("max", this.LogEntries.length.toString());
-        this.slider.endPosition.innerText = " / " + (this.LogEntries.length).toString();
-        this.setCurrentPos(0);
-        this.resetStats();
-    }
-
     public CreateChangeLogBtns(nrOfLogs: number) {
         // Delete the old buttons
         while (this.changeLogDropDown.children.length > 0) {
@@ -274,12 +267,12 @@ export class PlayBack {
 
     // https://github.com/racin/entangle-visualizer/blob/master/logparser.go
     private simulate(n: number, needsReset: boolean = false) {
-        if (this.currentPos > 0 || this.currentPos < this.LogEntries.length - 1) {
+        if (this.currentPos > 0 || this.currentPos < this.logEntries.length - 1) {
             var vertexEvents: VertexEvent[] = [];
             var parityEvents: ParityEvent[] = [];
             var logEntry: VertexEvent | ParityEvent;
-            for (var count = 0; count < n && this.currentPos + count < this.LogEntries.length; count++) {
-                logEntry = this.LogEntries[this.currentPos + count];
+            for (var count = 0; count < n && this.currentPos + count < this.logEntries.length; count++) {
+                logEntry = this.logEntries[this.currentPos + count];
                 if ((logEntry as ParityEvent).Index) {
                     parityEvents.push(logEntry as ParityEvent);
                 } else {
@@ -303,7 +296,7 @@ export class PlayBack {
 
     public GetLatestEvent(): number {
         if(!this.visible) return 0;
-        let latestEvent = this.LogEntries[this.currentPos - 1] || this.LogEntries[this.currentPos];
+        let latestEvent = this.logEntries[this.currentPos - 1] || this.logEntries[this.currentPos];
         return (latestEvent as VertexEvent).Position || (latestEvent as ParityEvent).From!;
     }
 
@@ -314,7 +307,7 @@ export class PlayBack {
 
     public GoToEnd() {
         if(!this.visible) return;
-        this.simulate(this.LogEntries.length - this.currentPos);
+        this.simulate(this.logEntries.length - this.currentPos);
     }
 
     public Hide() {
@@ -330,6 +323,14 @@ export class PlayBack {
     public FocusInput() {
         if(!this.visible) return;
         this.slider.currentPosition.focus();
+    }
+
+    public set LogEntries(newLogEntries: (VertexEvent | ParityEvent)[]) {
+        this.logEntries = newLogEntries;
+        this.slider.input.setAttribute("max", this.logEntries.length.toString());
+        this.slider.endPosition.innerText = " / " + (this.logEntries.length).toString();
+        this.setCurrentPos(0);
+        this.resetStats();
     }
 
     public set StrandLabels(newLabels: string[]) {
@@ -374,7 +375,7 @@ export class PlayBack {
     }
     // -----
 
-    // DATA Unavailable
+    // DATA RepairFailed
     public set NrOfDataRepFailed(value: number) {
         this.statsTable.failedRepRow.dataCell.innerText = value.toString();
     }
