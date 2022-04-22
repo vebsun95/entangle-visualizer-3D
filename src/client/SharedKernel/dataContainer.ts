@@ -10,9 +10,7 @@ export abstract class DataContainer {
     parities: Map<number, Parity>[] = [];
     parityShift: Map<number, number> | ParityShiftMock = new Map();
     maxDepth: number = 0;
-
-    constructor() {}
-
+    
     public UpdateData(alpha: number, s: number, p: number, vertices: Map<number, Vertex>, parities: Map<number, Parity>[], parityShift: Map<number, number>) {
         this.alpha = alpha;
         this.s = s;
