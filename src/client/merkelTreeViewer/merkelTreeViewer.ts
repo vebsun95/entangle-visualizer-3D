@@ -1,7 +1,8 @@
 import { DataContainer } from "../SharedKernel/dataContainer";
 import { Parity, Vertex } from "../SharedKernel/interfaces";
 import { convertHexToStringColor } from "../SharedKernel/utils";
-import { InfoGraphic, MouseOverElement, Tile } from "./interfaces/interfaces";
+import { InfoGraphic, Tile } from "./interfaces/interfaces";
+import { DimensionFinder } from "./utils/dimensionFinder";
 
 const SVGURL = "http://www.w3.org/2000/svg";
 export class MerkelTreeViewer extends DataContainer {
@@ -16,13 +17,9 @@ export class MerkelTreeViewer extends DataContainer {
         ViewButtonsContainer: document.createElement("div"),
     }
     private svgElement: SVGElement = document.createElementNS(SVGURL, "svg");
-    private mouseOverEle: MouseOverElement = {
-        Container: this.Container.appendChild(document.createElement("div")),
-        List: document.createElement("ul")
-    };
     private padding = 20;
     private borderSize = 4;
-    private tiles: Tile[] = Array(140);
+    private tiles: Tile[] = Array(128);
     private currentRootNode: number = 0;
     private currentView: number = 0;
     private visible: boolean = false;
@@ -39,19 +36,11 @@ export class MerkelTreeViewer extends DataContainer {
         this.Container.id = "tree-container";
         this.svgElement.id = "original-merkel-tree";
         this.createTileElements();
-
-        this.mouseOverEle.Container.style.position = "absolute";
-        this.mouseOverEle.Container.style.backgroundColor = "white";
-        this.mouseOverEle.Container.style.border = "1px solid black"
-        this.mouseOverEle.Container.setAttribute("display", "none")
-        this.mouseOverEle.Container.style.pointerEvents = "none";
-        this.mouseOverEle.Container.append(this.mouseOverEle.List);
-
         this.Container.append(this.infoGraphic.Container, this.svgElement);
 
     }
 
-    public HandleUpdatedDate() {
+    public HandleUpdatedData(): void {
         this.currentView = 0;
         this.currentRootNode = this.nrOfVertices;
         this.infoGraphic.BreadCrumbsIndex = [this.currentRootNode]
@@ -63,20 +52,6 @@ export class MerkelTreeViewer extends DataContainer {
 
     public onWindowResize() {
         this.updateDynamicAttributes();
-        this.updateTreeStruct();
-    }
-
-    public UpdateVertex(vertexIndex :number[] ) {
-        if (this.currentView > 0) {
-            return
-        }
-        this.updateTreeStruct();
-    }
-
-    public UpdateParity(vertexIndex: number, strand: number) {
-        if (this.currentView != strand) {
-            return
-        }
         this.updateTreeStruct();
     }
 
@@ -174,33 +149,11 @@ export class MerkelTreeViewer extends DataContainer {
         var tile: Tile;
         var nrOfChildren, nrOfRows, nrOfColumns, tileWidth, tileHeight, tileCounter, row, col: number;
         var currentRootNode : Vertex | Parity = this.getCurrentRootNode();
-        
         nrOfChildren = currentRootNode.Children.length;
-        // Check if nrOfChildren is a prime and increase nrOfChildren by 1 if prime
-        if (this.PrimeCheck(nrOfChildren) && nrOfChildren > 5) {
-            nrOfChildren++
-            //nrOfRows = Math.floor((2 / 3) * Math.sqrt(nrOfChildren)) || 1; 
-            //nrOfColumns = Math.ceil(nrOfChildren / nrOfRows);
-        }
-        // If not prime know the product of two numbers will give nrOfChildren
-        let combo: [number, number];
-        let listCombinations = []
-        listCombinations.push([1, nrOfChildren]);
-        for (let i = 2; i < nrOfChildren; i++) {                            // https://www.brilliant.org/bartek_stasiak;
-            if (Number.isInteger(nrOfChildren / i)) {
-                combo = [i, nrOfChildren/i]
-                if (listCombinations[listCombinations.length - 1][1] == i) {
-                    break
-                }
-                listCombinations.push(combo)
-            }
-        }
-        nrOfRows = listCombinations[listCombinations.length - 1][0]
-        nrOfColumns = listCombinations[listCombinations.length - 1][1]
-
+        
+        [nrOfRows, nrOfColumns] = DimensionFinder(nrOfChildren);
         tileWidth = Math.ceil((this.svgElement.clientWidth - this.padding * 2) / nrOfColumns);
         tileHeight = Math.ceil((this.svgElement.clientHeight - this.padding * 2) / nrOfRows);
-
 
         tileCounter = 0;
         row = 0;
@@ -243,18 +196,6 @@ export class MerkelTreeViewer extends DataContainer {
         this.updateInfoGraphic();
     }
 
-    private PrimeCheck(n: number) {
-        if (n < 4) {
-            return true;
-        }
-        for (let x = 2; x < n; x++) {
-            if (n % x == 0) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     private tileOnClickHandler(tileIndex: number) {
         var currentRootNode = this.getCurrentRootNode();
         let childIndex = currentRootNode.Children[tileIndex]
@@ -262,8 +203,6 @@ export class MerkelTreeViewer extends DataContainer {
         if (currentRootNode.Children.length > 0) {
             this.currentRootNode = childIndex;
             this.infoGraphic.BreadCrumbsIndex.push(this.currentRootNode);
-            // Hide the the mouseOverElement
-            this.mouseOverEle.Container.style.display = "none";
             this.updateTreeStruct();
         }
     }
