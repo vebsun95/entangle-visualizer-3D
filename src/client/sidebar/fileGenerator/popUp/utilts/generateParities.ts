@@ -1,6 +1,6 @@
 import { COLORS } from "../../../../SharedKernel/constants";
 import { Parity } from "../../../../SharedKernel/interfaces";
-import { EntanglementRulesIn, EntanglementRulesOut } from "../../constans/const";
+import { EntanglementRulesIn, EntanglementRulesOut } from "../../constans/entanglementRules";
 
 export { GenerateParities }
 
@@ -31,14 +31,14 @@ function GenerateParities(alpha: number, s: number, p: number, nrData: number): 
         }
     }
     // https://github.com/relab/snarl-mw21/blob/main/entangler/entangler.go
-    for (let i = nrData - (s*2 - 1); i <= nrData; i++) {
+    for (let i = Math.max( nrData - (s*2 - 1), 0); i <= nrData; i++) {
         for (let a = 0; a < alpha; a++) {
             fromParity = parities[a].get(i)!;
             input = i;
             if (fromParity.To! <= nrData) continue;
 
             input = i % (s * p);
-            input = input ? input : s * p;
+            if (input == 0) input = s * p;
 
             while (input > s) {
                 row = i % s;
@@ -53,6 +53,7 @@ function GenerateParities(alpha: number, s: number, p: number, nrData: number): 
                 input = fnc(input, s, p);
             }
             fromParity.To = input;
+            console.log(fromParity.From, "->", fromParity.To);
         }
     }
     return parities;

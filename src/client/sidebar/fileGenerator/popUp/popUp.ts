@@ -1,6 +1,6 @@
 import { ParityShiftMock } from "../../../SharedKernel/parityShiftMock";
 import { DataGeneratedEvent } from "../../events/dataGenerated";
-import { EntanglementRulesOut } from "../constans/const";
+import { EntanglementRulesOut } from "../constans/entanglementRules";
 import { GenerateParities } from "./utilts/generateParities";
 import { GenerateVertices } from "./utilts/generateVertecies";
 
@@ -26,7 +26,7 @@ const layOut = /*html*/
                 <input name='nrdata' value='259' />
             </div>
             <span class="error-span" id="nrData-error"></span>
-            <button id="submit-config" onclick="configSubmited"> submit </button>
+            <button id="submit-config"> submit </button>
         </div>
     </div>
 </div>

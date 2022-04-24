@@ -5,7 +5,6 @@ import { SideBar } from "./sidebar/sidebar";
 
 import { ContentJSON, Vertex, DownloadConfigLog, TreeLayoutLog, DownloadEntryLog, Parity, VertexEvent, ParityEvent } from "./SharedKernel/interfaces";
 import { COLORS, DLStatus, MSG, RepStatus } from "./SharedKernel/constants";
-import { parseLogVertexEntry } from "./SharedKernel/utils";
 import { BitMapClickedEvent } from "./bitmap/Events/bitMapClicked";
 import { BackToStartEvent } from "./sidebar/events/backToStart";
 import { DataGeneratedEvent } from "./sidebar/events/dataGenerated";
@@ -15,6 +14,7 @@ import { LogChangedClickedEvent } from "./sidebar/events/logChangedClicked";
 import { ChangeViewEvent } from "./sidebar/events/changeView";
 import { LogEntryEvent } from "./sidebar/events/logEntryEvents";
 import { LatticeClickedEvent } from "./renderer/events/latticeClicked";
+import { ParseLogEntry } from "./SharedKernel/ParseLogEntry";
 
 
 
@@ -293,14 +293,14 @@ export class App {
             }
 
         }
-        deltaDDL ? this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL : null;
-        deltaDRep ? this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep : null;
-        deltaDUna ? this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna : null;
+        deltaDDL   ? this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL : null;
+        deltaDRep  ? this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep : null;
+        deltaDUna  ? this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna : null;
         deltaDRepF ? this.sideBar.PlayBackEle.NrOfDataRepFailed += deltaDRepF : null;
 
-        deltaPDL ? this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL : null;
-        deltaPRep ? this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep : null;
-        deltaPUna ? this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna : null;
+        deltaPDL   ? this.sideBar.PlayBackEle.NrOfParityDl += deltaPDL : null;
+        deltaPRep  ? this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep : null;
+        deltaPUna  ? this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna : null;
         deltaPRepF ? this.sideBar.PlayBackEle.NrOfParityRepFailed += deltaPRepF : null;
 
         this.renderer.Update();
@@ -323,8 +323,7 @@ export class App {
         this.sideBar.FileInput.ChangeLog(newLog);
     }
     HandleLogChanged(e: LogChangedEvent) {
-        var lineCounter, parityIndex: number;
-        lineCounter = 0;
+        var lineCounter=0, parityIndex: number;
 
         let content: ContentJSON[] = e.newContent
         var line: ContentJSON = content[lineCounter++]
@@ -416,42 +415,31 @@ export class App {
         }
 
         var logEntry: DownloadEntryLog | TreeLayoutLog;
-        var color: number, strand: number, from: number, to: number;
-        var LogEntries = [];
+        var color: number, strand: number;
+        var LogEntries: (ParityEvent | VertexEvent)[] = [];
         while (line.msg == MSG.DlEntry || line.msg == MSG.ParityTreeEntry) {
             if (line.msg == MSG.DlEntry) {
                 logEntry = line.log as DownloadEntryLog;
 
                 if (logEntry.downloadStatus == DLStatus.Pending || logEntry.repairStatus == RepStatus.Pending) {
                     line = content[lineCounter++]
-
                     continue
                 }
+                color = ParseLogEntry(logEntry);
                 if (logEntry.parity) {
                     strand = ParityLabels.indexOf(logEntry.class);
-                    from = this.parityShift.get(logEntry.start!)!;
-                    to = this.parityShift.get(logEntry.end!)!;
-                    if (logEntry.downloadStatus === DLStatus.Failed && logEntry.repairStatus == RepStatus.NoRep && !logEntry.hasData) {
-                        color = COLORS.RED;
-                    }
-                    else if (logEntry.downloadStatus === DLStatus.Failed && logEntry.repairStatus == RepStatus.Failed && !logEntry.hasData) {
-                        color = COLORS.YELLOW;
-                    }
-                    else if (logEntry.repairStatus === RepStatus.Success && logEntry.hasData) {
-                        color = COLORS.BLUE
-                    }
-                    else {
-                        color = COLORS.GREEN;
-                    }
                     LogEntries.push({
                         Index: this.parityShift.get(logEntry.start!)!,
                         Strand: strand,
                         From: logEntry.start!,
                         To: logEntry.end!,
                         NewColor: color
-                    });
+                    } as ParityEvent);
                 } else {
-                    LogEntries.push(parseLogVertexEntry(logEntry))
+                    LogEntries.push({
+                        Position: logEntry.position,
+                        NewColor: color,
+                    } as VertexEvent);
                 }
             }
             else if (line.msg == MSG.ParityTreeEntry) {
