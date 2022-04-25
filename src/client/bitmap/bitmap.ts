@@ -243,8 +243,8 @@ export class BitMap extends DataContainer {
 
     public SimulateClick(vertexIndex: number) {
         let coords = this.getCoordFromIndex(vertexIndex);
-        this.viewBoxLocked.style.left = coords[0].toString() + "px";
-        this.latticeCanvas.scrollTo(coords[0] - window.innerWidth / 2, 0);
+        this.viewBoxLocked.style.left = (Math.max(coords[0] - this.viewBoxWidth / 2, 0) ).toString() + "px";
+        this.latticeCanvas.scrollTo(Math.max( coords[0] - this.viewBoxWidth / 2, 0), 0);
         this.Container.dispatchEvent( new BitMapClickedEvent({bubbles: true}, vertexIndex) )
     }
 
