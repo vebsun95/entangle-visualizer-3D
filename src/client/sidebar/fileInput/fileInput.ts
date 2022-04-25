@@ -29,6 +29,8 @@ export class FileInput {
     }
 
     private createLayout() {
+        let header = document.createElement("h1");
+        header.innerText = "Entangle visualizer 3D";
         this.fileInput.type = "file";
         this.fileInput.addEventListener("change", this.handleFileChange.bind(this) as EventListener);
 
@@ -37,7 +39,7 @@ export class FileInput {
             this.Container.dispatchEvent( new Event("file-generator", {bubbles: true}));
         });
 
-        this.Container.append(this.fileInput, this.fileGeneratorButton);
+        this.Container.append(header, this.fileInput, this.fileGeneratorButton);
         this.fileInput.id = "input";
         this.fileInput.style.visibility = "none"
         this.fileInput.style.display = "none"

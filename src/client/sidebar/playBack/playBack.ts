@@ -13,8 +13,8 @@ export class PlayBack {
     private visible: boolean = false;
     private statsTable: StatsTable = {
         table: document.createElement("table"),
-        config: document.createElement("tr"),
-        fileName: document.createElement("tr"),
+        config: document.createElement("p"),
+        fileName: document.createElement("p"),
         header: document.createElement("tr"),
         dlRow: {
             row: document.createElement("tr"),
@@ -118,6 +118,10 @@ export class PlayBack {
         });
 
         var st = this.statsTable;
+
+        st.fileName.style.margin = "0";
+        st.fileName.style.marginTop = "1em";
+        st.config.style.margin = "0";
         st.table.classList.add("stats-table")
 
         var headerCell: HTMLTableCellElement = document.createElement("td");
@@ -157,7 +161,7 @@ export class PlayBack {
         st.failedRepRow.parityCell.classList.add("align-Right");
         st.failedRepRow.row.append(st.failedRepRow.type, st.failedRepRow.dataCell, st.failedRepRow.parityCell);
 
-        st.table.append(st.fileName, st.config, st.header, st.dlRow.row, st.repRow.row, st.failedRow.row, st.failedRepRow.row);
+        st.table.append(st.header, st.dlRow.row, st.repRow.row, st.failedRow.row, st.failedRepRow.row);
 
         this.JumpBackButton.innerHTML = '<i class = "fa fa-fast-backward"></i>';
         this.BackButton.innerHTML = '<i class = "fa fa-step-backward"></i>';
@@ -200,7 +204,7 @@ export class PlayBack {
 
         this.logTable.table.classList.add("log-table");
 
-        this.Container.append(this.changeLogDropDown, this.changeViewDropDown, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
+        this.Container.append(this.changeLogDropDown, this.changeViewDropDown, this.statsTable.fileName, this.statsTable.config, this.statsTable.table, this.JumpBackButton, this.BackButton, this.PlayButton, this.JumpForwardButton, this.slider.container, this.logTable.table);
     }
 
     public CreateChangeLogBtns(nrOfLogs: number) {

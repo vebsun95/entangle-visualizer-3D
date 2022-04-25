@@ -70,6 +70,8 @@ body {
     max-height: 65vh;
     min-height: 25vh;
     max-width: 20vw;
+    padding: 3px;
+    top: 20.5wh;
 }
 
 #toggle-side-bar {
