@@ -9,6 +9,7 @@ export const COLORS = {
     BLUE: 0x3c96ff,
     RED: 0xff4646,
     YELLOW: 0xfcba03,
+    ORANGE: 0xf58a42,
     GREY: 0xd1d1d1
 }
 

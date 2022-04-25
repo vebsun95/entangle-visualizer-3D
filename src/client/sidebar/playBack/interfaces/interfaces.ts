@@ -8,8 +8,8 @@ export interface ChangeViewsButtons {
 
 export interface StatsTable {
     table: HTMLTableElement,
-    config: HTMLTableRowElement,
-    fileName: HTMLTableRowElement,
+    config: HTMLParagraphElement,
+    fileName: HTMLParagraphElement,
     header: HTMLTableRowElement,
     dlRow: StatsRow,
     repRow: StatsRow,

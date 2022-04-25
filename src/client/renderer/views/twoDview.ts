@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { STRANDS } from "../../SharedKernel/constants";
 import { DataContainer } from "../../SharedKernel/dataContainer";
 import { Parity, Vertex } from "../../SharedKernel/interfaces";
+import { LaticeMovedEvent } from "../events/latticeMovedEvent";
 import { View } from "../interfaces/interfaces";
 import { MyControls } from "../MyControls";
 import { updateLabel } from "../utils/updateLabels";
@@ -9,9 +10,9 @@ import { updateLabel } from "../utils/updateLabels";
 
 export class TwoDView extends DataContainer implements View {
     public controls: MyControls;
-    private verticesGroup: THREE.Group;
-    private paritiesGroup: THREE.Group;
-    private ghostGroup: THREE.Group;
+    public verticesGroup: THREE.Group;
+    public paritiesGroup: THREE.Group;
+    public ghostGroup: THREE.Group;
     private scale: number;
     private drawFrom: number = 1;
     private lineGeomIndex: number = 0;
@@ -28,29 +29,64 @@ export class TwoDView extends DataContainer implements View {
         this.controls = controls;
         this.camera = camera;
     }
+
+    private set DrawFrom(position: number) {
+        this.drawFrom = position - Math.min(this.verticesGroup.children.length, this.nrOfVertices) / 2;
+        if (this.drawFrom < 1) {
+            this.drawFrom = this.nrOfVertices + this.drawFrom;
+        }
+        this.drawFrom = Math.ceil(this.drawFrom / this.s) * this.s;
+        this.drawFrom++;
+        if (this.drawFrom >= this.nrOfVertices) {
+            this.drawFrom = 1;
+        }
+    }
+
+    private get DrawFrom(): number {
+        let position = this.drawFrom + Math.min(this.verticesGroup.children.length, this.nrOfVertices) / 2
+        if (position > this.nrOfVertices) {
+            position = position % this.nrOfVertices;
+        }
+        else if (position < 1) {
+            position = this.nrOfVertices + position;
+        }
+        return position;
+    }
+
+    public GoRight(): void {
+        let position = this.DrawFrom + this.s;
+        if (position > this.nrOfVertices) position %= this.nrOfVertices;
+        dispatchEvent(new LaticeMovedEvent(position, { bubbles: true }));
+    }
+    public GoLeft(): void {
+        let position = this.DrawFrom - this.s - 1
+        if (position < 1) position += this.nrOfVertices;
+        dispatchEvent(new LaticeMovedEvent(position, { bubbles: true }));
+    }
+    public GoUp(): void {
+        let position = this.DrawFrom + this.s * 10;
+        if (position > this.nrOfVertices) position %= this.nrOfVertices;
+        dispatchEvent(new LaticeMovedEvent(position, { bubbles: true }));
+    }
+    public GoDown(): void {
+        let position = this.DrawFrom - this.s * 10;
+        if (position < 1) position += this.nrOfVertices;
+        dispatchEvent(new LaticeMovedEvent(position, { bubbles: true }));
+    }
     public Animate(): void {
-        
+
     }
     public HandleUpdatedData(): void {
         this.Update();
     }
 
     public GoTo(position: number): void {
-        this.drawFrom = position - (this.verticesGroup.children.length / 2);
-        if (this.drawFrom < 1) {
-            this.drawFrom = this.nrOfVertices + this.drawFrom;
-        }
-        this.drawFrom = Math.ceil(this.drawFrom / this.s) * this.s
-        this.drawFrom++;
-        if (this.drawFrom >= this.nrOfVertices) {
-            this.drawFrom = 1;
-        }
+        this.DrawFrom = position;
         this.Update();
         var v = this.verticesGroup.getObjectByName(position.toString())!;
         if (v) {
             this.controls.panOffset.set(v.position.x - this.controls.camera.position.x, (((this.s / 2) + 1) * this.scale) - this.controls.camera.position.y, 0);
         }
-        this.camera.lookAt(v.position)
     }
 
     public Update(): void {
@@ -62,8 +98,7 @@ export class TwoDView extends DataContainer implements View {
         var startIndex = this.drawFrom, row = this.s, column = 0;
         var vertex: Vertex;
         var obj: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
-
-        for(var i=0; i<this.verticesGroup.children.length; i++) {
+        for (var i = 0; i < this.verticesGroup.children.length; i++) {
             obj = this.verticesGroup.children[i] as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
             vertex = this.vertices.get(startIndex)!;
             obj.position.set(
@@ -92,7 +127,7 @@ export class TwoDView extends DataContainer implements View {
             }
         }
 
-        for(; i<this.verticesGroup.children.length; i++) {
+        for (; i < this.verticesGroup.children.length; i++) {
             obj = this.verticesGroup.children[i] as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
             obj.name = "";
             obj.visible = false;
@@ -102,26 +137,33 @@ export class TwoDView extends DataContainer implements View {
     private MoveParityBlocks() {
         /* --- Flytter på parity blokkene --- */
         var startIndex = this.drawFrom;
+        var parityPosition: number, parity: Parity;
+        var startNode: THREE.Object3D | undefined, endNode: THREE.Object3D | undefined;
+        var startPos: THREE.Vector3, endPos: THREE.Vector3;
         this.lineGeomIndex = 0;
         this.ghostIndex = 0;
         for (let index = 0; index < this.verticesGroup.children.length; index++) {
             for (var [strand, output] of this.parities.entries()) {
-                let parityPosition = this.parityShift.get(startIndex)!;
-                let parity = output.get(parityPosition) as Parity;
+                parityPosition = this.parityShift.get(startIndex)!;
+                parity = output.get(parityPosition) as Parity;
+                if (parity.To == null || parity.From == null) continue;
+                startNode = this.verticesGroup.getObjectByName(parity.From.toString());
+                endNode = this.verticesGroup.getObjectByName(parity.To.toString());
+                if (typeof startNode === "undefined" || typeof endNode === "undefined") continue;
+                startPos = startNode.position; 
+                endPos = endNode.position;
+                if (startPos.x > endPos.x) continue;
                 this.paritiesGroup.children[this.lineGeomIndex].userData.strand = strand;
-                this.paritiesGroup.children[this.lineGeomIndex].userData.index  = parity.Index;
-                if (index + this.s < this.verticesGroup.children.length && parity.To != null && parity.From != null) {
-                    // Sjekker at RightPos er mindre enn LeftPos og siste kolonne ikke er fylt opp av verticies
-                    if (parity.To < parity.From && this.nrOfVertices % this.s != 0) {
-                        // Gjør avansert logikk her
-                        this.CreateParitiyAdvanced2D(parity, strand);
-                    }
-                    else {
-                        // Gjør basic logikk her
-                        this.CreateParitiyBasic2D(parity, strand);
-                    }
-                    this.lineGeomIndex++;
+                this.paritiesGroup.children[this.lineGeomIndex].userData.index = parity.Index;
+                if (parity.To < parity.From) {
+                    // Gjør avansert logikk her
+                    this.CreateParitiyAdvanced2D(parity, strand, startNode, endNode);
                 }
+                else {
+                    // Gjør basic logikk her
+                    this.CreateParitiyBasic2D(parity, strand, startNode, endNode);
+                }
+
             }
             startIndex++
             if (startIndex > this.nrOfVertices) {
@@ -131,165 +173,141 @@ export class TwoDView extends DataContainer implements View {
                 break
             }
         }
-        for(; this.lineGeomIndex < this.paritiesGroup.children.length; this.lineGeomIndex++) {
+        for (; this.lineGeomIndex < this.paritiesGroup.children.length; this.lineGeomIndex++) {
             var line = this.paritiesGroup.children[this.lineGeomIndex];
             line.userData.strand = null;
             line.userData.index = null;
             line.name = "";
             line.visible = false;
         }
-        for(; this.ghostIndex < this.ghostGroup.children.length; this.ghostIndex++) {
+        for (; this.ghostIndex < this.ghostGroup.children.length; this.ghostIndex++) {
             var ghost = this.ghostGroup.children[this.ghostIndex];
             ghost.name = "";
             ghost.visible = false;
         }
     }
-    private CreateParitiyAdvanced2D(output: Parity, strand: number) {
-        let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
-        let leftPos = this.verticesGroup.getObjectByName(output.From!.toString());
-        let rightPos = this.verticesGroup.getObjectByName(output.To!.toString());
+    private CreateParitiyAdvanced2D(output: Parity, strand: number, startNode: THREE.Object3D, endNode: THREE.Object3D) {
+        let line = this.paritiesGroup.children[this.lineGeomIndex++] as THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>;
         let nrColumns = Math.floor(this.nrOfVertices / this.s);
         let currentColumn = Math.floor((output.From! - 1) / this.s);
-        if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
-            line.visible = true;
-            //@ts-ignore
-            line.material.color.setHex(output.Color);
-            let array = line.geometry.attributes.position;
-            array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
-            switch (strand) {
-                case STRANDS.HStrand: {
-                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                    line!.geometry.setDrawRange(0, 2);
-                    line!.geometry.attributes.position.needsUpdate = true;
-                    line.geometry.computeBoundingSphere();
-                    return
+        line.visible = true;
+        line.material.color.setHex(output.Color);
+        let array = line.geometry.attributes.position;
+        let drawRange: number;
+        array.setXYZ(0, startNode!.position.x, startNode!.position.y, startNode!.position.z);
+        switch (strand) {
+            case STRANDS.HStrand: {
+                array.setXYZ(1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                drawRange = 2;
+                break;
+            }
+            case STRANDS.RHStrand: {
+                // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
+                if (output.From! % this.s == output.To! % this.s) {//&& currentColumn == nrColumns) {
+                    console.log("RHStrand går til samme")
+                    console.log(output.From, output.To, output.Index)
+                    // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
+                    let pointList = this.createEllipseLine(endNode, startNode, 1);
+                    for (let i = 0; i < pointList.length; i++) {
+                        array.setXYZ(pointList[i][2], pointList[i][0], pointList[i][1], 0);
+                    }
+                    array.setXYZ(pointList[pointList.length - 1][2] + 1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                    drawRange = pointList[pointList.length - 1][2] + 1;
                 }
-                case STRANDS.RHStrand: {
-                    // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
-                    if (output.Index % this.s == output.To! % this.s && currentColumn == nrColumns) {
-                        console.log("RHStrand går til samme")
-                        // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
-                        let pointList = this.createEllipseLine(rightPos, leftPos, 1);
-                        for (let i = 0; i < pointList.length; i++) {
-                            array.setXYZ(pointList[i][2], pointList[i][0], pointList[i][1], 0);
-                        }
-                        array.setXYZ(pointList[pointList.length - 1][2] + 1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, pointList[pointList.length - 1][2] + 1);
-                        line!.geometry.attributes.position.needsUpdate = true;
-                        line.geometry.computeBoundingSphere();
-                        return
-                    }
-                    else {
-                        array.setXYZ(1, leftPos!.position.x + (this.scale / 2), leftPos!.position.y - (this.scale / 3), leftPos!.position.z);
-                        array.setXYZ(2, rightPos!.position.x - (this.scale / 2), rightPos!.position.y + (this.scale / 3), rightPos!.position.z);
-                        array.setXYZ(3, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 4);
-                        line!.geometry.attributes.position.needsUpdate = true;
-                        line.geometry.computeBoundingSphere();
-                        return
-                    }
-
+                else {
+                    array.setXYZ(1, startNode!.position.x + (this.scale / 2), startNode!.position.y - (this.scale / 3), startNode!.position.z);
+                    array.setXYZ(2, endNode!.position.x - (this.scale / 2), endNode!.position.y + (this.scale / 3), endNode!.position.z);
+                    array.setXYZ(3, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                    drawRange = 4;
                 }
-                case STRANDS.LHStrand: {
-                    // If top row and second last column
-                    if (output.Index % this.s == 1 && currentColumn < nrColumns) {
-                        console.log("Skal lage ghost vertex for:", output.Index, output.To);
-                        let name = this.vertices.get(output.To!)!.Index.toString();
-                        let color = this.vertices.get(output.To!)!.Color;
-                        var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
-                        array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                        line!.geometry.setDrawRange(0, 2);
-                        line!.geometry.attributes.position.needsUpdate = true;
-                        line.geometry.computeBoundingSphere();
-                        return
-                    }
-                    // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
-                    else if (output.Index % this.s == output.To! % this.s && currentColumn == nrColumns) {
-                        console.log("LHStrand går til samme")
-                        // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
-                        let pointList = this.createEllipseLine(rightPos, leftPos, -1);
-                        for (let i = 0; i < pointList.length; i++) {
-                            array.setXYZ(pointList[i][2], pointList[i][0], pointList[i][1], 0);
-                        }
-                        array.setXYZ(pointList[pointList.length - 1][2] + 1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, pointList[pointList.length - 1][2] + 1);
-                        line!.geometry.attributes.position.needsUpdate = true;
-                        line.geometry.computeBoundingSphere();
-                        return
-                    }
-                    else {
-                        array.setXYZ(1, leftPos!.position.x + (this.scale / 2), leftPos!.position.y + (this.scale / 3), leftPos!.position.z);
-                        array.setXYZ(2, rightPos!.position.x - (this.scale / 2), rightPos!.position.y - (this.scale / 3), rightPos!.position.z);
-                        array.setXYZ(3, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                        line!.geometry.setDrawRange(0, 4);
-                        line!.geometry.attributes.position.needsUpdate = true;
-                        line.geometry.computeBoundingSphere();
-                        return
-                    }
+                break;
+            }
+            case STRANDS.LHStrand: {
+                // If top row and second last column
+                if (output.From! % this.s == 1 && currentColumn < nrColumns) {
+                    let name = this.vertices.get(output.To!)!.Index.toString();
+                    let color = this.vertices.get(output.To!)!.Color;
+                    var ghost = this.createGhostVertex(name, startNode!.position.x + this.scale, startNode!.position.y + this.scale, 0, color);
+                    array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                    drawRange = 2;
                 }
-                default: {
-                    // Default case if alpha > 3
-                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                    line!.geometry.setDrawRange(0, 2);
-                    line!.geometry.attributes.position.needsUpdate = true;
-                    line.geometry.computeBoundingSphere();
-                    return
+                // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
+                else if (output.From! % this.s == output.To! % this.s) {
+                    console.log("LHStrand går til samme")
+                    // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
+                    let pointList = this.createEllipseLine(endNode, startNode, -1);
+                    for (let i = 0; i < pointList.length; i++) {
+                        array.setXYZ(pointList[i][2], pointList[i][0], pointList[i][1], 0);
+                    }
+                    array.setXYZ(pointList[pointList.length - 1][2] + 1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                    drawRange = pointList[pointList.length - 1][2] + 1;
                 }
+                else {
+                    array.setXYZ(1, startNode!.position.x + (this.scale / 2), startNode!.position.y + (this.scale / 3), startNode!.position.z);
+                    array.setXYZ(2, endNode!.position.x - (this.scale / 2), endNode!.position.y - (this.scale / 3), endNode!.position.z);
+                    array.setXYZ(3, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                    drawRange = 4;
+                }
+                break;
+            }
+            default: {
+                // Default case if alpha > 3
+                array.setXYZ(1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                drawRange = 2;
+                break;
             }
         }
+        line!.geometry.setDrawRange(0, drawRange);
+        line!.geometry.attributes.position.needsUpdate = true;
+        line.geometry.computeBoundingSphere();
 
     }
 
 
-    private CreateParitiyBasic2D(output: Parity, strand: number) {
-        let line = this.paritiesGroup.children[this.lineGeomIndex] as THREE.Line;
-        let leftPos = this.verticesGroup.getObjectByName(output.From!.toString());
-        let rightPos = this.verticesGroup.getObjectByName(output.To!.toString());
-        if (typeof leftPos != "undefined" && typeof rightPos != "undefined") {
-            line.visible = true;
-            //@ts-ignore
-            line.material.color.setHex(output.Color);
-            let array = line.geometry.attributes.position;
-            array.setXYZ(0, leftPos!.position.x, leftPos!.position.y, leftPos!.position.z);
-            switch (strand) {
-                case STRANDS.HStrand: {
-                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                    break
-                }
-                case STRANDS.RHStrand: {
-                    if (output.To! % this.s == 1) {
-                        let name = this.vertices.get(output.To!)!.Index.toString();
-                        let color = this.vertices.get(output.To!)!.Color;
-                        var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y - this.scale, 0, color);
-                        array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                    }
-                    else {
-                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                    }
-                    break
-                }
-                case STRANDS.LHStrand: {
-                    if (output.To! % this.s == 0) {
-                        let name = this.vertices.get(output.To!)!.Index.toString();
-                        let color = this.vertices.get(output.To!)!.Color;
-                        var ghost = this.createGhostVertex(name, leftPos!.position.x + this.scale, leftPos!.position.y + this.scale, 0, color);
-                        array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
-                    }
-                    else {
-                        array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                    }
-                    break
-                }
-                default: {
-                    console.log("default", output.Index, output.To)
-                    // Default case if alpha > 3
-                    array.setXYZ(1, rightPos!.position.x, rightPos!.position.y, rightPos!.position.z);
-                }
+    private CreateParitiyBasic2D(output: Parity, strand: number, startNode: THREE.Object3D, endNode: THREE.Object3D) {
+        let line = this.paritiesGroup.children[this.lineGeomIndex++] as THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+        line.visible = true;
+        line.material.color.setHex(output.Color);
+        let array = line.geometry.attributes.position;
+        array.setXYZ(0, startNode!.position.x, startNode!.position.y, startNode!.position.z);
+        switch (strand) {
+            case STRANDS.HStrand: {
+                array.setXYZ(1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                break
             }
-            line!.geometry.setDrawRange(0, 2);
-            line!.geometry.attributes.position.needsUpdate = true;
-            line.geometry.computeBoundingSphere();
+            case STRANDS.RHStrand: {
+                if (output.To! % this.s == 1) {
+                    let name = this.vertices.get(output.To!)!.Index.toString();
+                    let color = this.vertices.get(output.To!)!.Color;
+                    var ghost = this.createGhostVertex(name, startNode!.position.x + this.scale, startNode!.position.y - this.scale, 0, color);
+                    array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                }
+                else {
+                    array.setXYZ(1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                }
+                break
+            }
+            case STRANDS.LHStrand: {
+                if (output.To! % this.s == 0) {
+                    let name = this.vertices.get(output.To!)!.Index.toString();
+                    let color = this.vertices.get(output.To!)!.Color;
+                    var ghost = this.createGhostVertex(name, startNode!.position.x + this.scale, startNode!.position.y + this.scale, 0, color);
+                    array.setXYZ(1, ghost!.position.x, ghost!.position.y, ghost!.position.z);
+                }
+                else {
+                    array.setXYZ(1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+                }
+                break
+            }
+            default: {
+                console.log("default", output.Index, output.To)
+                // Default case if alpha > 3
+                array.setXYZ(1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
+            }
         }
+        line!.geometry.setDrawRange(0, 2);
+        line!.geometry.attributes.position.needsUpdate = true;
+        line.geometry.computeBoundingSphere();
     }
 
     private createGhostVertex(index: string, x: number, y: number, z: number, color: number) {
@@ -297,8 +315,6 @@ export class TwoDView extends DataContainer implements View {
         var obj = this.ghostGroup.children[this.ghostIndex] as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
         updateLabel(index, obj.userData.ctx, color, false);
         obj.position.set(x, y, z);
-        obj.material.opacity = 0.3
-        obj.material.transparent = true;
         obj.material.map!.needsUpdate = true;
         obj.visible = true;
 

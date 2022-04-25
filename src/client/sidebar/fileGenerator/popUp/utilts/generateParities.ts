@@ -1,81 +1,59 @@
 import { COLORS } from "../../../../SharedKernel/constants";
 import { Parity } from "../../../../SharedKernel/interfaces";
+import { EntanglementRulesIn, EntanglementRulesOut } from "../../constans/entanglementRules";
 
-export {GenerateParities}
+export { GenerateParities }
 
-function GenerateParities(alpha: number, s: number, p: number, nrData: number, funcStrings: string[][]): Map<number, Parity>[] {
-    let to: number | null, from: number | null, row: number, fncString: string;
-    let fnc: Function, depth: number, parent: number, children: number[];
+function GenerateParities(alpha: number, s: number, p: number, nrData: number): Map<number, Parity>[] {
+    let to: number | null, from: number | null, row: number;
+    let fnc: Function, depth: number = 1, parent: number = 0, children: number[] = [];
     let parities: Map<number, Parity>[] = Array(alpha);
-    for(let i=0; i < parities.length; i++) {
+    let fromParity, input: number;
+    for (let i = 0; i < parities.length; i++) {
         parities[i] = new Map();
     }
-    for(let i=1; i<=nrData + 5; i++) {
-        for(let a=0; a<alpha; a++) {
+    for (let i = 1; i <= nrData; i++) {
+        for (let a = 0; a < alpha; a++) {
             to = null;
             from = null;
-            if (i < 129 ) {
-                row = i % s;
-            }  else if( i < 258) {
-                row = (i - 1) % s;
-            } else {
-                row = (i - 2) % s;
-            }
-            if(row == 1) {
+            row = i % s;
+            if (row == 1) {
                 row = 0;
             } else if (row > 1) {
                 row = 1;
-            } else if (row == 0 ) {
+            } else if (row == 0) {
                 row = 2;
             }
-            fncString = "return " + funcStrings[a][row] + ";"
-            fncString = fncString.replace( new RegExp("i", "g"), i.toString());
-            fncString = fncString.replace( new RegExp("s", "g"), s.toString());
-            fncString = fncString.replace( new RegExp("p", "g"), p.toString());
-            fnc = Function(fncString);
-            if(i < 129) {
-                depth = 1;
-                parent = 129;
-                children = [];
-                from = i;
-                to = fnc();
-            } else if (i == 129) {
-                parent = 263;
-                depth = 2;
-                children = Array(128);
-                for(let j = 1; j < 129; j++) {
-                    children[j - 1] = j;
-                }
-            } else if( i < 258) {
-                parent = 258;
-                depth = 1;
-                children = []
-                from = i - 1;
-                to = fnc() - 1;
-            } else if (i == 258) {
-                parent = 263;
-                depth = 2;
-                children = Array(128);
-                for(let j=130, k=0; k < 128; j++, k++) {
-                    children[k] = j;
-                }
-            }  else if(i < 262) {
-                parent = 262;
-                depth = 1;
-                children = [];
-                from = i - 2;
-                to = fnc() - 2;
+            fnc = EntanglementRulesOut[a][row];
+            from = i;
+            to = fnc(i, s, p);
+            parities[a].set(i, { Index: i, Parent: parent!, Depth: depth!, Color: COLORS.GREY, Children: children!, DamagedChildren: 0, To: to, From: from })
+        }
+    }
+    // https://github.com/relab/snarl-mw21/blob/main/entangler/entangler.go
+    for (let i = Math.max( nrData - (s*2 - 1), 0); i <= nrData; i++) {
+        for (let a = 0; a < alpha; a++) {
+            fromParity = parities[a].get(i)!;
+            input = i;
+            if (fromParity.To! <= nrData) continue;
 
-            } else if( i == 262) {
-                parent = 263;
-                depth = 2;
-                children = [259, 260, 261];
-            } else if (i == 263) {
-                parent = 0;
-                depth = 3;
-                children = [129, 258, 262];
+            input = i % (s * p);
+            if (input == 0) input = s * p;
+
+            while (input > s) {
+                row = i % s;
+                if (row == 1) {
+                    row = 0;
+                } else if (row > 1) {
+                    row = 1;
+                } else if (row == 0) {
+                    row = 2;
+                }
+                fnc = EntanglementRulesIn[a][row];
+                input = fnc(input, s, p);
             }
-            parities[a].set(i, {Index: i, Parent: parent!, Depth: depth!, Color:COLORS.GREY, Children: children!, DamagedChildren: 0, To: to, From: from})
+            fromParity.To = input;
+            console.log(fromParity.From, "->", fromParity.To);
         }
     }
     return parities;

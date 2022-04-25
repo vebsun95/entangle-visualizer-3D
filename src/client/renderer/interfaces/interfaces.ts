@@ -2,10 +2,14 @@ import { DataContainer } from "../../SharedKernel/dataContainer";
 import { MyControls } from "../MyControls";
 
 export interface View extends DataContainer {
+    verticesGroup: THREE.Group,
+    paritiesGroup: THREE.Group,
+    ghostGroup: THREE.Group,
     controls: MyControls,
-    Update(): void,
     GoTo(position: number): void,
-    HandleUpdatedData(): void,
+    GoRight(): void,
+    GoLeft(): void,
+    GoUp(): void,
+    GoDown(): void,
     Animate(): void,
-    StartCamera: THREE.Vector3,
 }
