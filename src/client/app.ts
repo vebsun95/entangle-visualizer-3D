@@ -15,6 +15,7 @@ import { ChangeViewEvent } from "./sidebar/events/changeView";
 import { LogEntryEvent } from "./sidebar/events/logEntryEvents";
 import { LatticeClickedEvent } from "./renderer/events/latticeClicked";
 import { ParseLogEntry } from "./SharedKernel/ParseLogEntry";
+import { LaticeMovedEvent } from "./renderer/events/latticeMovedEvent";
 
 
 
@@ -68,10 +69,10 @@ export class App {
         this.Container.addEventListener(LogChangedEvent.EventName, this.HandleLogChanged.bind(this) as EventListener);
         this.Container.addEventListener(LogEntryEvent.EventName, this.HandleLogEntryEvents.bind(this) as EventListener);
         this.Container.addEventListener(ChangeViewEvent.EventName, this.HandleChangeView.bind(this) as EventListener);
+        window.addEventListener(LaticeMovedEvent.EventName, this.HandleLaticeMovedEvent.bind(this) as EventListener);
         window.addEventListener(LatticeClickedEvent.EventName, this.HandleLatticeClicked.bind(this) as EventListener);
         window.addEventListener('resize', this.HandleWindowResize.bind(this), false);
         window.addEventListener("keydown", this.HandleKeyDown.bind(this));
-        window.addEventListener("keyup", this.HandleKeyUp.bind(this))
     }
 
     HandleLatticeClicked(e: LatticeClickedEvent) {
@@ -127,34 +128,16 @@ export class App {
     HandleChangeView(e: ChangeViewEvent) {
         this.renderer.View = e.newView;
     }
-
-    HandleKeyUp(e: KeyboardEvent) {
-        if (e.ctrlKey) {
-            this.renderer.PanRight = false;
-            this.renderer.PanLeft = false;
-            this.renderer.PanUp = false;
-            this.renderer.PanDown = false;
-            // if (e.key == "ArrowRight") {
-            //     this.renderer.PanRight = false;
-            // } else if (e.key == "ArrowLeft") {
-            //     this.renderer.PanLeft = false;
-            // } else if (e.key == "ArrowDown") {
-            //     this.renderer.PanDown = false;
-            // } else if (e.key == "ArrowUp") {
-            //     this.renderer.PanUp = false;
-            // }
-        }
-    }
     HandleKeyDown(e: KeyboardEvent) {
         if (e.ctrlKey) {
             if (e.key == "ArrowRight") {
-                this.renderer.PanRight = true;
+                this.renderer.GoRight();
             } else if (e.key == "ArrowLeft") {
-                this.renderer.PanLeft = true;
+                this.renderer.GoLeft();
             } else if (e.key == "ArrowDown") {
-                this.renderer.PanDown = true;
+                this.renderer.GoDown();
             } else if (e.key == "ArrowUp") {
-                this.renderer.PanUp = true;
+                this.renderer.GoUp();
             }
         }
         else {
@@ -309,6 +292,9 @@ export class App {
     }
     HandleBitMapClicked(e: BitMapClickedEvent) {
         this.renderer.GoTo(e.VertexIndex)
+    }
+    HandleLaticeMovedEvent(e: LaticeMovedEvent) {
+        this.bitMap.SimulateClick(e.position);
     }
     HandleNewFileUploaded(e: NewFileUploadEvent) {
         this.renderer.Simulating = true;

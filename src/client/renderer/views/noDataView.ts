@@ -8,9 +8,9 @@ import { updateLabel } from "../utils/updateLabels";
 
 export class noDataView extends DataContainer implements View {
     public controls: MyControls;
-    private verticesGroup: THREE.Group;
-    private paritiesGroup: THREE.Group;
-    private ghostGroup: THREE.Group;
+    public verticesGroup: THREE.Group;
+    public paritiesGroup: THREE.Group;
+    public ghostGroup: THREE.Group;
     private scale: number;
     public StartCamera: THREE.Vector3 = new THREE.Vector3();
 
@@ -22,6 +22,18 @@ export class noDataView extends DataContainer implements View {
         this.scale = scale;
         this.controls = controls;
         this.Update();
+    }
+    GoRight(): void {
+        throw new Error("Method not implemented.");
+    }
+    GoLeft(): void {
+        throw new Error("Method not implemented.");
+    }
+    GoUp(): void {
+        throw new Error("Method not implemented.");
+    }
+    GoDown(): void {
+        throw new Error("Method not implemented.");
     }
     public Animate(): void {
     }
