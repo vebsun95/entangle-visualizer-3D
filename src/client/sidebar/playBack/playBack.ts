@@ -222,9 +222,11 @@ export class PlayBack {
         this.NrOfDataDl = 0;
         this.NrOfDataRep = 0;
         this.NrOfDataUna = 0;
+        this.NrOfDataRepFailed = 0;
         this.NrOfParityDl = 0;
         this.NrOfParityRep = 0;
         this.NrOfParityUna = 0;
+        this.NrOfParityRepFailed = 0;
     }
 
     private handleSliderChange(optValue: number | null = null) {
