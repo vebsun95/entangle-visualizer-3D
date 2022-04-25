@@ -9,12 +9,8 @@ export function updateLabel(newLabel: string, ctx: CanvasRenderingContext2D, bac
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     if (isInode) {
         ctx.fillStyle = "grey";
-        let width = ctx.canvas.width / 16;
-        for(let i=0; i < 16; i++) {
-            if(i % 2 == 0) {
-                ctx.fillRect(i * width, 0, width, ctx.canvas.height);
-            }
-        }
+        ctx.fillRect(0, y - fontSize, ctx.canvas.width, 5);
+        ctx.fillRect(0, y + fontSize  / 2, ctx.canvas.width, 5);
     }
     ctx.font = "normal " + fontSize + "px sans-serif";
     ctx.fillStyle = "black";
