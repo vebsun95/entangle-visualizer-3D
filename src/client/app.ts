@@ -49,8 +49,8 @@ export class App {
         this.sideBar.FileInput.DevTest(devContent);
     }
 
+    // Used to propagate changes to components when central data gets reinitialized
     UpdateData() {
-
         this.renderer.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
         this.bitMap.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
         this.merkelTree.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
@@ -75,6 +75,8 @@ export class App {
         window.addEventListener("keydown", this.HandleKeyDown.bind(this));
     }
 
+    // LatticeClickedEvent is emitted by the renderer, only when creating a test scenario.
+    // Updates the state of data/parity, update test scenario code generator
     HandleLatticeClicked(e: LatticeClickedEvent) {
         let strand = e.strand;
         let index = e.index;
@@ -106,6 +108,7 @@ export class App {
         this.bitMap.Update();
     }
 
+    // DataGeneratedEvent is emitted by the sidebar, when the users changes to config for a test scenario.
     HandleDataGenerated(e: DataGeneratedEvent) {
         this.bitMap.Show();
         this.renderer.Simulating = false;
@@ -118,6 +121,7 @@ export class App {
         this.UpdateData();
     }
 
+    // BackToStartEvent is emitted by the sidebar, when a users clicks the cross in the top-right corner
     HandleBackToStart() {
         this.renderer.View = 0;
         this.renderer.Simulating = true;
@@ -125,6 +129,7 @@ export class App {
         this.merkelTree.Hide();
     }
 
+    // ChangeView is emitted by the sidebar, when a users changes the drop-down containing the views.
     HandleChangeView(e: ChangeViewEvent) {
         this.renderer.View = e.newView;
     }
@@ -162,6 +167,8 @@ export class App {
             }
         }
     }
+
+    // LogEntryEvent is emitted by the sidebar, when ever a user steps for-/backwards in the simulation.
     HandleLogEntryEvents(e: LogEntryEvent) {
         var vertexEvent: VertexEvent;
         var parityEvent: ParityEvent;
@@ -196,6 +203,7 @@ export class App {
         }
         for (vertexEvent of e.VertexEvents) {
             vertex = this.vertices.get(vertexEvent.Position)!;
+            // Keep track of state change is the  data blocks.
             switch (vertex.Color) {
                 case COLORS.GREEN:
                     deltaDDL--;
@@ -225,6 +233,7 @@ export class App {
             }
             oldColor = vertex.Color;
             vertex.Color = vertexEvent.NewColor;
+            // Updates the damages Children on data blocks.
             if (vertexEvent.NewColor == COLORS.RED) {
                 vertex = this.vertices.get(vertex.Parent)!;
                 vertex.DamagedChildren++;
@@ -276,6 +285,7 @@ export class App {
             }
 
         }
+        // ---- Updates the sidebar stats-table ----
         deltaDDL   ? this.sideBar.PlayBackEle.NrOfDataDl += deltaDDL : null;
         deltaDRep  ? this.sideBar.PlayBackEle.NrOfDataRep += deltaDRep : null;
         deltaDUna  ? this.sideBar.PlayBackEle.NrOfDataUna += deltaDUna : null;
@@ -285,17 +295,21 @@ export class App {
         deltaPRep  ? this.sideBar.PlayBackEle.NrOfParityRep += deltaPRep : null;
         deltaPUna  ? this.sideBar.PlayBackEle.NrOfParityUna += deltaPUna : null;
         deltaPRepF ? this.sideBar.PlayBackEle.NrOfParityRepFailed += deltaPRepF : null;
-
+        // ----
         this.renderer.Update();
         this.bitMap.Update();
         this.merkelTree.Update();
     }
+    //BitMapClickedEvent is emitted by the Bitmap, when a user clicks on it.
+    // Contains an lattice position, tell renderer to render that part of the lattice.
     HandleBitMapClicked(e: BitMapClickedEvent) {
         this.renderer.GoTo(e.VertexIndex)
     }
+    // LaticeMovedEvent is emitted by the renderer, when a user uses one of the shortcuts to move the lattice.
     HandleLaticeMovedEvent(e: LaticeMovedEvent) {
         this.bitMap.SimulateClick(e.position);
     }
+    // NewFileUploadEvent is emitted by the sidebar, when a user uploads a new file through the file input.
     HandleNewFileUploaded(e: NewFileUploadEvent) {
         this.renderer.Simulating = true;
         this.bitMap.Show();
@@ -304,10 +318,12 @@ export class App {
         this.sideBar.PlayBackEle.CreateChangeLogBtns(e.nrOfLogs);
         this.sideBar.FileInput.ChangeLog(0);
     }
+    // LogChangedClickedEvent is emitted by the sidebar, when a user changes the dropdown containg the different logs.
     HandleLogChangedClicked(e: LogChangedClickedEvent) {
         let newLog = e.changeToLog;
         this.sideBar.FileInput.ChangeLog(newLog);
     }
+    // LogChangedEvent is emitted by the sidebar, after the fileinput has completed parsing a log.
     HandleLogChanged(e: LogChangedEvent) {
         var lineCounter=0, parityIndex: number;
 
@@ -320,7 +336,7 @@ export class App {
         var ParityLabels = (line.log as DownloadConfigLog).parityLabels;
         var dataShiftRegister = (line.log as DownloadConfigLog).dataShiftRegister;
         var parityShift = (line.log as DownloadConfigLog).parityLeafIdToCanonIndex;
-        this.parityShift.clear();
+        this.parityShift = new Map();
         for (var value in parityShift) {
             this.parityShift.set(Number.parseInt(value), parityShift[value]);
         }
