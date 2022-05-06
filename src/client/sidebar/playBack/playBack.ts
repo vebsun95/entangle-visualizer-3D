@@ -62,6 +62,7 @@ export class PlayBack {
         this.createLayout();
     }
 
+    // helper function to set the currentPos, also updates slider and table.
     private setCurrentPos(newPos: number) {
         this.currentPos = newPos;
         this.slider.input.valueAsNumber = newPos;
@@ -222,6 +223,8 @@ export class PlayBack {
         }
     }
 
+    // Uses the setters to set the stats in the stats-table back to 0.
+    // Gets called when a user changes the current log.
     private resetStats() {
         this.NrOfDataDl = 0;
         this.NrOfDataRep = 0;
@@ -271,7 +274,6 @@ export class PlayBack {
         }
     }
 
-    // https://github.com/racin/entangle-visualizer/blob/master/logparser.go
     private simulate(n: number, needsReset: boolean = false) {
         if (this.currentPos > 0 || this.currentPos < this.logEntries.length - 1) {
             var vertexEvents: VertexEvent[] = [];
@@ -331,6 +333,7 @@ export class PlayBack {
         this.slider.currentPosition.focus();
     }
 
+    // When the component get a new set of logEntries -> The user has changed the current log.
     public set LogEntries(newLogEntries: (VertexEvent | ParityEvent)[]) {
         this.logEntries = newLogEntries;
         this.slider.input.setAttribute("max", this.logEntries.length.toString());
