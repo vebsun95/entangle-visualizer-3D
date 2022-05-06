@@ -91,6 +91,8 @@ class FileGenerator {
         navigator.clipboard.writeText(clipBrdString);
     }
 
+    /* Objects change state in this order: default(None), Unavailable(Uf), Delayed(sb), Delayed-Unavailable(sbf), default(none) ... */ 
+
     public SetUnavailable(index: number, strand: number | null) {
         let ta: TextAreaI = this.getTextArea(strand);
         ta.textArea.value += `uf(${index}),`;
