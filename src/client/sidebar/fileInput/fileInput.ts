@@ -1,4 +1,3 @@
-import { timeStamp } from "console";
 import { LogChangedEvent } from "../events/logChangedEvent";
 import { NewFileUploadEvent } from "../events/newFileUpload";
 import { StartPoints } from "./interfaces/interfaces";
@@ -50,7 +49,7 @@ export class FileInput {
         this.Container.append(this.fileInput);
     }
 
-
+    // Exposed method used to read a specified log.
     public ChangeLog(fileNumber: number) {
         if (fileNumber > this.startPoints.length) {
             return
@@ -59,6 +58,7 @@ export class FileInput {
         this.fileReader.readAsText(this.currentFile!.slice(startpoints.start, startpoints.end));
     }
 
+    // Triggers when fileReader complets reading a file, or parts of a file
     private frOnLoad() {
         if (this.fileRead) {
             this.readLog();
@@ -67,6 +67,8 @@ export class FileInput {
         }
     }
 
+    // Gets called when fileRead = true
+    // fileReader.result only contains a subset of the uploaded file = one, of the possible multiple, logs contained in a file.
     private readLog() {
         var lines = ((this.fileReader.result as string)).split("\n");
         var logEntries = Array(lines.length);
@@ -76,6 +78,8 @@ export class FileInput {
         this.Container.dispatchEvent(new LogChangedEvent( logEntries, {bubbles: true} ))
     }
 
+    // Gets called when fileRead = false
+    // Used to locate the start- and end position of different logs in an uploaded file.
     private findStartPoints() {
         /* ASCII 
             \n -> 10
@@ -100,6 +104,7 @@ export class FileInput {
         this.Container.dispatchEvent( new NewFileUploadEvent(this.currentFile!.name, this.startPoints.length, {bubbles: true}) )
     }
 
+    // Gets triggered when a new file is uploaded
     private handleFileChange(e: InputEvent) {
         this.startPoints = [];
         this.fileRead = false;
