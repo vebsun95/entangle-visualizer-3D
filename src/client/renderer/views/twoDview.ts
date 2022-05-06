@@ -109,6 +109,7 @@ export class TwoDView extends DataContainer implements View {
             updateLabel(startIndex.toString(), obj.userData.ctx, vertex.Color, vertex.Depth > 1);
             obj.material.map!.needsUpdate = true;
             obj.name = startIndex.toString();
+            obj.visible = true;
             obj.userData.index = vertex.Index;
             startIndex++;
             row--;
@@ -127,7 +128,7 @@ export class TwoDView extends DataContainer implements View {
             }
         }
 
-        for (; i < this.verticesGroup.children.length; i++) {
+        for ( i++ ; i < this.verticesGroup.children.length; i++) {
             obj = this.verticesGroup.children[i] as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
             obj.name = "";
             obj.visible = false;
@@ -204,8 +205,6 @@ export class TwoDView extends DataContainer implements View {
             case STRANDS.RHStrand: {
                 // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
                 if (output.From! % this.s == output.To! % this.s) {//&& currentColumn == nrColumns) {
-                    console.log("RHStrand går til samme")
-                    console.log(output.From, output.To, output.Index)
                     // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
                     let pointList = this.createEllipseLine(endNode, startNode, 1);
                     for (let i = 0; i < pointList.length; i++) {
@@ -233,7 +232,6 @@ export class TwoDView extends DataContainer implements View {
                 }
                 // LeftPos and RightPos is on the same row and last column to make an eclipse line instead of straight
                 else if (output.From! % this.s == output.To! % this.s) {
-                    console.log("LHStrand går til samme")
                     // Give rightPos, leftPos and 1 or -1 if it is RHStrand or LH Strand
                     let pointList = this.createEllipseLine(endNode, startNode, -1);
                     for (let i = 0; i < pointList.length; i++) {
@@ -300,7 +298,6 @@ export class TwoDView extends DataContainer implements View {
                 break
             }
             default: {
-                console.log("default", output.Index, output.To)
                 // Default case if alpha > 3
                 array.setXYZ(1, endNode!.position.x, endNode!.position.y, endNode!.position.z);
             }
