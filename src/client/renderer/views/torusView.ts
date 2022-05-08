@@ -31,17 +31,14 @@ export class TorusView extends DataContainer implements View {
         }
     }
     GoRight(): void {
-        throw new Error("Method not implemented.");
     }
     GoLeft(): void {
-        throw new Error("Method not implemented.");
     }
     GoUp(): void {
-        throw new Error("Method not implemented.");
     }
     GoDown(): void {
-        throw new Error("Method not implemented.");
     }
+    
     public Animate(): void {
 
     }
@@ -52,8 +49,7 @@ export class TorusView extends DataContainer implements View {
     public GoTo(position: number): void {
         let obj = this.verticesGroup.getObjectByName(position.toString()!);
         if(!obj) return;
-        this.camera.position.set(obj.position.x + this.scale * 2, obj.position.y + this.scale * 2, obj.position.z + this.scale * 2);
-        this.controls.panOffset.set(obj.position.x - this.controls.camera.position.x, obj.position.y - this.controls.camera.position.y, obj.position.z - this.controls.camera.position.z);
+        this.controls.panDirectly(obj.position);
         this.camera.lookAt(obj.position)
     }
 
