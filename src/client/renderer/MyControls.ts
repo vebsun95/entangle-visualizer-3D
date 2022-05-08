@@ -1,4 +1,4 @@
-import { off } from 'process';
+
 import {
 	EventDispatcher,
 	MOUSE,
@@ -12,72 +12,61 @@ import {
 import { STATE } from '../SharedKernel/constants';
 import { Keys, MouseButtons, Touches } from '../SharedKernel/interfaces';
 
-
-
-
-
-
-
-
 const _changeEvent = { type: 'change' };
 const _startEvent = { type: 'start' };
 const _endEvent = { type: 'end' };
 
 class MyControls extends EventDispatcher {
 
-	camera: THREE.PerspectiveCamera;
-	domElement: HTMLCanvasElement;
-	enabled: boolean;
-	target: THREE.Vector3;
-	minDistance: number;
-	maxDistance: number;
-	minZoom: number;
-	maxZoom: number;
-	minPolarAngle: number;
-	maxPolarAngle: number;
-	minAzimuthAngle: number;
-	maxAzimuthAngle: number;
-	enableDamping: boolean;
-	dampingFactor: number;
-	enableZoom: boolean;
-	zoomSpeed: number;
-	enableRotate: boolean;
-	rotateSpeed: number;
-	enablePan: boolean;
-	panRight = false;
-	panLeft = false;
-	panUp = false;
-	panDown = false;
-	panSpeed: number;
-	screenSpacePanning: boolean;
-	keyPanSpeed: number;
-	autoRotate: boolean;
-	autoRotateSpeed: number;
-	keys: Keys;
-	mouseButtons: MouseButtons;
-	touches: Touches;
-	target0: THREE.Vector3;
-	position0: THREE.Vector3;
-	zoom0: number;
-	_domElementKeyEvents: HTMLCanvasElement | null;
-	state: number;
-	EPS: number;
-	spherical: Spherical;
-	sphericalDelta: Spherical;
-	scale: number;
-	panOffset: THREE.Vector3;
-	zoomChanged: boolean;
-	rotateStart: THREE.Vector2;
-	rotateEnd: THREE.Vector2;
-	rotateDelta: THREE.Vector2;
-	panStart: THREE.Vector2;
-	panEnd: THREE.Vector2;
-	panDelta: THREE.Vector2;
-	dollyStart: THREE.Vector2;
-	dollyEnd: THREE.Vector2;
-	dollyDelta: THREE.Vector2;
-	pointers: PointerEvent[];
-	pointerPositions: THREE.Vector2[];
+	public camera: THREE.PerspectiveCamera;
+	private domElement: HTMLCanvasElement;
+	private enabled: boolean;
+	private target: THREE.Vector3;
+	private minDistance: number;
+	private maxDistance: number;
+	private minZoom: number;
+	private maxZoom: number;
+	private minPolarAngle: number;
+	private maxPolarAngle: number;
+	private minAzimuthAngle: number;
+	private maxAzimuthAngle: number;
+	private enableDamping: boolean;
+	private dampingFactor: number;
+	private enableZoom: boolean;
+	private zoomSpeed: number;
+	private enableRotate: boolean;
+	private rotateSpeed: number;
+	private enablePan: boolean;
+	private panSpeed: number;
+	private screenSpacePanning: boolean;
+	private keyPanSpeed: number;
+	private autoRotate: boolean;
+	private autoRotateSpeed: number;
+	private keys: Keys;
+	private mouseButtons: MouseButtons;
+	private touches: Touches;
+	private target0: THREE.Vector3;
+	private position0: THREE.Vector3;
+	private zoom0: number;
+	private _domElementKeyEvents: HTMLCanvasElement | null;
+	private state: number;
+	private EPS: number;
+	private spherical: Spherical;
+	private sphericalDelta: Spherical;
+	private scale: number;
+	private panOffset: THREE.Vector3;
+	private zoomChanged: boolean;
+	private rotateStart: THREE.Vector2;
+	private rotateEnd: THREE.Vector2;
+	private rotateDelta: THREE.Vector2;
+	private panStart: THREE.Vector2;
+	private panEnd: THREE.Vector2;
+	private panDelta: THREE.Vector2;
+	private dollyStart: THREE.Vector2;
+	private dollyEnd: THREE.Vector2;
+	private dollyDelta: THREE.Vector2;
+	private pointers: PointerEvent[];
+	private pointerPositions: THREE.Vector2[];
 
 	constructor(camera: THREE.PerspectiveCamera, domElement: HTMLCanvasElement) {
 
@@ -90,150 +79,109 @@ class MyControls extends EventDispatcher {
 		this.domElement = domElement;
 		this.domElement.style.touchAction = 'none';
 
-
 		this.enabled = true;
 
-
 		this.target = new Vector3();
-
 
 		this.minDistance = 0;
 		this.maxDistance = Infinity;
 
-
 		this.minZoom = 0;
 		this.maxZoom = Infinity;
-
-
 
 		this.minPolarAngle = 0;
 		this.maxPolarAngle = Math.PI;
 
-
-
 		this.minAzimuthAngle = - Infinity;
 		this.maxAzimuthAngle = Infinity;
-
-
 
 		this.enableDamping = false;
 		this.dampingFactor = 0.05;
 
-
-
 		this.enableZoom = true;
 		this.zoomSpeed = 1.0;
-
 
 		this.enableRotate = true;
 		this.rotateSpeed = 1.0;
 
-
 		this.enablePan = true;
 		this.panSpeed = 1.0;
+
 		this.screenSpacePanning = true;
 		this.keyPanSpeed = 10.0;
-
-
 
 		this.autoRotate = false;
 		this.autoRotateSpeed = 2.0;
 
-
 		this.keys = { LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
-
-
 		this.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN };
-
-
 		this.touches = { ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN };
-
-
 		this.target0 = this.target.clone();
 		this.position0 = this.camera.position.clone();
 		this.zoom0 = this.camera.zoom;
-
-
 		this._domElementKeyEvents = null;
-
-
-
-
-
-
-
-
-
 		this.state = STATE.NONE;
-
 		this.EPS = 0.000001;
-
-
 		this.spherical = new Spherical();
 		this.sphericalDelta = new Spherical();
-
 		this.scale = 1;
 		this.panOffset = new Vector3();
 		this.zoomChanged = false;
-
 		this.rotateStart = new Vector2();
 		this.rotateEnd = new Vector2();
 		this.rotateDelta = new Vector2();
-
 		this.panStart = new Vector2();
 		this.panEnd = new Vector2();
 		this.panDelta = new Vector2();
-
 		this.dollyStart = new Vector2();
 		this.dollyEnd = new Vector2();
 		this.dollyDelta = new Vector2();
 		this.pointers = [];
-
 		this.pointerPositions = [];
-
-
-
 		this.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this));
-
 		this.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
 		this.domElement.addEventListener('pointercancel', this.onPointerCancel.bind(this));
 		this.domElement.addEventListener('wheel', this.onMouseWheel.bind(this), { passive: false });
-
-
 		this.domElement.addEventListener('keydown', this.handleKeyDown.bind(this), false);
-
-
-
-
 		this.update();
-
 	}
 
-	getPolarAngle() {
+	public panDirectly(destination : Vector3) {
+		this.panOffset.add(  new Vector3(
+			destination.x - this.camera.position.x,
+			destination.y - this.camera.position.y,
+			destination.z - this.camera.position.z));
+	}
+
+	public rotateDirectly(destination: Vector3) {
+		
+	}
+
+	public getPolarAngle() {
 
 		return this.spherical.phi;
 
 	};
 
-	getAzimuthalAngle() {
+	public getAzimuthalAngle() {
 
 		return this.spherical.theta;
 
 	};
 
-	getDistance() {
+	public getDistance() {
 
 		return this.camera.position.distanceTo(this.target);
 
 	};
 
-	listenToKeyEvents(domElement: HTMLCanvasElement) {
+	private listenToKeyEvents(domElement: HTMLCanvasElement) {
 		domElement.addEventListener('keydown', this.onKeyDown.bind(this));
 		this._domElementKeyEvents = domElement;
 
 	};
 
-	saveState() {
+	public saveState() {
 
 		this.target0.copy(this.target);
 		this.position0.copy(this.camera.position);
@@ -241,7 +189,7 @@ class MyControls extends EventDispatcher {
 
 	};
 
-	reset() {
+	public reset() {
 
 		this.target.copy(this.target0);
 		this.camera.position.copy(this.position0);
@@ -257,24 +205,8 @@ class MyControls extends EventDispatcher {
 	};
 
 
-	update() {
-
-
+	public update() {
 		const offset = new Vector3();
-
-
-		if(this.panRight) {
-			offset.x += 0.5;
-		}
-		if(this.panUp) {
-			offset.y += 0.5;
-		}
-		if(this.panLeft) {
-			offset.x -= 0.5;
-		}
-		if(this.panDown) {
-			offset.y -= 0.5;
-		}
 
 		this.panOffset.add(offset);
 
@@ -302,7 +234,6 @@ class MyControls extends EventDispatcher {
 
 		}
 
-
 		if (this.enableDamping) {
 
 			this.spherical.theta += this.sphericalDelta.theta * this.dampingFactor;
@@ -314,8 +245,6 @@ class MyControls extends EventDispatcher {
 			this.spherical.phi += this.sphericalDelta.phi;
 
 		}
-
-
 
 		let min = this.minAzimuthAngle;
 		let max = this.maxAzimuthAngle;
@@ -337,7 +266,6 @@ class MyControls extends EventDispatcher {
 					Math.min(max, this.spherical.theta);
 
 			}
-
 		}
 
 
@@ -408,7 +336,7 @@ class MyControls extends EventDispatcher {
 
 	};
 
-	dispose() {
+	public dispose() {
 
 		this.domElement.removeEventListener('contextmenu', this.onContextMenu.bind(this));
 
@@ -429,32 +357,32 @@ class MyControls extends EventDispatcher {
 
 
 	};
-	getAutoRotationAngle() {
+	private getAutoRotationAngle() {
 
 		return 2 * Math.PI / 60 / 60 * this.autoRotateSpeed;
 
 	}
 
-	getZoomScale() {
+	private getZoomScale() {
 
 		return Math.pow(0.95, this.zoomSpeed);
 
 	}
 
-	rotateLeft(angle: number) {
+	private rotateLeft(angle: number) {
 
 		this.sphericalDelta.theta -= angle;
 
 	}
 
-	rotateUp(angle: number) {
+	private rotateUp(angle: number) {
 
 		this.sphericalDelta.phi -= angle;
 
 	}
 
 
-	handlePanLeft(distance: number, objectMatrix: THREE.Matrix4) {
+	private handlePanLeft(distance: number, objectMatrix: THREE.Matrix4) {
 		const v = new Vector3();
 		v.setFromMatrixColumn(objectMatrix, 0);
 		v.multiplyScalar(- distance);
@@ -462,7 +390,7 @@ class MyControls extends EventDispatcher {
 		this.panOffset.add(v);
 	}
 
-	handlePanUp(distance: number, objectMatrix: THREE.Matrix4) {
+	private handlePanUp(distance: number, objectMatrix: THREE.Matrix4) {
 		const v = new Vector3();
 
 		if (this.screenSpacePanning === true) {
@@ -483,7 +411,7 @@ class MyControls extends EventDispatcher {
 	}
 
 
-	pan(deltaX: number, deltaY: number) {
+	private pan(deltaX: number, deltaY: number) {
 
 		const element = this.domElement;
 		const offset = new Vector3();
@@ -511,7 +439,7 @@ class MyControls extends EventDispatcher {
 		}
 	}
 
-	dollyOut(dollyScale: number) {
+	private dollyOut(dollyScale: number) {
 
 		if (this.camera.isPerspectiveCamera) {
 
@@ -525,7 +453,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	dollyIn(dollyScale: number) {
+	private dollyIn(dollyScale: number) {
 
 		if (this.camera.isPerspectiveCamera) {
 
@@ -544,25 +472,25 @@ class MyControls extends EventDispatcher {
 
 
 
-	handleMouseDownRotate(event: MouseEvent) {
+	private handleMouseDownRotate(event: MouseEvent) {
 
 		this.rotateStart.set(event.clientX, event.clientY);
 
 	}
 
-	handleMouseDownDolly(event: MouseEvent) {
+	private handleMouseDownDolly(event: MouseEvent) {
 
 		this.dollyStart.set(event.clientX, event.clientY);
 
 	}
 
-	handleMouseDownPan(event: MouseEvent) {
+	private handleMouseDownPan(event: MouseEvent) {
 
 		this.panStart.set(event.clientX, event.clientY);
 
 	}
 
-	handleMouseMoveRotate(event: MouseEvent) {
+	private handleMouseMoveRotate(event: MouseEvent) {
 
 		this.rotateEnd.set(event.clientX, event.clientY);
 
@@ -580,7 +508,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleMouseMoveDolly(event: MouseEvent) {
+	private handleMouseMoveDolly(event: MouseEvent) {
 
 		this.dollyEnd.set(event.clientX, event.clientY);
 
@@ -602,7 +530,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleMouseMovePan(event: MouseEvent) {
+	private handleMouseMovePan(event: MouseEvent) {
 
 		this.panEnd.set(event.clientX, event.clientY);
 
@@ -616,13 +544,13 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleMouseUp(event: MouseEvent) {
+	private handleMouseUp(event: MouseEvent) {
 
 
 
 	}
 
-	handleMouseWheel(event: WheelEvent) {
+	private handleMouseWheel(event: WheelEvent) {
 
 		if (event.deltaY < 0) {
 
@@ -638,7 +566,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleKeyDown(event: KeyboardEvent) {
+	private handleKeyDown(event: KeyboardEvent) {
 
 		let needsUpdate = false;
 
@@ -679,7 +607,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchStartRotate() {
+	private handleTouchStartRotate() {
 
 		if (this.pointers.length === 1) {
 
@@ -696,7 +624,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchStartPan() {
+	private handleTouchStartPan() {
 
 		if (this.pointers.length === 1) {
 
@@ -713,7 +641,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchStartDolly() {
+	private handleTouchStartDolly() {
 
 		const dx = this.pointers[0].pageX - this.pointers[1].pageX;
 		const dy = this.pointers[0].pageY - this.pointers[1].pageY;
@@ -724,7 +652,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchStartDollyPan() {
+	private handleTouchStartDollyPan() {
 
 		if (this.enableZoom) this.handleTouchStartDolly();
 
@@ -732,7 +660,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchStartDollyRotate() {
+	private handleTouchStartDollyRotate() {
 
 		if (this.enableZoom) this.handleTouchStartDolly();
 
@@ -740,7 +668,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchMoveRotate(event: PointerEvent) {
+	private handleTouchMoveRotate(event: PointerEvent) {
 
 		if (this.pointers.length == 1) {
 
@@ -769,7 +697,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchMovePan(event: PointerEvent) {
+	private handleTouchMovePan(event: PointerEvent) {
 
 		if (this.pointers.length === 1) {
 
@@ -794,7 +722,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchMoveDolly(event: PointerEvent) {
+	private handleTouchMoveDolly(event: PointerEvent) {
 
 		const position = this.getSecondPointerPosition(event);
 
@@ -813,7 +741,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchMoveDollyPan(event: PointerEvent) {
+	private handleTouchMoveDollyPan(event: PointerEvent) {
 
 		if (this.enableZoom) this.handleTouchMoveDolly(event);
 
@@ -821,7 +749,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchMoveDollyRotate(event: PointerEvent) {
+	private handleTouchMoveDollyRotate(event: PointerEvent) {
 
 		if (this.enableZoom) this.handleTouchMoveDolly(event);
 
@@ -829,7 +757,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	handleTouchEnd(event: PointerEvent) {
+	private handleTouchEnd(event: PointerEvent) {
 
 
 
@@ -839,7 +767,7 @@ class MyControls extends EventDispatcher {
 
 
 
-	onPointerDown(event: PointerEvent) {
+	private onPointerDown(event: PointerEvent) {
 
 		if (this.enabled === false) return;
 		if (this.pointers.length === 0) {
@@ -866,7 +794,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onPointerMove(event: PointerEvent) {
+	private onPointerMove(event: PointerEvent) {
 
 		if (this.enabled === false) return;
 
@@ -882,7 +810,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onPointerUp(event: PointerEvent) {
+	private onPointerUp(event: PointerEvent) {
 
 		if (this.enabled === false) return;
 
@@ -911,13 +839,13 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onPointerCancel(event: PointerEvent) {
+	private onPointerCancel(event: PointerEvent) {
 
 		this.removePointer(event);
 
 	}
 
-	onMouseDown(event: MouseEvent) {
+	private onMouseDown(event: MouseEvent) {
 
 		let mouseAction;
 
@@ -1014,7 +942,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onMouseMove(event: MouseEvent) {
+	private onMouseMove(event: MouseEvent) {
 
 		if (this.enabled === false) return;
 
@@ -1048,7 +976,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onMouseUp(event: MouseEvent) {
+	private onMouseUp(event: MouseEvent) {
 
 		this.handleMouseUp(event);
 
@@ -1058,7 +986,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onMouseWheel(event: WheelEvent) {
+	private onMouseWheel(event: WheelEvent) {
 
 		if (this.enabled === false || this.enableZoom === false || this.state !== STATE.NONE) return;
 
@@ -1072,7 +1000,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onKeyDown(event: KeyboardEvent) {
+	private onKeyDown(event: KeyboardEvent) {
 
 		if (this.enabled === false || this.enablePan === false) return;
 
@@ -1080,7 +1008,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onTouchStart(event: PointerEvent) {
+	private onTouchStart(event: PointerEvent) {
 
 		this.trackPointer(event);
 
@@ -1164,7 +1092,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onTouchMove(event: PointerEvent) {
+	private onTouchMove(event: PointerEvent) {
 
 		this.trackPointer(event);
 
@@ -1218,7 +1146,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onTouchEnd(event: PointerEvent) {
+	private onTouchEnd(event: PointerEvent) {
 
 		this.handleTouchEnd(event);
 
@@ -1228,7 +1156,7 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	onContextMenu(event: UIEvent) {
+	private onContextMenu(event: UIEvent) {
 
 		if (this.enabled === false) return;
 
@@ -1236,13 +1164,13 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	addPointer(event: PointerEvent) {
+	private addPointer(event: PointerEvent) {
 
 		this.pointers.push(event);
 
 	}
 
-	removePointer(event: PointerEvent) {
+	private removePointer(event: PointerEvent) {
 
 		delete this.pointerPositions[event.pointerId];
 
@@ -1259,22 +1187,18 @@ class MyControls extends EventDispatcher {
 
 	}
 
-	trackPointer(event: PointerEvent) {
-
+	private trackPointer(event: PointerEvent) {
 		let position = this.pointerPositions[event.pointerId];
-
 		if (position === undefined) {
 
 			position = new Vector2();
 			this.pointerPositions[event.pointerId] = position;
 
 		}
-
 		position.set(event.pageX, event.pageY);
-
 	}
 
-	getSecondPointerPosition(event: PointerEvent) {
+	private getSecondPointerPosition(event: PointerEvent) {
 
 		const pointer = (event.pointerId === this.pointers[0].pointerId) ? this.pointers[1] : this.pointers[0];
 

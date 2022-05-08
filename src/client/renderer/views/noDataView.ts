@@ -24,16 +24,12 @@ export class noDataView extends DataContainer implements View {
         this.Update();
     }
     GoRight(): void {
-        throw new Error("Method not implemented.");
     }
     GoLeft(): void {
-        throw new Error("Method not implemented.");
     }
     GoUp(): void {
-        throw new Error("Method not implemented.");
     }
     GoDown(): void {
-        throw new Error("Method not implemented.");
     }
     public Animate(): void {
     }
@@ -43,7 +39,8 @@ export class noDataView extends DataContainer implements View {
     }
 
     public GoTo(position: number): void {
-        return;
+        this.controls.panDirectly( new THREE.Vector3(0, 0, 75) );
+        this.controls.camera.lookAt( 0, 0, 0 );
     }
 
     public Update(): void {
