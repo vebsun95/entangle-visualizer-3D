@@ -84,7 +84,7 @@ class PopUp {
             return true;
         }
         if(p < s) {
-            this.configError.innerText = "S must be greater or equal to P";
+            this.configError.innerText = "P must be greater or equal to S";
             return true;
         }
         if(isNaN(nrData) || nrData < s || nrData <= 0) {

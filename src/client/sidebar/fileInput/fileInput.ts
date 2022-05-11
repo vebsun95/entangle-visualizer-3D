@@ -1,5 +1,6 @@
 import { LogChangedEvent } from "../events/logChangedEvent";
 import { NewFileUploadEvent } from "../events/newFileUpload";
+import { testLog } from "./constants/testLog";
 import { StartPoints } from "./interfaces/interfaces";
 
 export class FileInput {
@@ -8,6 +9,7 @@ export class FileInput {
     private fileIcon: HTMLLabelElement = document.createElement("label");
     private fileInput: HTMLInputElement = document.createElement("input");
     private fileGeneratorButton: HTMLButtonElement = document.createElement("button");
+    private testFileButton: HTMLButtonElement = document.createElement("button");
     private fileReader: FileReader = new FileReader();
     private currentFile: File | null = null;
     private fileRead: boolean = false;
@@ -19,11 +21,10 @@ export class FileInput {
         this.fileReader.onload = this.frOnLoad.bind(this);
     }
 
-    public DevTest(devContent: string) {
-        //this.fileGeneratorButton.click();
+    private handleTestFileBtn() {
         this.startPoints = [];
         this.fileRead = false;
-        this.currentFile = new File([devContent], "testDev");
+        this.currentFile = new File([testLog], "Test log");
         this.fileReader.readAsArrayBuffer(this.currentFile);
     }
 
@@ -38,15 +39,14 @@ export class FileInput {
             this.Container.dispatchEvent( new Event("file-generator", {bubbles: true}));
         });
 
-        this.Container.append(header, this.fileInput, this.fileGeneratorButton);
         this.fileInput.id = "input";
-        this.fileInput.style.visibility = "none"
-        this.fileInput.style.display = "none"
         this.fileIcon.htmlFor = "input";
         this.fileIcon.innerHTML = '<i class="fa fa-upload"></i>';
-        this.fileInput.addEventListener("change", this.handleFileChange.bind(this) as EventListener)
-        this.Container.append(this.fileIcon);
-        this.Container.append(this.fileInput);
+
+        this.testFileButton.innerText = "Test log";
+        this.testFileButton.onclick = this.handleTestFileBtn.bind(this);
+
+        this.Container.append(header, this.fileInput, this.fileGeneratorButton, this.fileIcon, this.fileInput, this.testFileButton);
     }
 
     // Exposed method used to read a specified log.
