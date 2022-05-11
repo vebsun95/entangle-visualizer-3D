@@ -28,6 +28,8 @@ export class RendererObject extends DataContainer {
         if(newView === 0) {
             this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
             this.view.GoTo(1);
+            this.view.Update();
+            return;
         } else if(newView === 1) {
             this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls,);
         } else if(newView === 2) {
@@ -52,6 +54,8 @@ export class RendererObject extends DataContainer {
         this.scene.add(this.paritiesGroup);
         this.scene.add(this.ghostGroup);
         this.initObjects();
+        this.view.Update();
+        this.view.GoTo(1);
         this.animate();
     }
 
