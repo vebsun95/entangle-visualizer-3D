@@ -1,19 +1,11 @@
 import * as THREE from 'three';
-import { Parity, Vertex } from '../SharedKernel/interfaces'
-import { COLORS, STRANDS } from '../SharedKernel/constants';
 import { DataContainer } from '../SharedKernel/dataContainer';
 import { MyControls } from './MyControls';
-import { convertHexToStringColor } from '../SharedKernel/utils';
 import { TwoDView } from './views/twoDview';
 import { View } from './interfaces/interfaces';
 import { noDataView } from './views/noDataView';
-import { updateLabel } from './utils/updateLabels';
 import { CylinderView } from './views/cylinderView';
 import { LatticeClickedEvent } from './events/latticeClicked';
-
-
-
-
 
 export class RendererObject extends DataContainer {
     private renderer: THREE.Renderer = new THREE.WebGL1Renderer();
@@ -21,8 +13,7 @@ export class RendererObject extends DataContainer {
     private camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);;
     private controls: MyControls = new MyControls(this.camera, this.renderer.domElement);;
     private pointsPerLine: number = 40;
-    private limit: number = 259;
-    private drawFrom: number = 1;
+    private limit: number = 250;
     private verticesGroup: THREE.Group = new THREE.Group();
     private paritiesGroup: THREE.Group = new THREE.Group();
     private ghostGroup: THREE.Group = new THREE.Group();
@@ -30,21 +21,21 @@ export class RendererObject extends DataContainer {
     public  Simulating: boolean = true;
     private scale: number = 10;
     private radius: number = 2;
-    private ghostgroupshow: boolean = true;
-    private lineGeomIndex = 0;
-    private ghostIndex = 0;
-    private view: View;
+    private view: View = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);;
 
     public set View(newView: number) {
         
         if(newView === 0) {
             this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
+            this.view.GoTo(1);
+            this.view.Update();
+            return;
         } else if(newView === 1) {
-            this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
+            this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls,);
         } else if(newView === 2) {
-            this.view = new CylinderView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
+            this.view = new CylinderView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
         } else {
-            this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
+            this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
         }
         this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
         this.view.HandleUpdatedData();
@@ -57,39 +48,31 @@ export class RendererObject extends DataContainer {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(this.renderer.domElement);
         this.renderer.domElement.onclick = this.handleOnClick.bind(this);
-        this.verticesGroup.name = "vertecies";
+        this.verticesGroup.name = "vertices";
         this.scene.add(this.verticesGroup);
         this.paritiesGroup.name = "parities";
         this.scene.add(this.paritiesGroup);
         this.scene.add(this.ghostGroup);
         this.initObjects();
-        this.view = new noDataView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
+        this.view.Update();
+        this.view.GoTo(1);
         this.animate();
     }
 
     public HandleUpdatedData() {
         this.initObjects();
-        this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls, this.camera);
+        this.view = new TwoDView(this.verticesGroup, this.paritiesGroup, this.ghostGroup, this.scale, this.controls);
         this.view.UpdateData(this.alpha, this.s, this.p, this.vertices, this.parities, this.parityShift);
-        this.view.HandleUpdatedData();
+        this.view.GoTo(1);
     }
 
     private initObjects() {
-        // this.limit = this.limit + (this.s - (this.limit % this.s));
-        // this.drawFrom = 1;
-
-        // Hvis listen av vertcies er mindre enn limit verdien.
-        // if (this.vertices.size < this.limit) {
-        //     this.limit = this.vertices.size
-        // }
-
-        // Lager n-antall verticies + parity
-        this.fillVerteciesGroup();
+        this.fillVerticesGroup();
         this.fillParitiesGroup();
         this.fillGhostGroup();
     }
 
-    private fillVerteciesGroup() {
+    private fillVerticesGroup() {
         var ctx: CanvasRenderingContext2D;
         var material: THREE.MeshBasicMaterial;
         var obj: THREE.Mesh;
@@ -113,12 +96,12 @@ export class RendererObject extends DataContainer {
         var lineGeometry: THREE.BufferGeometry;
         var lineMaterial: THREE.LineBasicMaterial;
         var curveObject: THREE.Line;
-        var nrOfpartiesNeeded = this.alpha ? this.limit * this.alpha : this.limit;
+        var nrOfParitiesNeeded = this.alpha ? this.limit * this.alpha : this.limit;
 
-        while (this.paritiesGroup.children.length <= nrOfpartiesNeeded) {
+        while (this.paritiesGroup.children.length <= nrOfParitiesNeeded) {
             positions = new Float32Array(this.pointsPerLine * 3);
             lineGeometry = new THREE.BufferGeometry();
-            lineMaterial = new THREE.LineBasicMaterial({ color: COLORS.GREY, linewidth: 2 });
+            lineMaterial = new THREE.LineBasicMaterial();
             lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
             curveObject = new THREE.Line(lineGeometry, lineMaterial);
             curveObject.geometry.attributes.position.needsUpdate;
@@ -161,7 +144,7 @@ export class RendererObject extends DataContainer {
         if (obj.parent?.name == "parities") {
             strand = obj.userData.strand;
             index = obj.userData.index;
-        } else if (obj.parent?.name == "vertecies") {
+        } else if (obj.parent?.name == "vertices") {
             index = obj.userData.index;
         }
         this.renderer.domElement.dispatchEvent( new LatticeClickedEvent(strand, index, {bubbles: true}) );

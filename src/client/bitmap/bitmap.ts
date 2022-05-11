@@ -28,6 +28,7 @@ export class BitMap extends DataContainer {
     constructor() {
         super();
         this.createLayout();
+        this.Hide();
     }
     private createLayout() {
 
@@ -194,7 +195,7 @@ export class BitMap extends DataContainer {
 
     private updateDrawLimit() {
         this.viewBoxWidth = this.pixelWidth * (this.DrawLimit / this.s);
-        if(this.viewBoxWidth >= window.innerWidth) {
+        if(this.viewBoxWidth >= window.innerWidth / 2) {
             this.viewBoxWidth = this.pixelWidth;
         }
 

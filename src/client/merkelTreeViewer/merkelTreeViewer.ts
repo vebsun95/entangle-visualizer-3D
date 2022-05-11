@@ -28,7 +28,7 @@ export class MerkelTreeViewer extends DataContainer {
     constructor() {
         super();
         this.createLayout();
-        
+        this.Hide();
     }
 
     private createLayout() {
@@ -47,16 +47,12 @@ export class MerkelTreeViewer extends DataContainer {
         this.CreateInfoGraphic();
         this.updateInfoGraphic();
         this.updateDynamicAttributes();
-        this.updateTreeStruct();
+        this.Update();
     }
 
     public onWindowResize() {
         this.updateDynamicAttributes();
-        this.updateTreeStruct();
-    }
-
-    public Update() {
-        this.updateTreeStruct();
+        this.Update();
     }
 
     private updateDynamicAttributes() {
@@ -144,48 +140,26 @@ export class MerkelTreeViewer extends DataContainer {
         this.infoGraphic.Text.innerHTML = `Current view: ${currentView}, Current node: ${currentRootNode.Index}, Depth: ${currentRootNode.Depth}, Number of children: ${currentRootNode.Children.length}`
     }
 
-    private updateTreeStruct() {
-        var vertex: Vertex | Parity;
+    public Update() {
+        if(!this.visible) return;
+        var node: Vertex | Parity;
         var tile: Tile;
-        var nrOfChildren, nrOfRows, nrOfColumns, tileWidth, tileHeight, tileCounter, row, col: number;
+        var nrOfChildren, nrOfRows, nrOfColumns, tileWidth, tileHeight, tileCounter=0, row=0, col=0;
         var currentRootNode : Vertex | Parity = this.getCurrentRootNode();
         nrOfChildren = currentRootNode.Children.length;
-        
+
         [nrOfRows, nrOfColumns] = DimensionFinder(nrOfChildren);
         tileWidth = Math.ceil((this.svgElement.clientWidth - this.padding * 2) / nrOfColumns);
         tileHeight = Math.ceil((this.svgElement.clientHeight - this.padding * 2) / nrOfRows);
 
-        tileCounter = 0;
-        row = 0;
-        col = 0;
-
         for (let childIndex of currentRootNode.Children) {
-            vertex = this.getRootNode(childIndex);
+            node = this.getRootNode(childIndex);
             tile = this.tiles[tileCounter];
 
-            if (vertex.DamagedChildren > 0 && vertex.Depth > 1) {
-                tile.Rect.setAttribute("stroke", "red");
-            } else {
-                tile.Rect.setAttribute("stroke", "none");
-            }
-
-            tile.Container.setAttribute("x", (col * tileWidth + this.padding).toString());
-            tile.Container.setAttribute("y", (row * (tileHeight) + this.padding).toString());
-            tile.Container.setAttribute("width", (tileWidth).toString());
-            tile.Container.setAttribute("height", (tileHeight).toString());
-            tile.Container.setAttribute("display", "unset");
-
-            tile.Rect.setAttribute("width", (tileWidth).toString());
-            tile.Rect.setAttribute("height", (tileHeight).toString());
-            tile.Rect.setAttribute("fill", convertHexToStringColor(vertex.Color));
-
-            tile.Text.setAttribute("x", (tileWidth / 2).toString());
-            tile.Text.setAttribute("y", (tileHeight / 2 + 2).toString());
-            tile.Text.innerHTML = vertex.Index.toString();
+            this.updateTile(tile, row, col, tileWidth, tileHeight, node);
 
             col = (col + 1) % nrOfColumns
             if (col == 0) row++
-
             tileCounter++;
         }
         // Hide rest of the tiles.
@@ -196,6 +170,27 @@ export class MerkelTreeViewer extends DataContainer {
         this.updateInfoGraphic();
     }
 
+    private updateTile(tile: Tile, row: number, col: number, tileWidth: number, tileHeight: number, node: Vertex | Parity) {
+        if (node.DamagedChildren > 0 && node.Depth > 1) {
+            tile.Rect.setAttribute("stroke", "red");
+        } else {
+            tile.Rect.setAttribute("stroke", "none");
+        }
+        tile.Container.setAttribute("x", (col * tileWidth + this.padding).toString());
+        tile.Container.setAttribute("y", (row * (tileHeight) + this.padding).toString());
+        tile.Container.setAttribute("width", (tileWidth).toString());
+        tile.Container.setAttribute("height", (tileHeight).toString());
+        tile.Container.setAttribute("display", "unset");
+
+        tile.Rect.setAttribute("width", (tileWidth).toString());
+        tile.Rect.setAttribute("height", (tileHeight).toString());
+        tile.Rect.setAttribute("fill", convertHexToStringColor(node.Color));
+
+        tile.Text.setAttribute("x", (tileWidth / 2).toString());
+        tile.Text.setAttribute("y", (tileHeight / 2 + 2).toString());
+        tile.Text.innerHTML = node.Index.toString();
+    }
+
     private tileOnClickHandler(tileIndex: number) {
         var currentRootNode = this.getCurrentRootNode();
         let childIndex = currentRootNode.Children[tileIndex]
@@ -203,7 +198,7 @@ export class MerkelTreeViewer extends DataContainer {
         if (currentRootNode.Children.length > 0) {
             this.currentRootNode = childIndex;
             this.infoGraphic.BreadCrumbsIndex.push(this.currentRootNode);
-            this.updateTreeStruct();
+            this.Update();
         }
     }
 
@@ -228,7 +223,7 @@ export class MerkelTreeViewer extends DataContainer {
         while (this.infoGraphic.BreadCrumbsIndex[this.infoGraphic.BreadCrumbsIndex.length - 1] != rootNodeIndex) {
             this.infoGraphic.BreadCrumbsIndex.pop();
         }
-        this.updateTreeStruct();
+        this.Update();
     }
 
     private viewBtnClickedHandler(view: number) {
@@ -241,7 +236,7 @@ export class MerkelTreeViewer extends DataContainer {
         }
         this.infoGraphic.BreadCrumbsIndex = [this.currentRootNode];
         this.currentView = view;
-        this.updateTreeStruct();
+        this.Update();
     }
 
     private getCurrentRootNode() : Vertex | Parity {

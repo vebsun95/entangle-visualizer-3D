@@ -17,17 +17,15 @@ export class TwoDView extends DataContainer implements View {
     private drawFrom: number = 1;
     private lineGeomIndex: number = 0;
     private ghostIndex: number = 0;
-    private camera: THREE.Camera;
     public StartCamera: THREE.Vector3 = new THREE.Vector3();
 
-    public constructor(verticesGroup: THREE.Group, paritiesGroup: THREE.Group, ghostGroup: THREE.Group, scale: number, controls: MyControls, camera: THREE.Camera) {
+    public constructor(verticesGroup: THREE.Group, paritiesGroup: THREE.Group, ghostGroup: THREE.Group, scale: number, controls: MyControls) {
         super();
         this.verticesGroup = verticesGroup;
         this.paritiesGroup = paritiesGroup;
         this.ghostGroup = ghostGroup;
         this.scale = scale;
         this.controls = controls;
-        this.camera = camera;
     }
 
     private set DrawFrom(position: number) {
@@ -85,7 +83,11 @@ export class TwoDView extends DataContainer implements View {
         this.Update();
         var v = this.verticesGroup.getObjectByName(position.toString())!;
         if (v) {
-            this.controls.panOffset.set(v.position.x - this.controls.camera.position.x, (((this.s / 2) + 1) * this.scale) - this.controls.camera.position.y, 0);
+            let min = this.scale * 3.5 ;
+            let max = this.scale * (this.s - 1.5);
+            let y = Math.max(min, v.position.y);
+            y = Math.min(max, y);
+            this.controls.panDirectly(new THREE.Vector3( v.position.x, y, 65 ));
         }
     }
 
