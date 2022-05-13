@@ -4,11 +4,20 @@
 *Typescript*
 
 <h2> How to run </h2>
-- npm install .
-- npm run dev
 
-<h2>  </h2>
+```npm install . ``` \
+```npm run dev ```
 
+<h2> Overview </h2>
+
+Entangle Visualizer 3d is a visualisation tool for
+the Snarl repair algorithm. The application makes it possible to inspect the log file in a more informative
+manner than just line by line in a text file. Data blocks and interconnections are represented as spheres
+and lines respectively creating a mesh. The colors of the spheres and lines are changed to highlight the
+different states of the objects. This provides an intuitive display of information where issues and solutions
+are easily viewable. Further the application provides the user with the possibility to create a setup to test
+the download sequence of Snarl. This makes it possible to test the Snarl download sequence providing it
+different starting points.
 
 <h2> Shortcuts </h2>
 
