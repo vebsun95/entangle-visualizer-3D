@@ -1,6 +1,7 @@
 # Entangle-Visualizer-3D
 
 <h2> Requirments </h2>
+
 *Typescript*
 
 <h2> How to run </h2>
