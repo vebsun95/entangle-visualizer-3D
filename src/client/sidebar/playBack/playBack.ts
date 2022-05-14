@@ -259,11 +259,6 @@ export class PlayBack {
         opt.innerText = "Cylinder view";
         opt.value = (++i).toString();
         this.changeViewDropDown.append(opt);
-
-        opt = document.createElement("option");
-        opt.innerText = "Toruse view";
-        opt.value = (++i).toString();
-        this.changeViewDropDown.append(opt);
     }
 
     private backClicked(n: number) {
