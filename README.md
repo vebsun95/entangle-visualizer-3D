@@ -9,6 +9,8 @@
 ```npm install . ``` \
 ```npm run dev ```
 
+Testlogs can be found here: https://liveuis-my.sharepoint.com/:f:/g/personal/242918_uis_no/EtdA0as744hDvrHfx3Cr98MBo9qWJ42A0laCtwvq6ACbkw?e=hQKfP4
+
 <h2> Overview </h2>
 
 Entangle Visualizer 3d is a visualisation tool for
