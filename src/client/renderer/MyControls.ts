@@ -151,6 +151,7 @@ class MyControls extends EventDispatcher {
 			destination.x - this.camera.position.x,
 			destination.y - this.camera.position.y,
 			destination.z - this.camera.position.z));
+		this.target.z -= destination.z - this.camera.position.z;
 	}
 
 	public rotateDirectly(destination: Vector3) {
