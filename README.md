@@ -9,7 +9,8 @@
 ```npm install . ``` \
 ```npm run dev ```
 
-Testlogs can be found here: https://liveuis-my.sharepoint.com/:f:/g/personal/242918_uis_no/EtdA0as744hDvrHfx3Cr98MBo9qWJ42A0laCtwvq6ACbkw?e=hQKfP4
+Testlogs can be found here: https://liveuis-my.sharepoint.com/:f:/g/personal/242918_uis_no/EtdA0as744hDvrHfx3Cr98MBo9qWJ42A0laCtwvq6ACbkw?e=hQKfP4 \
+Live preview here: https://vebsun95.github.io/
 
 <h2> Overview </h2>
 
